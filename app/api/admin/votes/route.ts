@@ -18,7 +18,8 @@ export async function GET() {
   const countMap = new Map<string, { contestantId: string; name: string; category: string | null; photo_url: string | null; count: number }>()
 
   for (const row of voteCounts ?? []) {
-    const c = row.contestants as { name: string; category: string | null; photo_url: string | null } | null
+    const raw = row.contestants as unknown
+    const c = (Array.isArray(raw) ? raw[0] : raw) as { name: string; category: string | null; photo_url: string | null } | null
     if (!countMap.has(row.contestant_id)) {
       countMap.set(row.contestant_id, {
         contestantId: row.contestant_id,
