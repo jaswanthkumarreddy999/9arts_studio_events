@@ -389,11 +389,17 @@ function PaymentStep({ applicationId, amount, tier, upiId, utrNumber, screenshot
           <div className="text-xs text-zinc-500 mt-2">9 Arts Studio</div>
         </div>
 
-        {/* UPI details */}
-        <div className="text-center mb-4">
-          <div className="text-sm text-zinc-400 mb-2">Or pay manually via UPI ID</div>
+        {/* UPI Pay button + ID */}
+        <div className="flex flex-col items-center gap-3 mb-4">
+          <a
+            href={`upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent('9 Arts Studio')}&am=${amount}&cu=INR`}
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-bold px-6 py-3 rounded-xl transition-all shadow-lg text-sm"
+          >
+            📱 Pay ₹{amount} via UPI App
+          </a>
+          <div className="text-xs text-zinc-500">Opens PhonePe / GPay / Paytm based on your preference</div>
           <div className="inline-flex items-center gap-2 bg-black/40 border border-yellow-700/30 rounded-lg px-4 py-2">
-            <span className="text-yellow-400 font-mono font-bold">{upiId}</span>
+            <span className="text-yellow-400 font-mono font-bold text-sm">{upiId}</span>
             <button type="button" onClick={() => navigator.clipboard.writeText(upiId)} className="text-zinc-500 hover:text-yellow-400 transition-colors text-xs">Copy</button>
           </div>
         </div>

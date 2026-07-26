@@ -114,10 +114,16 @@ export default function PaymentSubmit({ applicationId, amount, utrNumber: initia
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/payment-qr.png" alt="PhonePe QR" className="w-36 h-36" />
             </div>
+            {/* UPI deep link button */}
+            <a
+              href={`upi://pay?pa=${encodeURIComponent('9346039342@ibl')}&pn=${encodeURIComponent('9 Arts Studio')}&am=${amount}&cu=INR`}
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-bold px-5 py-2.5 rounded-xl transition-all text-sm"
+            >
+              📱 Pay ₹{amount} via UPI App
+            </a>
+            <div className="text-xs text-zinc-500">Opens PhonePe / GPay / Paytm based on your preference</div>
             <div className="inline-flex items-center gap-2 bg-black/40 border border-yellow-700/30 rounded-lg px-3 py-1.5">
-              <span className="text-yellow-400 font-mono font-bold text-sm">
-                {process.env.NEXT_PUBLIC_UPI_ID ?? '9346039342@ibl'}
-              </span>
+              <span className="text-yellow-400 font-mono font-bold text-sm">9346039342@ibl</span>
               <button
                 type="button"
                 onClick={() => navigator.clipboard.writeText('9346039342@ibl')}
