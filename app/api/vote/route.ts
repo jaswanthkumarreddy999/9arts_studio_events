@@ -75,13 +75,22 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: `This contestant is not in the ${category} category` }, { status: 400 })
   }
 
-  // Upsert — one vote per (application_id, category)
+  // Block re-voting — vote is final once cast
+  const { data: existing } = await supabaseAdmin
+    .from('votes')
+    .select('id')
+    .eq('application_id', session.sub)
+    .eq('contestant_category', category)
+    .maybeSingle()
+
+  if (existing) {
+    return Response.json({ error: 'You have already voted in this category. Votes are final and cannot be changed.' }, { status: 409 })
+  }
+
+  // Insert — one vote per (application_id, category)
   const { error } = await supabaseAdmin
     .from('votes')
-    .upsert(
-      { application_id: session.sub, contestant_id: contestantId, contestant_category: category },
-      { onConflict: 'application_id,contestant_category' }
-    )
+    .insert({ application_id: session.sub, contestant_id: contestantId, contestant_category: category })
 
   if (error) return Response.json({ error: 'Vote failed' }, { status: 500 })
 
