@@ -48,11 +48,11 @@ export default function AboutSection() {
             </p>
             <div className="flex gap-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-yellow-400">25+</div>
+                <div className="text-3xl font-bold text-yellow-400">31+</div>
                 <div className="text-sm text-zinc-500 mt-1">Contestants</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-yellow-400">400+</div>
+                <div className="text-3xl font-bold text-yellow-400">600+</div>
                 <div className="text-sm text-zinc-500 mt-1">Seats Available</div>
               </div>
               <div className="text-center">
@@ -68,12 +68,12 @@ export default function AboutSection() {
               Event Details
             </h4>
             {[
-              { label: 'Date', value: 'December 15, 2025', icon: '📅' },
-              { label: 'Day', value: 'Monday', icon: '🗓️' },
-              { label: 'Venue', value: 'Nellore Convention Center', icon: '📍' },
+              { label: 'Date', value: 'August 2, 2026', icon: '📅' },
+              { label: 'Day', value: 'Sunday', icon: '🗓️' },
+              { label: 'Venue', value: 'DGP Kalamandapam, Nellore', icon: '📍' },
               { label: 'Location', value: 'Nellore, Andhra Pradesh', icon: '🗺️' },
-              { label: 'Time', value: '6:00 PM onwards', icon: '⏰' },
-              { label: 'Dress Code', value: 'Formal / Traditional', icon: '👔' },
+              { label: 'Time', value: '2:00 PM onwards', icon: '⏰' },
+              { label: 'Dress Code', value: 'Formal / Traditional / Professional', icon: '👔' },
             ].map((item) => (
               <div key={item.label} className="flex items-start gap-3 py-3 border-b border-white/5 last:border-0">
                 <span className="text-lg">{item.icon}</span>
