@@ -1,26 +1,77 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0f;
+  --foreground: #f5f0e8;
+  --gold: #d4a520;
+  --gold-light: #f0c842;
+  --purple: #4a1d8c;
+  --rose: #e11d48;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-gold: var(--gold);
+  --color-gold-light: var(--gold-light);
+  --color-purple: var(--purple);
+  --color-rose: var(--rose);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Gradient text utility */
+.gradient-text {
+  background: linear-gradient(135deg, #d4a520 0%, #f0c842 50%, #d4a520 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Gold shimmer animation */
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #d4a520 0%, #f0c842 25%, #fff8dc 50%, #f0c842 75%, #d4a520 100%);
+  background-size: 200% auto;
+  animation: shimmer 3s linear infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Floating animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.float { animation: float 3s ease-in-out infinite; }
+
+/* Glow effect */
+.glow {
+  box-shadow: 0 0 20px rgba(212, 165, 32, 0.3), 0 0 40px rgba(212, 165, 32, 0.1);
+}
+
+/* Section scroll margin for fixed nav */
+section[id] {
+  scroll-margin-top: 72px;
+}
+
+/* QR scanner line animation */
+@keyframes scan {
+  0% { top: 0; }
+  50% { top: calc(100% - 2px); }
+  100% { top: 0; }
 }
