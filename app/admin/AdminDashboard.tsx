@@ -367,7 +367,7 @@ function RegistrationsTab() {
 
                 {/* Free Pass grant — complimentary access without payment */}
                 <button
-                  onClick={() => handleStatusChange('done')}
+                  onClick={(e) => { e.stopPropagation(); handleStatusChange('done') }}
                   disabled={actionLoading || selected.registration_status === 'done'}
                   className="w-full py-2.5 rounded-xl text-sm font-semibold border border-emerald-600/50 text-emerald-300 bg-emerald-900/20 hover:bg-emerald-900/40 disabled:opacity-40 transition-colors">
                   {actionLoading ? '…' : selected.registration_status === 'done' ? '✅ Free Pass Already Granted' : '🎁 Grant Free Pass — skip payment, generate QR'}
@@ -377,14 +377,14 @@ function RegistrationsTab() {
 
                 <div className="grid grid-cols-2 gap-2">
                   {(['active', 'payment_pending', 'review'] as const).map(s => (
-                    <button key={s} onClick={() => handleStatusChange(s)} disabled={actionLoading || selected.registration_status === s}
+                    <button key={s} onClick={(e) => { e.stopPropagation(); handleStatusChange(s) }} disabled={actionLoading || selected.registration_status === s}
                       className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all disabled:opacity-40 ${REG_STATUS_META[s].color}`}>
                       {REG_STATUS_META[s].icon} {REG_STATUS_META[s].label}
                     </button>
                   ))}
                   {/* Revoke done — allows going back from done if needed */}
                   {selected.registration_status === 'done' && (
-                    <button onClick={() => handleStatusChange('active')} disabled={actionLoading}
+                    <button onClick={(e) => { e.stopPropagation(); handleStatusChange('active') }} disabled={actionLoading}
                       className="py-2 px-3 rounded-xl text-xs font-semibold border transition-all border-zinc-600 text-zinc-400 bg-zinc-900/40 hover:bg-zinc-800/60">
                       ↩️ Revoke Done → Active
                     </button>
@@ -392,18 +392,18 @@ function RegistrationsTab() {
                 </div>
                 {/* Move to trash */}
                 {(selected.registration_status ?? 'active') !== 'deleted' ? (
-                  <button onClick={() => handleStatusChange('deleted')} disabled={actionLoading}
+                  <button onClick={(e) => { e.stopPropagation(); handleStatusChange('deleted') }} disabled={actionLoading}
                     className="w-full py-2.5 rounded-xl text-sm font-semibold border border-red-700/40 text-red-400 bg-red-900/20 hover:bg-red-900/40 disabled:opacity-40 transition-colors">
                     🗑️ Move to Trash — blocks login, retains data
                   </button>
                 ) : (
                   <div className="space-y-2">
                     <div className="text-xs text-zinc-500 text-center">This registration is in trash. Login is blocked.</div>
-                    <button onClick={() => handleStatusChange('active')} disabled={actionLoading}
+                    <button onClick={(e) => { e.stopPropagation(); handleStatusChange('active') }} disabled={actionLoading}
                       className="w-full py-2.5 rounded-xl text-sm font-semibold border border-green-700/40 text-green-400 bg-green-900/20 hover:bg-green-900/40 disabled:opacity-40 transition-colors">
                       ↩️ Restore from Trash
                     </button>
-                    <button onClick={handleHardDelete} disabled={actionLoading}
+                    <button onClick={(e) => { e.stopPropagation(); handleHardDelete() }} disabled={actionLoading}
                       className="w-full py-2.5 rounded-xl text-sm font-semibold border border-red-500/50 text-red-300 bg-red-900/30 hover:bg-red-800/50 disabled:opacity-40 transition-colors">
                       ☠️ Permanently Delete — removes all data forever
                     </button>
