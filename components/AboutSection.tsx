@@ -1,11 +1,11 @@
 export default function AboutSection() {
   const highlights = [
     { icon: '🏆', title: 'Grand Prize', desc: 'Crown, trophy & exciting prizes for the winner' },
-    { icon: '💃', title: 'Talent Showcase', desc: 'Contestants perform and display their unique talents' },
+    { icon: '💃', title: 'Dance Performance', desc: 'Dancers perform and display their unique talents' },
     { icon: '👗', title: 'Fashion Walk', desc: 'Elegant ramp walk in traditional and western attire' },
     { icon: '🎤', title: 'Q&A Round', desc: 'Thoughtful questions to highlight personality and intelligence' },
     { icon: '📸', title: 'Photo Shoot', desc: 'Professional photography for all contestants' },
-    { icon: '🌟', title: 'Felicitation', desc: 'Special felicitation for all participants and sponsors' },
+    { icon: '🌟', title: 'Felicitation', desc: 'Special felicitation for all Guest and Sponsors' },
   ]
 
   return (
@@ -25,7 +25,7 @@ export default function AboutSection() {
             <span className="shimmer">Elegance & Grace</span>
           </h2>
           <p className="text-zinc-400 text-lg max-w-2xl mx-auto leading-relaxed">
-            Miss Nellore 2025 is more than a beauty pageant — it&apos;s a platform for talented
+            Miss Nellore 2026 is more than a beauty pageant — it&apos;s a platform for talented
             young women of Nellore to shine, inspire, and make their mark.
           </p>
         </div>

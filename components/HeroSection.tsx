@@ -49,7 +49,7 @@ export default function HeroSection() {
         {/* Main heading */}
         <h1 className="text-5xl sm:text-7xl font-bold mb-4 leading-tight">
           <span className="shimmer block">Miss Nellore</span>
-          <span className="text-white text-3xl sm:text-5xl mt-2 block">2025</span>
+          <span className="text-white text-3xl sm:text-5xl mt-2 block">2026</span>
         </h1>
 
         <p className="text-zinc-300 text-lg sm:text-xl max-w-2xl mx-auto mb-4 leading-relaxed">
@@ -63,7 +63,7 @@ export default function HeroSection() {
             📅 August 2, 2026
           </span>
           <span className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-zinc-300">
-            📍 Nellore Convention Center
+            📍 
           </span>
           <span className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-zinc-300">
             🎟️ Limited Seats
