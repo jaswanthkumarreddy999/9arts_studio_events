@@ -22,7 +22,7 @@ export default async function AdminVotesPage() {
       <div className="max-w-5xl mx-auto px-4 py-6">
         <div className="mb-6">
           <h1 className="text-xl font-bold text-white">Vote Management</h1>
-          <p className="text-zinc-500 text-sm mt-1">View, reassign or delete individual votes. Use with caution.</p>
+          <p className="text-zinc-500 text-sm mt-1">Reset all votes or individual votes per category. Deleted votes allow users to vote again.</p>
         </div>
         <VoteEditor />
       </div>
