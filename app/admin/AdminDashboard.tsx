@@ -437,15 +437,14 @@ function ContestantsTab() {
   async function uploadPhoto(contestantId: string): Promise<string | null> {
     if (!photoFile) return null
     setUploading(true)
-    const urlRes = await fetch('/api/admin/contestant-photo-url', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contestantId, fileName: photoFile.name }),
-    })
-    const urlData = await urlRes.json()
-    if (!urlRes.ok) { setError(urlData.error ?? 'Upload failed'); setUploading(false); return null }
-    await fetch(urlData.signedUrl, { method: 'PUT', body: photoFile, headers: { 'Content-Type': photoFile.type } })
+    const fd = new FormData()
+    fd.append('file', photoFile)
+    fd.append('contestantId', contestantId)
+    const res = await fetch('/api/admin/contestant-photo-url', { method: 'POST', body: fd })
+    const data = await res.json()
     setUploading(false)
-    return urlData.publicUrl
+    if (!res.ok) { setError(data.error ?? 'Upload failed'); return null }
+    return data.publicUrl
   }
 
   async function handleSave() {
@@ -461,13 +460,16 @@ function ContestantsTab() {
       if (!res.ok) { setError(data.error ?? 'Failed'); setSaving(false); return }
       if (photoFile) {
         const photoUrl = await uploadPhoto(data.contestant.id)
-        if (photoUrl) {
-          await fetch(`/api/admin/contestants/${data.contestant.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ photo_url: photoUrl }) })
-        }
+        if (!photoUrl) { setSaving(false); return } // upload error already set
+        await fetch(`/api/admin/contestants/${data.contestant.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ photo_url: photoUrl }) })
       }
     } else if (editing) {
       let photoUrl = form.photo_url
-      if (photoFile) { const u = await uploadPhoto(editing.id); if (u) photoUrl = u }
+      if (photoFile) {
+        const uploaded = await uploadPhoto(editing.id)
+        if (!uploaded) { setSaving(false); return } // upload error already set
+        photoUrl = uploaded
+      }
       const res = await fetch(`/api/admin/contestants/${editing.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...payload, photo_url: photoUrl }) })
       if (!res.ok) { const d = await res.json(); setError(d.error ?? 'Failed'); setSaving(false); return }
     }
