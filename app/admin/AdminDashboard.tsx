@@ -495,7 +495,7 @@ function RegistrationsTab() {
 // ─── CONTESTANTS TAB ──────────────────────────────────────────────────────────
 
 const CONTESTANT_CATEGORIES: { value: VoteCategory; label: string; icon: string }[] = [
-  { value: 'kid',    label: 'Kid',    icon: '🧒' },
+  { value: 'kid',    label: 'Little', icon: '🧒' },
   { value: 'teen',   label: 'Teen',   icon: '👧' },
   { value: 'miss',   label: 'Miss',   icon: '👩' },
   { value: 'misses', label: 'Misses', icon: '👑' },
@@ -546,7 +546,7 @@ function ContestantsTab() {
 
   async function handleSave() {
     if (!form.name.trim()) { setError('Name is required'); return }
-    if (!form.contestant_category) { setError('Vote category is required (kid / teen / miss / misses)'); return }
+    if (!form.contestant_category) { setError('Vote category is required (little / teen / miss / misses)'); return }
     setSaving(true); setError('')
 
     const payload = { ...form, display_order: Number(form.display_order) }

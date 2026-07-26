@@ -74,6 +74,9 @@ export default function HeroSection() {
             </a>
           </span>
           <span className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-zinc-300">
+            👑 Little, Teen, Miss, Misses
+          </span>
+          <span className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-zinc-300">
             🎟️ Limited Seats
           </span>
         </div>

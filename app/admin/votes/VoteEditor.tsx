@@ -6,7 +6,7 @@ const VOTE_CATEGORIES = ['kid', 'teen', 'miss', 'misses'] as const
 type VoteCategory = typeof VOTE_CATEGORIES[number]
 
 const CAT_META: Record<VoteCategory, { label: string; icon: string }> = {
-  kid:    { label: 'Kid',    icon: '🧒' },
+  kid:    { label: 'Little', icon: '🧒' },
   teen:   { label: 'Teen',   icon: '👧' },
   miss:   { label: 'Miss',   icon: '👩' },
   misses: { label: 'Misses', icon: '👑' },

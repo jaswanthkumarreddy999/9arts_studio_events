@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 type VoteCategory = 'kid' | 'teen' | 'miss' | 'misses'
 
 const CATEGORY_META: Record<VoteCategory, { label: string; icon: string; desc: string }> = {
-  kid:    { label: 'Kid',    icon: '🧒', desc: 'Vote for your favourite Kid contestant' },
+  kid:    { label: 'Little', icon: '🧒', desc: 'Vote for your favourite Little contestant' },
   teen:   { label: 'Teen',   icon: '👧', desc: 'Vote for your favourite Teen contestant' },
   miss:   { label: 'Miss',   icon: '👩', desc: 'Vote for your favourite Miss contestant' },
   misses: { label: 'Misses', icon: '👑', desc: 'Vote for your favourite Misses contestant' },
