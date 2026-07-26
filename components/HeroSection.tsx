@@ -60,7 +60,7 @@ export default function HeroSection() {
         {/* Event details pills */}
         <div className="flex flex-wrap justify-center gap-3 mb-10">
           <span className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-zinc-300">
-            📅 December 15, 2025
+            📅 August 2, 2026
           </span>
           <span className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-zinc-300">
             📍 Nellore Convention Center
