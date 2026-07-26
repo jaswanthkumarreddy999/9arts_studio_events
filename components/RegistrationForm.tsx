@@ -117,7 +117,12 @@ export default function RegistrationForm() {
       })
       const data = await res.json()
       if (!res.ok) {
-        dispatch({ type: 'SET_SUBMIT_ERROR', error: data.error ?? 'Registration failed' })
+        if (res.status === 409 && data.application_id) {
+          // Mobile already registered — show their application ID
+          dispatch({ type: 'SET_SUBMIT_ERROR', error: `ALREADY_REGISTERED:${data.application_id}` })
+        } else {
+          dispatch({ type: 'SET_SUBMIT_ERROR', error: data.error ?? 'Registration failed' })
+        }
         return
       }
       dispatch({ type: 'SET_APP_ID', applicationId: data.application_id, amount: data.amount })
@@ -287,9 +292,26 @@ export default function RegistrationForm() {
           </Field>
 
           {state.submitError && (
-            <div className="bg-red-900/20 border border-red-700/50 text-red-400 rounded-lg px-4 py-3 text-sm">
-              {state.submitError}
-            </div>
+            state.submitError.startsWith('ALREADY_REGISTERED:') ? (
+              <div className="bg-amber-900/20 border border-amber-700/50 rounded-xl px-4 py-4 text-sm space-y-3">
+                <div className="text-amber-400 font-semibold">⚠️ This mobile number is already registered.</div>
+                <div className="text-zinc-300">Your Application ID:</div>
+                <div className="font-mono font-bold text-white bg-black/40 rounded-lg px-4 py-2 text-center tracking-wider">
+                  {state.submitError.replace('ALREADY_REGISTERED:', '')}
+                </div>
+                <div className="text-zinc-400 text-xs">Use this ID to log in and check your pass status.</div>
+                <a
+                  href="/login"
+                  className="block w-full text-center bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-2.5 rounded-xl transition-colors"
+                >
+                  Go to Login →
+                </a>
+              </div>
+            ) : (
+              <div className="bg-red-900/20 border border-red-700/50 text-red-400 rounded-lg px-4 py-3 text-sm">
+                {state.submitError}
+              </div>
+            )
           )}
 
           <button type="submit" disabled={state.submitting} className="w-full bg-gradient-to-r from-yellow-600 to-yellow-400 text-black font-bold py-4 rounded-xl text-lg disabled:opacity-60 disabled:cursor-not-allowed hover:from-yellow-500 hover:to-yellow-300 transition-all hover:scale-[1.01] active:scale-[0.99]">

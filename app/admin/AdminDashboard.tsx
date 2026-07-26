@@ -122,6 +122,8 @@ function RegistrationsTab() {
     if (res.ok) {
       const data = await res.json()
       setRows(data.registrations)
+    } else {
+      console.error('Failed to fetch registrations:', res.status, await res.text())
     }
     setLoading(false)
   }, [])
