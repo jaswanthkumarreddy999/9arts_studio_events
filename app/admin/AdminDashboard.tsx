@@ -165,6 +165,9 @@ function RegistrationsTab() {
     if (res.ok) {
       setSelected(s => s ? { ...s, registration_status: newStatus, status_note: statusNote } : null)
       await fetchRows()
+    } else {
+      const d = await res.json().catch(() => ({}))
+      alert(`Status update failed: ${d.error ?? res.status}`)
     }
     setActionLoading(false)
   }
