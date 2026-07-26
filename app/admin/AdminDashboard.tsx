@@ -179,7 +179,7 @@ function RegistrationsTab() {
 
   const counts = {
     all: rows.length,
-    active: rows.filter(r => r.registration_status === 'active').length,
+    active: rows.filter(r => (r.registration_status ?? 'active') === 'active').length,
     done: rows.filter(r => r.registration_status === 'done').length,
     payment_pending: rows.filter(r => r.registration_status === 'payment_pending').length,
     review: rows.filter(r => r.registration_status === 'review').length,
@@ -187,7 +187,7 @@ function RegistrationsTab() {
   }
 
   const filtered = rows
-    .filter(r => statusFilter === 'all' || r.registration_status === statusFilter)
+    .filter(r => statusFilter === 'all' || (r.registration_status ?? 'active') === statusFilter)
     .filter(r => paymentFilter === 'all' || r.payments?.status === paymentFilter)
     .filter(r => !search || r.full_name.toLowerCase().includes(search.toLowerCase()) || r.mobile.includes(search) || r.application_id.toLowerCase().includes(search.toLowerCase()))
 
@@ -250,7 +250,7 @@ function RegistrationsTab() {
               </thead>
               <tbody>
                 {filtered.map((row) => {
-                  const sm = REG_STATUS_META[row.registration_status]
+                  const sm = REG_STATUS_META[row.registration_status] ?? REG_STATUS_META['active']
                   return (
                     <tr key={row.application_id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                       <td className="px-4 py-3">
@@ -349,8 +349,8 @@ function RegistrationsTab() {
               <div className="border border-white/10 rounded-xl p-4 space-y-3">
                 <div className="text-xs text-zinc-400 font-semibold uppercase tracking-wide">Registration Status</div>
                 <div className="text-sm text-zinc-300">
-                  Current: <span className={`font-semibold ${REG_STATUS_META[selected.registration_status].color.split(' ')[0]}`}>
-                    {REG_STATUS_META[selected.registration_status].icon} {REG_STATUS_META[selected.registration_status].label}
+                  Current: <span className={`font-semibold ${REG_STATUS_META[selected.registration_status ?? 'active'].color.split(' ')[0]}`}>
+                    {REG_STATUS_META[selected.registration_status ?? 'active'].icon} {REG_STATUS_META[selected.registration_status ?? 'active'].label}
                   </span>
                 </div>
                 {selected.status_note && (
@@ -368,7 +368,7 @@ function RegistrationsTab() {
                   ))}
                 </div>
                 {/* Move to trash */}
-                {selected.registration_status !== 'deleted' ? (
+                {(selected.registration_status ?? 'active') !== 'deleted' ? (
                   <button onClick={() => handleStatusChange('deleted')} disabled={actionLoading}
                     className="w-full py-2.5 rounded-xl text-sm font-semibold border border-red-700/40 text-red-400 bg-red-900/20 hover:bg-red-900/40 disabled:opacity-40 transition-colors">
                     🗑️ Move to Trash — blocks login, retains data
