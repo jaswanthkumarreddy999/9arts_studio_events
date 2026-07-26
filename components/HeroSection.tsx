@@ -48,6 +48,7 @@ export default function HeroSection() {
 
         {/* Main heading */}
         <h1 className="text-5xl sm:text-7xl font-bold mb-4 leading-tight">
+          <span className="shimmer block">9 Arts</span>
           <span className="shimmer block">Miss Nellore</span>
           <span className="text-white text-3xl sm:text-5xl mt-2 block">2026</span>
         </h1>
