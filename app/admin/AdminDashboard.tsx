@@ -198,6 +198,26 @@ function RegistrationsTab() {
     deleted: rows.filter(r => r.registration_status === 'deleted').length,
   }
 
+  // Exclude deleted from stats
+  const active = rows.filter(r => r.registration_status !== 'deleted')
+  const regStats = {
+    total: active.length,
+    elite: active.filter(r => r.seat_tier === 'elite').length,
+    gold: active.filter(r => r.seat_tier === 'gold').length,
+    male: active.filter(r => r.gender === 'male').length,
+    female: active.filter(r => r.gender === 'female').length,
+    other: active.filter(r => r.gender === 'other').length,
+    male_elite: active.filter(r => r.gender === 'male' && r.seat_tier === 'elite').length,
+    male_gold: active.filter(r => r.gender === 'male' && r.seat_tier === 'gold').length,
+    female_elite: active.filter(r => r.gender === 'female' && r.seat_tier === 'elite').length,
+    female_gold: active.filter(r => r.gender === 'female' && r.seat_tier === 'gold').length,
+    other_elite: active.filter(r => r.gender === 'other' && r.seat_tier === 'elite').length,
+    other_gold: active.filter(r => r.gender === 'other' && r.seat_tier === 'gold').length,
+    paid: active.filter(r => r.payments?.status === 'approved').length,
+    paid_elite: active.filter(r => r.payments?.status === 'approved' && r.seat_tier === 'elite').length,
+    paid_gold: active.filter(r => r.payments?.status === 'approved' && r.seat_tier === 'gold').length,
+  }
+
   const filtered = rows
     .filter(r => statusFilter === 'all' || (r.registration_status ?? 'active') === statusFilter)
     .filter(r => paymentFilter === 'all' || r.payments?.status === paymentFilter)
@@ -223,6 +243,88 @@ function RegistrationsTab() {
           )
         })}
       </div>
+
+      {/* Detailed stats breakdown */}
+      {regStats.total > 0 && (
+        <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Pass type counts */}
+          <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+            <div className="px-4 py-2 border-b border-white/10 text-xs text-zinc-500 uppercase tracking-wide font-semibold">Pass Distribution</div>
+            <div className="grid grid-cols-2 divide-x divide-white/10">
+              <div className="px-4 py-3 text-center">
+                <div className="text-xl font-bold text-amber-400">{regStats.elite}</div>
+                <div className="text-xs text-amber-600 mt-0.5">👑 Elite</div>
+              </div>
+              <div className="px-4 py-3 text-center">
+                <div className="text-xl font-bold text-yellow-400">{regStats.gold}</div>
+                <div className="text-xs text-yellow-600 mt-0.5">⭐ Gold</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Paid counts */}
+          <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+            <div className="px-4 py-2 border-b border-white/10 text-xs text-zinc-500 uppercase tracking-wide font-semibold">Payment Approved</div>
+            <div className="grid grid-cols-3 divide-x divide-white/10">
+              <div className="px-3 py-3 text-center">
+                <div className="text-xl font-bold text-green-400">{regStats.paid}</div>
+                <div className="text-xs text-green-600 mt-0.5">Total</div>
+              </div>
+              <div className="px-3 py-3 text-center">
+                <div className="text-xl font-bold text-amber-400">{regStats.paid_elite}</div>
+                <div className="text-xs text-amber-600 mt-0.5">👑 Elite</div>
+              </div>
+              <div className="px-3 py-3 text-center">
+                <div className="text-xl font-bold text-yellow-400">{regStats.paid_gold}</div>
+                <div className="text-xs text-yellow-600 mt-0.5">⭐ Gold</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Gender × Pass breakdown table */}
+          <div className="sm:col-span-2 bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+            <div className="px-4 py-2 border-b border-white/10 text-xs text-zinc-500 uppercase tracking-wide font-semibold">Gender × Pass Breakdown</div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/5">
+                  <th className="text-left px-4 py-2 text-zinc-600 text-xs font-medium">Gender</th>
+                  <th className="text-center px-4 py-2 text-amber-600 text-xs font-medium">👑 Elite</th>
+                  <th className="text-center px-4 py-2 text-yellow-600 text-xs font-medium">⭐ Gold</th>
+                  <th className="text-center px-4 py-2 text-zinc-400 text-xs font-medium">Total</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                <tr>
+                  <td className="px-4 py-2 text-blue-300 text-xs">♂ Male</td>
+                  <td className="px-4 py-2 text-center text-white text-xs font-medium">{regStats.male_elite}</td>
+                  <td className="px-4 py-2 text-center text-white text-xs font-medium">{regStats.male_gold}</td>
+                  <td className="px-4 py-2 text-center text-zinc-300 text-xs font-bold">{regStats.male}</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2 text-pink-300 text-xs">♀ Female</td>
+                  <td className="px-4 py-2 text-center text-white text-xs font-medium">{regStats.female_elite}</td>
+                  <td className="px-4 py-2 text-center text-white text-xs font-medium">{regStats.female_gold}</td>
+                  <td className="px-4 py-2 text-center text-zinc-300 text-xs font-bold">{regStats.female}</td>
+                </tr>
+                {regStats.other > 0 && (
+                  <tr>
+                    <td className="px-4 py-2 text-purple-300 text-xs">⚧ Other</td>
+                    <td className="px-4 py-2 text-center text-white text-xs font-medium">{regStats.other_elite}</td>
+                    <td className="px-4 py-2 text-center text-white text-xs font-medium">{regStats.other_gold}</td>
+                    <td className="px-4 py-2 text-center text-zinc-300 text-xs font-bold">{regStats.other}</td>
+                  </tr>
+                )}
+                <tr className="bg-white/5">
+                  <td className="px-4 py-2 text-zinc-400 text-xs font-semibold">Total</td>
+                  <td className="px-4 py-2 text-center text-amber-400 text-xs font-bold">{regStats.elite}</td>
+                  <td className="px-4 py-2 text-center text-yellow-400 text-xs font-bold">{regStats.gold}</td>
+                  <td className="px-4 py-2 text-center text-white text-xs font-bold">{regStats.total}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Payment filter + search */}
       <div className="flex flex-wrap gap-2 mb-4 items-center">
