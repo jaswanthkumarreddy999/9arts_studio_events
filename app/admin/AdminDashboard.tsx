@@ -19,6 +19,16 @@ const REG_STATUS_META: Record<RegStatus, { label: string; color: string; icon: s
   deleted:         { label: 'Deleted',         icon: '🗑️', color: 'text-red-400 bg-red-900/20 border-red-700/30' },
 }
 
+interface PaymentRecord {
+  status: PaymentStatus
+  utr_number?: string
+  screenshot_path?: string
+  submitted_at?: string
+  rejection_reason?: string
+  verified_at?: string
+  amount?: number
+}
+
 interface RegRow {
   application_id: string
   full_name: string
@@ -30,15 +40,7 @@ interface RegRow {
   created_at: string
   registration_status: RegStatus
   status_note?: string
-  payments: {
-    status: PaymentStatus
-    utr_number?: string
-    screenshot_path?: string
-    submitted_at?: string
-    rejection_reason?: string
-    verified_at?: string
-    amount?: number
-  } | null
+  payments: PaymentRecord | null
 }
 
 interface Contestant {
@@ -121,7 +123,12 @@ function RegistrationsTab() {
     const res = await fetch('/api/admin/registrations')
     if (res.ok) {
       const data = await res.json()
-      setRows(data.registrations)
+      // Supabase returns payments as array (one-to-many) — normalize to single object
+      const normalized = (data.registrations ?? []).map((r: RegRow & { payments: PaymentRecord | PaymentRecord[] | null }) => ({
+        ...r,
+        payments: Array.isArray(r.payments) ? (r.payments[0] ?? null) : r.payments,
+      }))
+      setRows(normalized)
     } else {
       console.error('Failed to fetch registrations:', res.status, await res.text())
     }
