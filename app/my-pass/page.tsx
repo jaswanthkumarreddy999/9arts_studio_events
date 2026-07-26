@@ -4,12 +4,13 @@ import { SEAT_TIERS } from '@/lib/types'
 import Link from 'next/link'
 import PassActions from './PassActions'
 import VoteSection from './VoteSection'
+import PaymentSubmit from './PaymentSubmit'
 
 export default async function MyPassPage() {
   const session = await getSession()
   if (!session) return null // middleware handles redirect
 
-  const [{ data: pass }, { data: payment }] = await Promise.all([
+  const [{ data: pass }, { data: payment }, { data: reg }] = await Promise.all([
     supabaseAdmin
       .from('passes')
       .select('application_id, full_name, seat_tier, qr_data_url, issued_at')
@@ -17,12 +18,17 @@ export default async function MyPassPage() {
       .maybeSingle(),
     supabaseAdmin
       .from('payments')
-      .select('status, rejection_reason, amount, utr_number')
+      .select('status, rejection_reason, amount, utr_number, screenshot_path')
+      .eq('application_id', session.sub)
+      .maybeSingle(),
+    supabaseAdmin
+      .from('registrations')
+      .select('seat_tier')
       .eq('application_id', session.sub)
       .maybeSingle(),
   ])
 
-  const tier = (pass?.seat_tier ?? 'gold') as keyof typeof SEAT_TIERS
+  const tier = (pass?.seat_tier ?? reg?.seat_tier ?? 'gold') as keyof typeof SEAT_TIERS
   const tierInfo = SEAT_TIERS[tier]
 
   return (
@@ -54,7 +60,7 @@ export default async function MyPassPage() {
 
         {/* Payment status */}
         {payment && (
-          <div className={`rounded-xl px-4 py-3 mb-6 ${
+          <div className={`rounded-xl px-4 py-3 mb-2 ${
             payment.status === 'approved' ? 'bg-green-900/20 border border-green-700/40' :
             payment.status === 'rejected' ? 'bg-red-900/20 border border-red-700/40' :
             'bg-yellow-900/20 border border-yellow-700/40'
@@ -71,13 +77,29 @@ export default async function MyPassPage() {
                   Payment {payment.status === 'approved' ? 'Verified' : payment.status === 'rejected' ? 'Rejected' : 'Pending Verification'}
                 </div>
                 {payment.status === 'pending' && (
-                  <div className="text-zinc-400 text-xs mt-0.5">Usually verified within 24 hours</div>
+                  <div className="text-zinc-400 text-xs mt-0.5">
+                    {payment.utr_number
+                      ? `UTR ${payment.utr_number} submitted — usually verified within 24 hours`
+                      : 'No payment details yet — complete your payment below'}
+                  </div>
                 )}
                 {payment.status === 'rejected' && payment.rejection_reason && (
                   <div className="text-red-300 text-xs mt-0.5">Reason: {payment.rejection_reason}</div>
                 )}
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Payment completion — shown when payment is pending (no QR yet) */}
+        {payment?.status === 'pending' && !pass?.qr_data_url && (
+          <div className="mb-6">
+            <PaymentSubmit
+              applicationId={session.sub}
+              amount={payment.amount ?? tierInfo.price}
+              utrNumber={payment.utr_number ?? null}
+              hasScreenshot={!!payment.screenshot_path}
+            />
           </div>
         )}
 
