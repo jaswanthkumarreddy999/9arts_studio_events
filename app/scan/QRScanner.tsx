@@ -17,7 +17,17 @@ interface ScanLog {
     full_name: string
     seat_tier: string
     mobile: string
+    gender?: string
   } | null
+}
+
+interface ScanStats {
+  total: number
+  elite: number; gold: number
+  male: number; female: number; other: number
+  male_elite: number; male_gold: number
+  female_elite: number; female_gold: number
+  other_elite: number; other_gold: number
 }
 
 export default function QRScanner() {
@@ -31,6 +41,7 @@ export default function QRScanner() {
 
   // History state
   const [logs, setLogs] = useState<ScanLog[]>([])
+  const [stats, setStats] = useState<ScanStats | null>(null)
   const [historySearch, setHistorySearch] = useState('')
   const [historyLoading, setHistoryLoading] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -42,7 +53,8 @@ export default function QRScanner() {
     if (res.ok) {
       const d = await res.json()
       setLogs(d.logs ?? [])
-      setScanCount(d.logs?.length ?? 0)
+      setStats(d.stats ?? null)
+      setScanCount(d.stats?.total ?? 0)
     }
     setHistoryLoading(false)
   }, [])
@@ -163,13 +175,76 @@ export default function QRScanner() {
         l.registrations?.mobile.includes(historySearch)
       )
     : logs
-
   return (
     <div className="max-w-sm mx-auto px-4 py-8">
-      {/* Counter */}
-      <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mb-6 text-center">
-        <div className="text-3xl font-bold text-white">{scanCount}</div>
-        <div className="text-zinc-500 text-sm">Total attendees entered</div>
+      {/* Stats dashboard */}
+      <div className="mb-6 space-y-3">
+        {/* Total */}
+        <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center">
+          <div className="text-3xl font-bold text-white">{scanCount}</div>
+          <div className="text-zinc-500 text-sm">Total Attendees Entered</div>
+        </div>
+
+        {/* Elite / Gold split */}
+        {stats && (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-amber-900/20 border border-amber-700/30 rounded-xl px-3 py-3 text-center">
+              <div className="text-2xl font-bold text-amber-400">{stats.elite}</div>
+              <div className="text-amber-600 text-xs mt-0.5">👑 Elite</div>
+            </div>
+            <div className="bg-yellow-900/20 border border-yellow-700/30 rounded-xl px-3 py-3 text-center">
+              <div className="text-2xl font-bold text-yellow-400">{stats.gold}</div>
+              <div className="text-yellow-600 text-xs mt-0.5">⭐ Gold</div>
+            </div>
+          </div>
+        )}
+
+        {/* Gender × Tier breakdown */}
+        {stats && stats.total > 0 && (
+          <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+            <div className="px-3 py-2 border-b border-white/10 text-xs text-zinc-500 uppercase tracking-wide font-semibold">
+              Breakdown
+            </div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/5">
+                  <th className="text-left px-3 py-2 text-zinc-600 text-xs font-medium">Gender</th>
+                  <th className="text-center px-3 py-2 text-amber-600 text-xs font-medium">👑 Elite</th>
+                  <th className="text-center px-3 py-2 text-yellow-600 text-xs font-medium">⭐ Gold</th>
+                  <th className="text-center px-3 py-2 text-zinc-400 text-xs font-medium">Total</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                <tr>
+                  <td className="px-3 py-2 text-blue-300 text-xs">♂ Male</td>
+                  <td className="px-3 py-2 text-center text-white text-xs font-medium">{stats.male_elite}</td>
+                  <td className="px-3 py-2 text-center text-white text-xs font-medium">{stats.male_gold}</td>
+                  <td className="px-3 py-2 text-center text-zinc-300 text-xs font-bold">{stats.male}</td>
+                </tr>
+                <tr>
+                  <td className="px-3 py-2 text-pink-300 text-xs">♀ Female</td>
+                  <td className="px-3 py-2 text-center text-white text-xs font-medium">{stats.female_elite}</td>
+                  <td className="px-3 py-2 text-center text-white text-xs font-medium">{stats.female_gold}</td>
+                  <td className="px-3 py-2 text-center text-zinc-300 text-xs font-bold">{stats.female}</td>
+                </tr>
+                {stats.other > 0 && (
+                  <tr>
+                    <td className="px-3 py-2 text-purple-300 text-xs">⚧ Other</td>
+                    <td className="px-3 py-2 text-center text-white text-xs font-medium">{stats.other_elite}</td>
+                    <td className="px-3 py-2 text-center text-white text-xs font-medium">{stats.other_gold}</td>
+                    <td className="px-3 py-2 text-center text-zinc-300 text-xs font-bold">{stats.other}</td>
+                  </tr>
+                )}
+                <tr className="bg-white/5">
+                  <td className="px-3 py-2 text-zinc-400 text-xs font-semibold">Total</td>
+                  <td className="px-3 py-2 text-center text-amber-400 text-xs font-bold">{stats.elite}</td>
+                  <td className="px-3 py-2 text-center text-yellow-400 text-xs font-bold">{stats.gold}</td>
+                  <td className="px-3 py-2 text-center text-white text-xs font-bold">{stats.total}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Result */}
