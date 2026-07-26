@@ -52,7 +52,7 @@ export default function AboutSection() {
                 <div className="text-sm text-zinc-500 mt-1">Contestants</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-yellow-400">600+</div>
+                <div className="text-3xl font-bold text-yellow-400">600</div>
                 <div className="text-sm text-zinc-500 mt-1">Seats Available</div>
               </div>
               <div className="text-center">

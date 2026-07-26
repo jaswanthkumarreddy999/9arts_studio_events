@@ -85,9 +85,12 @@ CREATE TABLE IF NOT EXISTS event_config (
 );
 
 INSERT INTO event_config VALUES
-  ('elite', 100, 100, 1500),
-  ('gold',  300, 300,  800)
-ON CONFLICT (tier) DO NOTHING;
+  ('elite', 300, 300, 499),
+  ('gold',  300, 300, 299)
+ON CONFLICT (tier) DO UPDATE SET
+  total_seats = EXCLUDED.total_seats,
+  seats_remaining = EXCLUDED.seats_remaining,
+  price = EXCLUDED.price;
 
 -- ─────────────────────────────────────────────────────────
 -- ADMINS

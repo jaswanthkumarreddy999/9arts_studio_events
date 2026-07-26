@@ -209,24 +209,45 @@ export default function RegistrationForm() {
           <div>
             <label className="block text-sm font-medium text-zinc-300 mb-3">Select Your Pass</label>
             <div className="grid grid-cols-2 gap-3">
-              {(Object.entries(SEAT_TIERS) as [SeatTier, typeof SEAT_TIERS[SeatTier]][]).map(([key, t]) => (
+              {(Object.entries(SEAT_TIERS) as [SeatTier, typeof SEAT_TIERS[SeatTier]][]).map(([key, t]) => {
+                const discount = Math.round((1 - t.price / t.originalPrice) * 100)
+                return (
                 <label
                   key={key}
                   className={`relative cursor-pointer rounded-xl p-4 border-2 transition-all ${state.form.seat_tier === key ? 'border-yellow-500 bg-yellow-900/20' : 'border-white/10 bg-white/5 hover:border-yellow-700/50'}`}
                 >
                   <input type="radio" name="seat_tier" value={key} checked={state.form.seat_tier === key} onChange={() => dispatch({ type: 'SET_FIELD', field: 'seat_tier', value: key })} className="sr-only" />
+
+                  {/* Discount badge */}
+                  <div className="absolute -top-2.5 -right-2.5 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-lg">
+                    {discount}% OFF
+                  </div>
+
                   <div className="text-2xl mb-2">{t.badge}</div>
                   <div className="font-bold text-white text-sm">{t.label}</div>
                   <div className="text-xs text-zinc-400 mt-0.5">{t.subtitle}</div>
-                  <div className="text-yellow-400 font-bold mt-2">₹{t.price.toLocaleString()}</div>
+
+                  {/* Price with strikethrough */}
+                  <div className="mt-2 flex items-baseline gap-2">
+                    <span className="text-yellow-400 font-bold text-lg">₹{t.price}</span>
+                    <span className="text-zinc-500 text-xs line-through">₹{t.originalPrice}</span>
+                  </div>
+
                   <div className="text-xs text-zinc-500 mt-1">{t.description}</div>
+
+                  {/* Seats left */}
+                  <div className="text-xs text-zinc-600 mt-1.5 flex items-center gap-1">
+                    <span>🎟️</span> {t.totalSeats} seats only
+                  </div>
+
                   {state.form.seat_tier === key && (
-                    <div className="absolute top-2 right-2 w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center">
+                    <div className="absolute top-2 left-2 w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center">
                       <svg className="w-3 h-3 text-black" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
                     </div>
                   )}
                 </label>
-              ))}
+                )
+              })}
             </div>
           </div>
 
@@ -317,9 +338,17 @@ function PaymentStep({ applicationId, amount, tier, upiId, utrNumber, screenshot
           <span className="text-zinc-400">Pass</span>
           <span className="text-white font-medium">{t.badge} {t.label}</span>
         </div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-zinc-400">Original Price</span>
+          <span className="text-zinc-500 line-through text-sm">₹{t.originalPrice}</span>
+        </div>
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-zinc-400">Discount</span>
+          <span className="text-green-400 text-sm font-medium">- ₹{t.originalPrice - t.price} saved 🎉</span>
+        </div>
         <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
-          <span className="text-zinc-400">Amount</span>
-          <span className="text-yellow-400 font-bold text-xl">₹{amount.toLocaleString()}</span>
+          <span className="text-zinc-400">Amount to Pay</span>
+          <span className="text-yellow-400 font-bold text-xl">₹{amount}</span>
         </div>
 
         {/* UPI details */}

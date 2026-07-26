@@ -2,18 +2,22 @@ export const SEAT_TIERS = {
   elite: {
     label: 'Elite Pass',
     subtitle: 'Premium Front Seats',
-    price: 1500,
+    price: 499,
+    originalPrice: 599,
     badge: '👑',
     color: 'amber',
     description: 'Best view, front rows, exclusive experience',
+    totalSeats: 300,
   },
   gold: {
     label: 'Gold Pass',
     subtitle: 'Standard Back Seats',
-    price: 800,
+    price: 299,
+    originalPrice: 399,
     badge: '⭐',
     color: 'yellow',
     description: 'Great view, comfortable seating',
+    totalSeats: 300,
   },
 } as const
 
