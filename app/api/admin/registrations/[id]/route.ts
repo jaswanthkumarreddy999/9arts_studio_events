@@ -1,6 +1,7 @@
 import { getSession } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase'
 import { NextRequest } from 'next/server'
+import { generateQRDataURL } from '@/lib/qr'
 
 const VALID_STATUSES = ['active', 'done', 'payment_pending', 'review', 'deleted'] as const
 type RegStatus = typeof VALID_STATUSES[number]
@@ -34,6 +35,52 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     .eq('application_id', id)
 
   if (error) return Response.json({ error: 'Update failed' }, { status: 500 })
+
+  // When marking as done — approve payment and generate QR pass if not already done
+  if (status === 'done') {
+    const { data: reg } = await supabaseAdmin
+      .from('registrations')
+      .select('application_id, full_name, seat_tier')
+      .eq('application_id', id)
+      .single()
+
+    if (reg) {
+      // Check if payment already approved
+      const { data: payment } = await supabaseAdmin
+        .from('payments')
+        .select('status')
+        .eq('application_id', id)
+        .maybeSingle()
+
+      const alreadyApproved = payment?.status === 'approved'
+
+      // Approve or insert payment record
+      if (payment) {
+        await supabaseAdmin
+          .from('payments')
+          .update({ status: 'approved', verified_at: new Date().toISOString() })
+          .eq('application_id', id)
+      } else {
+        await supabaseAdmin
+          .from('payments')
+          .insert({ application_id: id, amount: 0, status: 'approved', verified_at: new Date().toISOString() })
+      }
+
+      if (!alreadyApproved) {
+        await supabaseAdmin.rpc('reserve_seat', { p_tier: reg.seat_tier })
+      }
+
+      // Generate and store QR pass
+      const qrDataUrl = await generateQRDataURL(reg.application_id, reg.seat_tier, reg.full_name)
+      await supabaseAdmin.from('passes').upsert({
+        application_id: reg.application_id,
+        full_name: reg.full_name,
+        seat_tier: reg.seat_tier,
+        qr_data_url: qrDataUrl,
+        issued_at: new Date().toISOString(),
+      })
+    }
+  }
 
   return Response.json({ success: true })
 }

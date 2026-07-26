@@ -361,13 +361,31 @@ function RegistrationsTab() {
                 <input type="text" value={statusNote} onChange={e => setStatusNote(e.target.value)}
                   placeholder="Add a note (optional)"
                   className="w-full bg-white/5 border border-white/10 text-white placeholder-zinc-500 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-yellow-500" />
+
+                {/* Free Pass grant — complimentary access without payment */}
+                <button
+                  onClick={() => handleStatusChange('done')}
+                  disabled={actionLoading || selected.registration_status === 'done'}
+                  className="w-full py-2.5 rounded-xl text-sm font-semibold border border-emerald-600/50 text-emerald-300 bg-emerald-900/20 hover:bg-emerald-900/40 disabled:opacity-40 transition-colors">
+                  {actionLoading ? '…' : selected.registration_status === 'done' ? '✅ Free Pass Already Granted' : '🎁 Grant Free Pass — skip payment, generate QR'}
+                </button>
+
+                <div className="text-xs text-zinc-600 text-center">— or change status —</div>
+
                 <div className="grid grid-cols-2 gap-2">
-                  {(['active', 'done', 'payment_pending', 'review'] as const).map(s => (
+                  {(['active', 'payment_pending', 'review'] as const).map(s => (
                     <button key={s} onClick={() => handleStatusChange(s)} disabled={actionLoading || selected.registration_status === s}
                       className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all disabled:opacity-40 ${REG_STATUS_META[s].color}`}>
                       {REG_STATUS_META[s].icon} {REG_STATUS_META[s].label}
                     </button>
                   ))}
+                  {/* Revoke done — allows going back from done if needed */}
+                  {selected.registration_status === 'done' && (
+                    <button onClick={() => handleStatusChange('active')} disabled={actionLoading}
+                      className="py-2 px-3 rounded-xl text-xs font-semibold border transition-all border-zinc-600 text-zinc-400 bg-zinc-900/40 hover:bg-zinc-800/60">
+                      ↩️ Revoke Done → Active
+                    </button>
+                  )}
                 </div>
                 {/* Move to trash */}
                 {(selected.registration_status ?? 'active') !== 'deleted' ? (
