@@ -35,7 +35,8 @@ export async function GET(req: NextRequest) {
   }
 
   for (const log of logs) {
-    const reg = log.registrations as { seat_tier: string; gender: string } | null
+    const rawReg = log.registrations
+    const reg = (Array.isArray(rawReg) ? rawReg[0] : rawReg) as { seat_tier: string; gender: string } | null
     const tier = reg?.seat_tier ?? ''
     const gender = reg?.gender ?? ''
 
