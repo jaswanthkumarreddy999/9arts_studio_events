@@ -30,23 +30,16 @@ export default function PaymentSubmit({ applicationId, amount, utrNumber: initia
       let screenshotPath = ''
 
       if (file) {
-        // Get presigned upload URL
+        // Upload screenshot directly via server-side route
         setUploading(true)
-        const urlRes = await fetch('/api/payment/upload-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ applicationId }),
-        })
-        const urlData = await urlRes.json()
-        if (!urlRes.ok) throw new Error(urlData.error ?? 'Upload URL failed')
-
-        await fetch(urlData.signedUrl, {
-          method: 'PUT',
-          body: file,
-          headers: { 'Content-Type': file.type },
-        })
+        const fd = new FormData()
+        fd.append('applicationId', applicationId)
+        fd.append('file', file)
+        const uploadRes = await fetch('/api/payment/upload-url', { method: 'POST', body: fd })
+        const uploadData = await uploadRes.json()
         setUploading(false)
-        screenshotPath = urlData.path
+        if (!uploadRes.ok) throw new Error(uploadData.error ?? 'Upload failed')
+        screenshotPath = uploadData.path
       }
 
       const res = await fetch('/api/payment/confirm', {

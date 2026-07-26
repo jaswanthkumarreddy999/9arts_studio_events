@@ -316,7 +316,13 @@ function RegistrationsTab() {
               </div>
 
               {/* Payment verification */}
-              {selected.payments?.status === 'pending' && (
+              {!selected.payments ? (
+                <div className="border border-white/10 rounded-xl p-4 space-y-2">
+                  <div className="text-xs text-zinc-400 font-semibold uppercase tracking-wide">Payment</div>
+                  <div className="text-sm text-zinc-500 italic">No payment record found for this registration.</div>
+                  <div className="text-xs text-zinc-600">Use &quot;Grant Free Pass&quot; below to approve without payment.</div>
+                </div>
+              ) : selected.payments.status === 'pending' ? (
                 <div className="border border-white/10 rounded-xl p-4 space-y-3">
                   <div className="text-xs text-zinc-400 font-semibold uppercase tracking-wide">Payment Verification</div>
 
@@ -348,9 +354,9 @@ function RegistrationsTab() {
                       <img src={screenshotUrl} alt="Payment screenshot" className="w-full rounded-xl border border-white/10" />
                     </div>
                   ) : selected.payments.screenshot_path ? (
-                    <div className="text-xs text-zinc-500 italic">Screenshot uploaded but failed to load preview.</div>
+                    <div className="text-xs text-zinc-500 italic">Screenshot uploaded — preview unavailable.</div>
                   ) : (
-                    <div className="text-xs text-zinc-600 italic">No screenshot uploaded.</div>
+                    <div className="text-xs text-zinc-600 italic">No screenshot uploaded yet.</div>
                   )}
 
                   <input type="text" value={paymentNote} onChange={e => setPaymentNote(e.target.value)}
@@ -367,8 +373,7 @@ function RegistrationsTab() {
                     </button>
                   </div>
                 </div>
-              )}
-              {selected.payments?.status && selected.payments.status !== 'pending' && (
+              ) : (
                 <div className={`rounded-xl px-4 py-3 text-sm ${paymentColor(selected.payments.status)}`}>
                   <div className="text-center font-semibold mb-1">
                     Payment {selected.payments.status}

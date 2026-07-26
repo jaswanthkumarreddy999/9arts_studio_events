@@ -148,24 +148,16 @@ export default function RegistrationForm() {
       let screenshotPath = ''
 
       if (state.screenshotFile) {
-        // Get presigned URL
-        const urlRes = await fetch('/api/payment/upload-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ applicationId: state.applicationId }),
-        })
-        const urlData = await urlRes.json()
-        if (!urlRes.ok) throw new Error(urlData.error ?? 'Upload URL failed')
-
-        // Upload file directly
+        // Upload screenshot directly via server-side route
         dispatch({ type: 'SET_UPLOADING', value: true })
-        await fetch(urlData.signedUrl, {
-          method: 'PUT',
-          body: state.screenshotFile,
-          headers: { 'Content-Type': state.screenshotFile.type },
-        })
+        const fd = new FormData()
+        fd.append('applicationId', state.applicationId)
+        fd.append('file', state.screenshotFile)
+        const uploadRes = await fetch('/api/payment/upload-url', { method: 'POST', body: fd })
+        const uploadData = await uploadRes.json()
         dispatch({ type: 'SET_UPLOADING', value: false })
-        screenshotPath = urlData.path
+        if (!uploadRes.ok) throw new Error(uploadData.error ?? 'Upload failed')
+        screenshotPath = uploadData.path
       }
 
       // Confirm payment
