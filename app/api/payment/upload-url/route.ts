@@ -3,14 +3,27 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
-  const session = await getSession()
-  if (!session || session.role !== 'attendee') {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  const { applicationId } = await req.json()
+
+  if (!applicationId) {
+    return Response.json({ error: 'applicationId required' }, { status: 400 })
   }
 
-  const { applicationId } = await req.json()
-  if (applicationId !== session.sub) {
+  // Allow either: logged-in attendee owning this ID, or unauthed request verified by DB lookup
+  const session = await getSession()
+  if (session && session.role === 'attendee' && session.sub !== applicationId) {
     return Response.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  if (!session) {
+    const { data: reg } = await supabaseAdmin
+      .from('registrations')
+      .select('application_id')
+      .eq('application_id', applicationId)
+      .maybeSingle()
+    if (!reg) {
+      return Response.json({ error: 'Registration not found' }, { status: 404 })
+    }
   }
 
   const path = `${applicationId}/screenshot.jpg`
