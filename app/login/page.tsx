@@ -138,7 +138,7 @@ export default function LoginPage() {
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-1.5">Mobile Number</label>
                 <input type="tel" value={state.mobile} onChange={e => dispatch({ type: 'SET', field: 'mobile', value: e.target.value })}
-                  placeholder="10-digit mobile number" maxLength={10} inputMode="numeric" className={inp} />
+                  placeholder="e.g. 9876543210 or +91 98765 43210" inputMode="tel" className={inp} />
               </div>
               {state.error && <div className="bg-red-900/20 border border-red-700/50 text-red-400 rounded-lg px-4 py-3 text-sm">{state.error}</div>}
               <button type="submit" disabled={state.loading}
@@ -156,7 +156,7 @@ export default function LoginPage() {
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-1.5">Mobile Number</label>
                 <input type="tel" value={state.mobileLookup} onChange={e => dispatch({ type: 'SET', field: 'mobileLookup', value: e.target.value })}
-                  placeholder="10-digit mobile number" maxLength={10} inputMode="numeric" className={inp} />
+                  placeholder="e.g. 9876543210 or +91 98765 43210" inputMode="tel" className={inp} />
               </div>
               {state.error && <div className="bg-red-900/20 border border-red-700/50 text-red-400 rounded-lg px-4 py-3 text-sm">{state.error}</div>}
               <button type="submit" disabled={state.loading}
