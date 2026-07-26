@@ -3,27 +3,38 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
-  const { applicationId, utrNumber, screenshotPath } = await req.json()
+  // Accepts single: { applicationId, utrNumber, screenshotPath }
+  // Or group:       { applicationIds: string[], utrNumber, screenshotPath }
+  const body = await req.json()
+  const { utrNumber, screenshotPath } = body
 
-  if (!applicationId) {
-    return Response.json({ error: 'applicationId required' }, { status: 400 })
+  const applicationIds: string[] = body.applicationIds
+    ? body.applicationIds
+    : body.applicationId
+    ? [body.applicationId]
+    : []
+
+  if (applicationIds.length === 0) {
+    return Response.json({ error: 'applicationId(s) required' }, { status: 400 })
   }
 
-  // Allow either: logged-in attendee owning this ID, or unauthed request verified by DB lookup
+  // Auth: logged-in attendee (single), or unauthed with valid IDs (group/registration flow)
   const session = await getSession()
-  if (session && session.role === 'attendee' && session.sub !== applicationId) {
-    return Response.json({ error: 'Forbidden' }, { status: 403 })
+  if (session && session.role === 'attendee') {
+    if (!applicationIds.includes(session.sub)) {
+      return Response.json({ error: 'Forbidden' }, { status: 403 })
+    }
   }
 
-  // If no session, verify applicationId actually exists in DB
   if (!session) {
-    const { data: reg } = await supabaseAdmin
-      .from('registrations')
-      .select('application_id')
-      .eq('application_id', applicationId)
-      .maybeSingle()
-    if (!reg) {
-      return Response.json({ error: 'Registration not found' }, { status: 404 })
+    // Verify all IDs exist
+    for (const id of applicationIds) {
+      const { data: reg } = await supabaseAdmin
+        .from('registrations')
+        .select('application_id')
+        .eq('application_id', id)
+        .maybeSingle()
+      if (!reg) return Response.json({ error: `Registration not found: ${id}` }, { status: 404 })
     }
   }
 
@@ -37,13 +48,9 @@ export async function POST(req: NextRequest) {
   }
   if (screenshotPath) updates.screenshot_path = screenshotPath
 
-  const { error } = await supabaseAdmin
-    .from('payments')
-    .update(updates)
-    .eq('application_id', applicationId)
-
-  if (error) {
-    return Response.json({ error: 'Update failed' }, { status: 500 })
+  // Update all payment records
+  for (const id of applicationIds) {
+    await supabaseAdmin.from('payments').update(updates).eq('application_id', id)
   }
 
   return Response.json({ success: true })

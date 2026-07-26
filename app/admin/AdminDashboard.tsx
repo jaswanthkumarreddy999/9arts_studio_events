@@ -221,7 +221,12 @@ function RegistrationsTab() {
   const filtered = rows
     .filter(r => statusFilter === 'all' || (r.registration_status ?? 'active') === statusFilter)
     .filter(r => paymentFilter === 'all' || r.payments?.status === paymentFilter)
-    .filter(r => !search || r.full_name.toLowerCase().includes(search.toLowerCase()) || r.mobile.includes(search) || r.application_id.toLowerCase().includes(search.toLowerCase()))
+    .filter(r => !search || 
+      r.full_name.toLowerCase().includes(search.toLowerCase()) || 
+      r.mobile.includes(search) || 
+      r.application_id.toLowerCase().includes(search.toLowerCase()) ||
+      (r.payments?.utr_number ?? '').toLowerCase().includes(search.toLowerCase())
+    )
 
   const paymentColor = (s?: string) =>
     s === 'approved' ? 'text-green-400 bg-green-900/20 border-green-700/30' :
@@ -335,10 +340,36 @@ function RegistrationsTab() {
             {s}
           </button>
         ))}
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name / mobile / ID…"
-          className="ml-auto bg-black/40 border border-white/10 text-white placeholder-zinc-600 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500 w-full sm:w-52" />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name / mobile / ID / UTR…"
+          className="ml-auto bg-black/40 border border-white/10 text-white placeholder-zinc-600 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500 w-full sm:w-64" />
         <button onClick={fetchRows} className="text-xs text-zinc-400 hover:text-white transition-colors">↻</button>
       </div>
+
+      {/* Group approve — shown when search is a UTR with multiple pending payments */}
+      {search && filtered.filter(r => r.payments?.utr_number?.toLowerCase() === search.toLowerCase() && r.payments?.status === 'pending').length > 1 && (
+        <div className="mb-4 bg-blue-900/20 border border-blue-700/40 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+          <div>
+            <div className="text-blue-300 text-sm font-semibold">Group booking detected</div>
+            <div className="text-zinc-500 text-xs mt-0.5">
+              {filtered.filter(r => r.payments?.utr_number?.toLowerCase() === search.toLowerCase() && r.payments?.status === 'pending').length} pending payments with UTR: <span className="font-mono text-zinc-300">{search}</span>
+            </div>
+          </div>
+          <button
+            onClick={async () => {
+              if (!confirm(`Approve ALL pending payments for UTR "${search}"?`)) return
+              const res = await fetch('/api/admin/verify-payment/group', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ utrNumber: search, action: 'approve' }),
+              })
+              if (res.ok) { await fetchRows() }
+              else { const d = await res.json(); alert(d.error) }
+            }}
+            className="bg-green-600 hover:bg-green-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors shrink-0"
+          >
+            ✅ Approve All
+          </button>
+        </div>
+      )}
 
       {/* Table */}
       <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">

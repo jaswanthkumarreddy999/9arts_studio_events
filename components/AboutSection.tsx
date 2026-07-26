@@ -45,7 +45,7 @@ export default async function AboutSection() {
             About The Event
           </span>
           <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">
-            A Night of{' '}
+            A Event of{' '}
             <span className="shimmer">Elegance & Grace</span>
           </h2>
           <p className="text-zinc-400 text-lg max-w-2xl mx-auto leading-relaxed">
