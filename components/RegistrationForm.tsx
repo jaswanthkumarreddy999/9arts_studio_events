@@ -271,12 +271,13 @@ export default function RegistrationForm() {
             <select
               value={state.form.gender}
               onChange={e => dispatch({ type: 'SET_FIELD', field: 'gender', value: e.target.value })}
-              className={inputClass(!!state.errors.gender) + ' appearance-none cursor-pointer'}
+              className={inputClass(!!state.errors.gender) + ' appearance-none cursor-pointer bg-zinc-900 text-white'}
+              style={{ colorScheme: 'dark' }}
             >
-              <option value="" disabled>Select your gender</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
+              <option value="" disabled className="bg-zinc-900 text-zinc-500">Select your gender</option>
+              <option value="male" className="bg-zinc-900 text-white">Male</option>
+              <option value="female" className="bg-zinc-900 text-white">Female</option>
+              <option value="other" className="bg-zinc-900 text-white">Other</option>
             </select>
           </Field>
 
