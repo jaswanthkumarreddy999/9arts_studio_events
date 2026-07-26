@@ -94,7 +94,7 @@ function validate(form: FormData): Partial<Record<keyof FormData, string>> {
 
 export default function RegistrationForm() {
   const [state, dispatch] = useReducer(reducer, initialState)
-  const UPI_ID = process.env.NEXT_PUBLIC_UPI_ID ?? 'missnellore2025@upi'
+  const UPI_ID = process.env.NEXT_PUBLIC_UPI_ID ?? 'missnellore2026@upi'
 
   async function handleDetailsSubmit(e: React.FormEvent) {
     e.preventDefault()

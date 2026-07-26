@@ -101,7 +101,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 group mb-6">
             <span className="text-3xl">👑</span>
-            <span className="font-bold text-xl shimmer">Miss Nellore 2025</span>
+            <span className="font-bold text-xl shimmer">Miss Nellore 2026</span>
           </Link>
           <h1 className="text-2xl font-bold text-white mt-4">Welcome Back</h1>
           <p className="text-zinc-400 text-sm mt-1">Login to view your QR pass</p>
@@ -133,7 +133,7 @@ export default function LoginPage() {
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-1.5">Application ID</label>
                 <input type="text" value={state.appId} onChange={e => dispatch({ type: 'SET', field: 'appId', value: e.target.value })}
-                  placeholder="MN2025-XXXXXX-XXXXXX" className={inp} autoCapitalize="characters" />
+                  placeholder="MN2026-XXXXXX-XXXXXX" className={inp} autoCapitalize="characters" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-1.5">Mobile Number</label>

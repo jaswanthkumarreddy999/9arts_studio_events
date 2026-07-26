@@ -40,7 +40,7 @@ export default function AdminLoginPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-4">
             <span className="text-2xl">👑</span>
-            <span className="font-bold shimmer">Miss Nellore 2025</span>
+            <span className="font-bold shimmer">Miss Nellore 2026</span>
           </Link>
           <h1 className="text-xl font-bold text-white mt-3">Admin Panel</h1>
           <p className="text-zinc-500 text-sm">Event management access</p>

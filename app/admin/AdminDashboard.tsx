@@ -104,7 +104,7 @@ export default function AdminDashboard({ adminName }: { adminName: string }) {
           <div className="flex items-center gap-3">
             <span className="text-xl">👑</span>
             <div>
-              <div className="font-bold text-white text-sm">Miss Nellore 2025 — Admin</div>
+              <div className="font-bold text-white text-sm">Miss Nellore 2026 — Admin</div>
               <div className="text-zinc-500 text-xs">Welcome, {adminName}</div>
             </div>
           </div>

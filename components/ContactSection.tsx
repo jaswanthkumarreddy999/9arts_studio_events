@@ -19,7 +19,7 @@ export default function ContactSection() {
             <h4 className="text-white font-semibold mb-4">Event Details</h4>
             <ul className="space-y-2 text-zinc-400 text-sm">
               <li className="flex items-start gap-2">
-                <span>📅</span> August 2, 2025
+                <span>📅</span> August 2, 2026
               </li>
               <li className="flex items-start gap-2">
                 <span>⏰</span> 2:00 PM onwards
@@ -56,7 +56,7 @@ export default function ContactSection() {
         </div>
 
         <div className="border-t border-white/5 mt-10 pt-6 text-center text-zinc-600 text-xs">
-          © 2025 Miss Nellore Events. All rights reserved.
+          © 2026 Miss Nellore Events. All rights reserved.
         </div>
       </div>
     </section>

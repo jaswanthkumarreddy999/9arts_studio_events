@@ -32,7 +32,7 @@ export default async function MyPassPage() {
         <div className="flex items-center justify-between mb-8">
           <Link href="/" className="flex items-center gap-2">
             <span className="text-xl">👑</span>
-            <span className="font-bold shimmer">Miss Nellore 2025</span>
+            <span className="font-bold shimmer">Miss Nellore 2026</span>
           </Link>
           <PassActions />
         </div>
@@ -86,7 +86,7 @@ export default async function MyPassPage() {
             {/* Pass header */}
             <div className="text-center mb-6">
               <div className="text-3xl mb-1">{tierInfo.badge}</div>
-              <div className="text-xl font-bold text-white">Miss Nellore 2025</div>
+              <div className="text-xl font-bold text-white">Miss Nellore 2026</div>
               <div className={`text-sm font-semibold mt-1 ${tier === 'elite' ? 'text-amber-400' : 'text-yellow-400'}`}>
                 {tierInfo.label} — {tierInfo.subtitle}
               </div>
@@ -105,8 +105,8 @@ export default async function MyPassPage() {
               {[
                 { label: 'Name', value: pass.full_name },
                 { label: 'Application ID', value: pass.application_id },
-                { label: 'Event', value: 'December 15, 2025' },
-                { label: 'Venue', value: 'Nellore Convention Center' },
+                { label: 'Event', value: 'August 2, 2026' },
+                { label: 'Venue', value: 'DGP kalyana mandapam, Nellore' },
               ].map((row) => (
                 <div key={row.label} className="flex justify-between items-start gap-4">
                   <span className="text-zinc-500">{row.label}</span>

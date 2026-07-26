@@ -44,7 +44,7 @@ export async function generateQRDataURL(
     appId,
     tier,
     name,
-    event: 'MISSNELLORE-2025',
+    event: 'MISSNELLORE-2026',
     issuedAt: Math.floor(Date.now() / 1000),
   })
 
