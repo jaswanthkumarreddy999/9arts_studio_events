@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" rx="20" fill="#0a0a0f"/>
+  <!-- Crown shape -->
+  <polygon points="15,75 25,35 50,55 75,35 85,75" fill="#d4a520"/>
+  <!-- Crown gems -->
+  <circle cx="15" cy="35" r="7" fill="#e8b923"/>
+  <circle cx="50" cy="28" r="7" fill="#e8b923"/>
+  <circle cx="85" cy="35" r="7" fill="#e8b923"/>
+  <!-- Crown base -->
+  <rect x="13" y="73" width="74" height="10" rx="4" fill="#d4a520"/>
+</svg>

@@ -9,6 +9,13 @@ export const metadata: Metadata = {
   description:
     'Register for Miss Nellore 2026 — the most prestigious beauty pageant in Nellore, Andhra Pradesh.',
   keywords: ['Miss Nellore', 'beauty pageant', 'Nellore', 'registration', '2026'],
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: '32x32' },
+    ],
+    apple: '/favicon.svg',
+  },
   openGraph: {
     title: 'Miss Nellore 2026',
     description: 'Register for the most prestigious beauty pageant in Nellore.',
