@@ -307,7 +307,6 @@ function RegistrationsTab() {
                   { l: 'Application ID', v: selected.application_id },
                   { l: 'Pass', v: `${SEAT_TIERS[selected.seat_tier as keyof typeof SEAT_TIERS]?.badge} ${SEAT_TIERS[selected.seat_tier as keyof typeof SEAT_TIERS]?.label}` },
                   { l: 'Amount Paid', v: `₹${selected.payments?.amount?.toLocaleString() ?? '–'}` },
-                  { l: 'UTR / Transaction ID', v: selected.payments?.utr_number ?? '— not provided —' },
                 ].map(({ l, v }) => (
                   <div key={l} className="flex justify-between gap-4">
                     <span className="text-zinc-500 shrink-0">{l}</span>
@@ -316,18 +315,44 @@ function RegistrationsTab() {
                 ))}
               </div>
 
-              {screenshotUrl && (
-                <div>
-                  <div className="text-xs text-zinc-500 uppercase tracking-wide mb-2">Payment Screenshot</div>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={screenshotUrl} alt="Payment screenshot" className="w-full rounded-xl border border-white/10" />
-                </div>
-              )}
-
               {/* Payment verification */}
               {selected.payments?.status === 'pending' && (
                 <div className="border border-white/10 rounded-xl p-4 space-y-3">
                   <div className="text-xs text-zinc-400 font-semibold uppercase tracking-wide">Payment Verification</div>
+
+                  {/* UTR display */}
+                  <div className={`rounded-lg px-3 py-2.5 text-sm flex items-center justify-between gap-2 ${selected.payments.utr_number ? 'bg-blue-900/20 border border-blue-700/30' : 'bg-white/5 border border-white/10'}`}>
+                    <div>
+                      <div className="text-xs text-zinc-500 mb-0.5">UTR / Transaction ID</div>
+                      {selected.payments.utr_number
+                        ? <div className="text-white font-mono font-bold">{selected.payments.utr_number}</div>
+                        : <div className="text-zinc-500 italic">Not submitted yet</div>
+                      }
+                    </div>
+                    {selected.payments.utr_number && (
+                      <button
+                        type="button"
+                        onClick={() => navigator.clipboard.writeText(selected.payments!.utr_number!)}
+                        className="text-xs text-zinc-400 hover:text-yellow-400 transition-colors shrink-0"
+                      >
+                        Copy
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Screenshot */}
+                  {screenshotUrl ? (
+                    <div>
+                      <div className="text-xs text-zinc-500 uppercase tracking-wide mb-2">Payment Screenshot</div>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={screenshotUrl} alt="Payment screenshot" className="w-full rounded-xl border border-white/10" />
+                    </div>
+                  ) : selected.payments.screenshot_path ? (
+                    <div className="text-xs text-zinc-500 italic">Screenshot uploaded but failed to load preview.</div>
+                  ) : (
+                    <div className="text-xs text-zinc-600 italic">No screenshot uploaded.</div>
+                  )}
+
                   <input type="text" value={paymentNote} onChange={e => setPaymentNote(e.target.value)}
                     placeholder="Rejection reason (optional)"
                     className="w-full bg-white/5 border border-white/10 text-white placeholder-zinc-500 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-yellow-500" />
@@ -344,9 +369,20 @@ function RegistrationsTab() {
                 </div>
               )}
               {selected.payments?.status && selected.payments.status !== 'pending' && (
-                <div className={`rounded-xl px-4 py-3 text-sm text-center ${paymentColor(selected.payments.status)}`}>
-                  Payment {selected.payments.status}
-                  {selected.payments.rejection_reason && ` — ${selected.payments.rejection_reason}`}
+                <div className={`rounded-xl px-4 py-3 text-sm ${paymentColor(selected.payments.status)}`}>
+                  <div className="text-center font-semibold mb-1">
+                    Payment {selected.payments.status}
+                    {selected.payments.rejection_reason && ` — ${selected.payments.rejection_reason}`}
+                  </div>
+                  {selected.payments.utr_number && (
+                    <div className="text-xs text-center mt-1 opacity-80">UTR: {selected.payments.utr_number}</div>
+                  )}
+                  {screenshotUrl && (
+                    <div className="mt-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={screenshotUrl} alt="Payment screenshot" className="w-full rounded-xl border border-white/10" />
+                    </div>
+                  )}
                 </div>
               )}
 
