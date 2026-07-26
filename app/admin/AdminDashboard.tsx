@@ -381,19 +381,49 @@ function RegistrationsTab() {
                   </div>
                 </div>
               ) : (
-                <div className={`rounded-xl px-4 py-3 text-sm ${paymentColor(selected.payments.status)}`}>
-                  <div className="text-center font-semibold mb-1">
-                    Payment {selected.payments.status}
-                    {selected.payments.rejection_reason && ` — ${selected.payments.rejection_reason}`}
+                <div className={`rounded-xl p-4 space-y-3 text-sm ${paymentColor(selected.payments.status)}`}>
+                  {/* Status header */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">
+                      {selected.payments.status === 'approved' ? '✅' : '❌'}
+                    </span>
+                    <div className="font-semibold">
+                      Payment {selected.payments.status}
+                      {selected.payments.rejection_reason && ` — ${selected.payments.rejection_reason}`}
+                    </div>
                   </div>
-                  {selected.payments.utr_number && (
-                    <div className="text-xs text-center mt-1 opacity-80">UTR: {selected.payments.utr_number}</div>
-                  )}
-                  {screenshotUrl && (
-                    <div className="mt-3">
+
+                  {/* UTR */}
+                  <div className="bg-black/20 rounded-lg px-3 py-2.5 flex items-center justify-between gap-2">
+                    <div>
+                      <div className="text-xs opacity-60 mb-0.5">UTR / Transaction ID</div>
+                      {selected.payments.utr_number
+                        ? <div className="font-mono font-bold text-white">{selected.payments.utr_number}</div>
+                        : <div className="opacity-50 italic">Not provided</div>
+                      }
+                    </div>
+                    {selected.payments.utr_number && (
+                      <button
+                        type="button"
+                        onClick={() => navigator.clipboard.writeText(selected.payments!.utr_number!)}
+                        className="text-xs opacity-60 hover:opacity-100 transition-opacity shrink-0"
+                      >
+                        Copy
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Screenshot */}
+                  {screenshotUrl ? (
+                    <div>
+                      <div className="text-xs opacity-60 uppercase tracking-wide mb-2">Payment Screenshot</div>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={screenshotUrl} alt="Payment screenshot" className="w-full rounded-xl border border-white/10" />
                     </div>
+                  ) : selected.payments.screenshot_path ? (
+                    <div className="text-xs opacity-50 italic">Screenshot uploaded — preview unavailable.</div>
+                  ) : (
+                    <div className="bg-black/20 rounded-lg px-3 py-2 text-xs opacity-50 italic">No screenshot provided</div>
                   )}
                 </div>
               )}
