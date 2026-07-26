@@ -35,10 +35,10 @@ export async function POST(req: NextRequest) {
   const buffer = Buffer.from(arrayBuffer)
 
   const { error } = await supabaseAdmin.storage
-    .from('contestant-photos')
+    .from('contestant Photos')
     .upload(path, buffer, {
       contentType: file.type,
-      upsert: true, // overwrite if re-uploading
+      upsert: true,
     })
 
   if (error) {
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { data: publicData } = supabaseAdmin.storage
-    .from('contestant-photos')
+    .from('contestant Photos')
     .getPublicUrl(path)
 
   return Response.json({ publicUrl: publicData.publicUrl, path })

@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   if (!path) return Response.json({ error: 'Path required' }, { status: 400 })
 
   const { data, error } = await supabaseAdmin.storage
-    .from('payment-screenshots')
+    .from('PaymentSS')
     .createSignedUrl(path, 60) // 60 second URL
 
   if (error) return Response.json({ error: 'Could not create URL' }, { status: 500 })

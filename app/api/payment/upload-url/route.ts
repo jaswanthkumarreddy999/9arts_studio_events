@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   const path = `${applicationId}/screenshot.jpg`
 
   const { data, error } = await supabaseAdmin.storage
-    .from('payment-screenshots')
+    .from('PaymentSS')
     .createSignedUploadUrl(path)
 
   if (error) {
