@@ -367,9 +367,19 @@ function PaymentStep({ applicationId, amount, tier, upiId, utrNumber, screenshot
           <span className="text-yellow-400 font-bold text-xl">₹{amount}</span>
         </div>
 
+        {/* UPI QR Code */}
+        <div className="flex flex-col items-center mb-4">
+          <div className="text-sm text-zinc-400 mb-3">Scan to pay via PhonePe / any UPI app</div>
+          <div className="bg-white p-3 rounded-2xl shadow-lg">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/payment-qr.png" alt="PhonePe QR Code" className="w-48 h-48" />
+          </div>
+          <div className="text-xs text-zinc-500 mt-2">9 Arts Studio</div>
+        </div>
+
         {/* UPI details */}
         <div className="text-center mb-4">
-          <div className="text-sm text-zinc-400 mb-2">Pay via any UPI app</div>
+          <div className="text-sm text-zinc-400 mb-2">Or pay manually via UPI ID</div>
           <div className="inline-flex items-center gap-2 bg-black/40 border border-yellow-700/30 rounded-lg px-4 py-2">
             <span className="text-yellow-400 font-mono font-bold">{upiId}</span>
             <button type="button" onClick={() => navigator.clipboard.writeText(upiId)} className="text-zinc-500 hover:text-yellow-400 transition-colors text-xs">Copy</button>
