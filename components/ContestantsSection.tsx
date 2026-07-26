@@ -77,7 +77,7 @@ export default async function ContestantsSection() {
             Our <span className="shimmer">Shining Stars</span>
           </h2>
           <p className="text-zinc-400 text-lg max-w-xl mx-auto">
-            Meet the talented and beautiful contestants competing for the Miss Nellore 2025 crown.
+            Meet the talented and beautiful contestants competing for the Miss Nellore 2026 crown.
           </p>
         </div>
 
