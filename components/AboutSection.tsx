@@ -70,7 +70,7 @@ export default function AboutSection() {
             {[
               { label: 'Date', value: 'August 2, 2026', icon: '📅' },
               { label: 'Day', value: 'Sunday', icon: '🗓️' },
-              { label: 'Venue', value: 'DGP Kalamandapam, Nellore', icon: '📍' },
+              { label: 'Venue', value: 'DGP kalyana mandapam, Nellore', icon: '📍' },
               { label: 'Location', value: 'Nellore, Andhra Pradesh', icon: '🗺️' },
               { label: 'Time', value: '2:00 PM onwards', icon: '⏰' },
               { label: 'Dress Code', value: 'Formal / Traditional / Professional', icon: '👔' },

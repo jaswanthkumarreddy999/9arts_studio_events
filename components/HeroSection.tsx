@@ -63,7 +63,7 @@ export default function HeroSection() {
             📅 August 2, 2026
           </span>
           <span className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-zinc-300">
-            📍 DGP Kalamandapam, Nellore 
+            📍 DGP kalyana mandapam, Nellore 
           </span>
           <span className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-zinc-300">
             🎟️ Limited Seats
