@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
 type ScanResult = {
   valid: boolean
@@ -8,6 +8,17 @@ type ScanResult = {
   tier?: string
   reason?: string
 } | null
+
+interface ScanLog {
+  id: string
+  application_id: string
+  scanned_at: string
+  registrations: {
+    full_name: string
+    seat_tier: string
+    mobile: string
+  } | null
+}
 
 export default function QRScanner() {
   const [result, setResult] = useState<ScanResult>(null)
@@ -17,6 +28,26 @@ export default function QRScanner() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const scanningRef = useRef(false)
+
+  // History state
+  const [logs, setLogs] = useState<ScanLog[]>([])
+  const [historySearch, setHistorySearch] = useState('')
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [showHistory, setShowHistory] = useState(false)
+
+  const fetchHistory = useCallback(async (search = '') => {
+    setHistoryLoading(true)
+    const res = await fetch(`/api/scan/history?q=${encodeURIComponent(search)}`)
+    if (res.ok) {
+      const d = await res.json()
+      setLogs(d.logs ?? [])
+      setScanCount(d.logs?.length ?? 0)
+    }
+    setHistoryLoading(false)
+  }, [])
+
+  useEffect(() => { fetchHistory() }, [fetchHistory])
 
   async function startCamera() {
     setError('')
@@ -49,42 +80,31 @@ export default function QRScanner() {
   async function scanFrames() {
     if (!scanningRef.current || !videoRef.current) return
 
-    // Use BarcodeDetector if available (Chrome 88+, Chrome on Android)
     if ('BarcodeDetector' in window) {
       const detector = new (window as unknown as { BarcodeDetector: new (opts: object) => { detect: (v: HTMLVideoElement) => Promise<Array<{ rawValue: string }>> } }).BarcodeDetector({ formats: ['qr_code'] })
-
       const loop = async () => {
         if (!scanningRef.current || !videoRef.current) return
         try {
           const barcodes = await detector.detect(videoRef.current)
-          if (barcodes.length > 0) {
-            await processQR(barcodes[0].rawValue)
-            return
-          }
+          if (barcodes.length > 0) { await processQR(barcodes[0].rawValue); return }
         } catch { /* ignore */ }
         requestAnimationFrame(loop)
       }
       requestAnimationFrame(loop)
     } else {
-      // Fallback: canvas + jsQR (loaded dynamically)
       try {
         const jsQR = (await import('jsqr')).default
         const canvas = document.createElement('canvas')
         const ctx = canvas.getContext('2d')!
-
         const loop = () => {
           if (!scanningRef.current || !videoRef.current) return
           const v = videoRef.current
           if (v.readyState === v.HAVE_ENOUGH_DATA) {
-            canvas.width = v.videoWidth
-            canvas.height = v.videoHeight
+            canvas.width = v.videoWidth; canvas.height = v.videoHeight
             ctx.drawImage(v, 0, 0)
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
             const code = jsQR(imageData.data, imageData.width, imageData.height)
-            if (code) {
-              processQR(code.data)
-              return
-            }
+            if (code) { processQR(code.data); return }
           }
           requestAnimationFrame(loop)
         }
@@ -99,53 +119,60 @@ export default function QRScanner() {
   async function processQR(raw: string) {
     scanningRef.current = false
     setScanning(false)
-
     let payload: unknown
-    try {
-      payload = JSON.parse(raw)
-    } catch {
-      setResult({ valid: false, reason: 'Invalid QR format' })
-      return
+    try { payload = JSON.parse(raw) } catch {
+      setResult({ valid: false, reason: 'Invalid QR format' }); return
     }
-
     try {
       const res = await fetch('/api/scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
       const data = await res.json()
       setResult(data)
-      if (data.valid) setScanCount(c => c + 1)
+      if (data.valid) fetchHistory()
     } catch {
       setResult({ valid: false, reason: 'Network error. Please try again.' })
     }
   }
 
-  function resetScan() {
-    setResult(null)
-    startCamera()
+  async function handleDelete(id: string) {
+    if (!confirm('Remove this scan record? The person will be able to enter again.')) return
+    setDeletingId(id)
+    await fetch('/api/scan/history', {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
+    setDeletingId(null)
+    fetchHistory(historySearch)
   }
 
+  function resetScan() { setResult(null); startCamera() }
+
   useEffect(() => {
-    return () => {
-      scanningRef.current = false
-      stopCamera()
-    }
+    return () => { scanningRef.current = false; stopCamera() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const tierLabel = (tier?: string) => tier === 'elite' ? '👑 Elite — Front Seats' : '⭐ Gold — Back Seats'
+  const tierLabel = (tier?: string) => tier === 'elite' ? '👑 Elite' : '⭐ Gold'
+
+  const filteredLogs = historySearch
+    ? logs.filter(l =>
+        l.application_id.toLowerCase().includes(historySearch.toLowerCase()) ||
+        l.registrations?.full_name.toLowerCase().includes(historySearch.toLowerCase()) ||
+        l.registrations?.mobile.includes(historySearch)
+      )
+    : logs
 
   return (
     <div className="max-w-sm mx-auto px-4 py-8">
       {/* Counter */}
       <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 mb-6 text-center">
         <div className="text-3xl font-bold text-white">{scanCount}</div>
-        <div className="text-zinc-500 text-sm">Attendees scanned today</div>
+        <div className="text-zinc-500 text-sm">Total attendees entered</div>
       </div>
 
-      {/* Result overlay */}
+      {/* Result */}
       {result && (
         <div className={`rounded-2xl p-6 mb-6 text-center border-2 ${result.valid ? 'border-green-500 bg-green-900/20' : 'border-red-500 bg-red-900/20'}`}>
           <div className="text-5xl mb-3">{result.valid ? '✅' : '❌'}</div>
@@ -178,7 +205,6 @@ export default function QRScanner() {
                 <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-yellow-400 rounded-tr-lg" />
                 <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-yellow-400 rounded-bl-lg" />
                 <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-yellow-400 rounded-br-lg" />
-                {/* Scanning line animation */}
                 <div className="absolute inset-x-0 top-0 h-0.5 bg-yellow-400/80 animate-[scan_2s_linear_infinite]" />
               </div>
             </div>
@@ -199,7 +225,7 @@ export default function QRScanner() {
       )}
 
       {!result && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 mb-8">
           {!scanning ? (
             <button onClick={startCamera} className="col-span-2 bg-gradient-to-r from-yellow-600 to-yellow-400 text-black font-bold py-4 rounded-xl hover:from-yellow-500 hover:to-yellow-300 transition-all">
               📷 Start Scanning
@@ -212,9 +238,87 @@ export default function QRScanner() {
         </div>
       )}
 
-      <p className="text-zinc-600 text-xs text-center mt-4">
+      <p className="text-zinc-600 text-xs text-center mb-8">
         Point camera at attendee&apos;s QR code. Scanning is automatic.
       </p>
+
+      {/* ── SCAN HISTORY ── */}
+      <div className="border border-white/10 rounded-2xl overflow-hidden">
+        {/* History header */}
+        <button
+          onClick={() => setShowHistory(h => !h)}
+          className="w-full px-4 py-3 flex items-center justify-between bg-white/5 hover:bg-white/10 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-white font-semibold text-sm">📋 Entry History</span>
+            <span className="bg-yellow-500/20 text-yellow-400 text-xs px-2 py-0.5 rounded-full font-semibold">{logs.length}</span>
+          </div>
+          <span className="text-zinc-500 text-sm">{showHistory ? '▲' : '▼'}</span>
+        </button>
+
+        {showHistory && (
+          <div>
+            {/* Search */}
+            <div className="px-4 py-3 border-t border-white/10">
+              <input
+                value={historySearch}
+                onChange={e => setHistorySearch(e.target.value)}
+                placeholder="Search name, mobile or application ID…"
+                className="w-full bg-black/40 border border-white/10 text-white placeholder-zinc-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-500"
+              />
+            </div>
+
+            {/* Log list */}
+            {historyLoading ? (
+              <div className="text-center py-6 text-zinc-500 text-sm">Loading…</div>
+            ) : filteredLogs.length === 0 ? (
+              <div className="text-center py-6 text-zinc-600 text-sm">
+                {historySearch ? 'No matching records' : 'No entries yet'}
+              </div>
+            ) : (
+              <div className="divide-y divide-white/5 max-h-96 overflow-y-auto">
+                {filteredLogs.map(log => {
+                  const reg = log.registrations
+                  return (
+                    <div key={log.id} className="flex items-center gap-3 px-4 py-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-white text-sm font-medium truncate">
+                          {reg?.full_name ?? log.application_id}
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-zinc-500 text-xs font-mono truncate">{log.application_id}</span>
+                          {reg?.seat_tier && (
+                            <span className="text-yellow-500 text-xs shrink-0">{tierLabel(reg.seat_tier)}</span>
+                          )}
+                        </div>
+                        <div className="text-zinc-600 text-xs mt-0.5">
+                          {new Date(log.scanned_at).toLocaleString('en-IN', {
+                            day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                          })}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleDelete(log.id)}
+                        disabled={deletingId === log.id}
+                        title="Remove entry — allows re-scan"
+                        className="text-xs text-red-400 hover:text-red-300 border border-red-700/40 bg-red-900/20 px-2 py-1.5 rounded-lg transition-colors shrink-0 disabled:opacity-50"
+                      >
+                        {deletingId === log.id ? '…' : '🗑️'}
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            <div className="px-4 py-2 border-t border-white/5 flex justify-end">
+              <button onClick={() => fetchHistory(historySearch)} className="text-xs text-zinc-500 hover:text-white transition-colors">
+                ↻ Refresh
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
