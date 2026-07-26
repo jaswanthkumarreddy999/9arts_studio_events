@@ -16,6 +16,16 @@ export async function GET() {
 
   if (voteError) return Response.json({ error: 'Fetch failed' }, { status: 500 })
 
+  // Fetch adjustments
+  const { data: adjustments } = await supabaseAdmin
+    .from('vote_adjustments')
+    .select('contestant_id, contestant_category, adjustment')
+
+  const adjustmentMap: Record<string, number> = {}
+  for (const a of adjustments ?? []) {
+    adjustmentMap[`${a.contestant_id}:${a.contestant_category}`] = a.adjustment
+  }
+
   type VoteRow = {
     id: string
     contestantId: string
@@ -31,6 +41,8 @@ export async function GET() {
     name: string
     photo_url: string | null
     count: number
+    adjustment: number
+    displayCount: number
   }
 
   const categoryMap: Record<string, Map<string, CategoryResult>> = {}
@@ -69,7 +81,13 @@ export async function GET() {
 
   const byCategory: Record<string, CategoryResult[]> = {}
   for (const cat of CATEGORIES) {
-    byCategory[cat] = Array.from(categoryMap[cat].values()).sort((a, b) => b.count - a.count)
+    byCategory[cat] = Array.from(categoryMap[cat].values())
+      .map(r => ({
+        ...r,
+        adjustment: adjustmentMap[`${r.contestantId}:${cat}`] ?? 0,
+        displayCount: r.count + (adjustmentMap[`${r.contestantId}:${cat}`] ?? 0),
+      }))
+      .sort((a, b) => b.displayCount - a.displayCount)
   }
 
   const { count: totalVotes } = await supabaseAdmin
