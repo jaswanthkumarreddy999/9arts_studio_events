@@ -63,6 +63,8 @@ export async function GET() {
         name: c?.name ?? 'Unknown',
         photo_url: c?.photo_url ?? null,
         count: 0,
+        adjustment: 0,
+        displayCount: 0,
       })
     }
     map.get(row.contestant_id)!.count++
