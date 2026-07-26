@@ -1,6 +1,7 @@
 import { getSession } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase'
 import { NextRequest } from 'next/server'
+import { revalidatePath } from 'next/cache'
 
 async function requireAdmin() {
   const session = await getSession()
@@ -43,5 +44,7 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (error) return Response.json({ error: 'Insert failed' }, { status: 500 })
+
+  revalidatePath('/')
   return Response.json({ contestant: data }, { status: 201 })
 }

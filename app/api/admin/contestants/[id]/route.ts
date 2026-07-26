@@ -1,6 +1,7 @@
 import { getSession } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase'
 import { NextRequest } from 'next/server'
+import { revalidatePath } from 'next/cache'
 
 async function requireAdmin() {
   const session = await getSession()
@@ -35,6 +36,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     .single()
 
   if (error) return Response.json({ error: 'Update failed' }, { status: 500 })
+
+  revalidatePath('/')
   return Response.json({ contestant: data })
 }
 
@@ -52,5 +55,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     .eq('id', id)
 
   if (error) return Response.json({ error: 'Delete failed' }, { status: 500 })
+
+  revalidatePath('/')
   return Response.json({ success: true })
 }
