@@ -6,9 +6,7 @@ import { SEAT_TIERS, type SeatTier } from '@/lib/types'
 interface FormData {
   full_name: string
   mobile: string
-  email: string
-  age: string
-  address: string
+  gender: 'male' | 'female' | 'other' | ''
   seat_tier: SeatTier
 }
 
@@ -69,7 +67,7 @@ function reducer(state: State, action: Action): State {
 
 const initialState: State = {
   step: 'details',
-  form: { full_name: '', mobile: '', email: '', age: '', address: '', seat_tier: 'gold' },
+  form: { full_name: '', mobile: '', gender: '', seat_tier: 'gold' },
   errors: {},
   applicationId: '',
   amount: 0,
@@ -84,13 +82,9 @@ const initialState: State = {
 function validate(form: FormData): Partial<Record<keyof FormData, string>> {
   const errors: Partial<Record<keyof FormData, string>> = {}
   if (!form.full_name.trim() || form.full_name.trim().length < 2) errors.full_name = 'Enter your full name (min 2 chars)'
-  // Accept +91, 91 prefix, spaces, dashes — normalize to 10 digits for validation
   const digits = form.mobile.replace(/[\s\-().]/g, '').replace(/^\+91/, '').replace(/^91(?=\d{10}$)/, '').replace(/^0/, '')
   if (!/^[6-9]\d{9}$/.test(digits)) errors.mobile = 'Enter a valid Indian mobile number'
-  if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errors.email = 'Enter a valid email'
-  const age = Number(form.age)
-  if (!form.age || isNaN(age) || age < 18 || age > 60) errors.age = 'Age must be between 18 and 60'
-  if (!form.address.trim() || form.address.trim().length < 10) errors.address = 'Enter your full address'
+  if (!form.gender) errors.gender = 'Please select your gender'
   return errors
 }
 
@@ -115,7 +109,7 @@ export default function RegistrationForm() {
       const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...state.form, age: Number(state.form.age) }),
+        body: JSON.stringify({ ...state.form }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -273,16 +267,17 @@ export default function RegistrationForm() {
           <Field label="Mobile Number *" error={state.errors.mobile}>
             <input type="tel" value={state.form.mobile} onChange={e => dispatch({ type: 'SET_FIELD', field: 'mobile', value: e.target.value })} placeholder="e.g. 9876543210 or +91 98765 43210" inputMode="tel" className={inputClass(!!state.errors.mobile)} />
           </Field>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Age *" error={state.errors.age}>
-              <input type="number" value={state.form.age} onChange={e => dispatch({ type: 'SET_FIELD', field: 'age', value: e.target.value })} placeholder="Your age" min={18} max={60} className={inputClass(!!state.errors.age)} />
-            </Field>
-            <Field label="Email (optional)" error={state.errors.email}>
-              <input type="email" value={state.form.email} onChange={e => dispatch({ type: 'SET_FIELD', field: 'email', value: e.target.value })} placeholder="your@email.com" className={inputClass(!!state.errors.email)} />
-            </Field>
-          </div>
-          <Field label="Full Address *" error={state.errors.address}>
-            <textarea value={state.form.address} onChange={e => dispatch({ type: 'SET_FIELD', field: 'address', value: e.target.value })} placeholder="Door no, street, area, city" rows={3} className={inputClass(!!state.errors.address) + ' resize-none'} />
+          <Field label="Gender *" error={state.errors.gender}>
+            <select
+              value={state.form.gender}
+              onChange={e => dispatch({ type: 'SET_FIELD', field: 'gender', value: e.target.value })}
+              className={inputClass(!!state.errors.gender) + ' appearance-none cursor-pointer'}
+            >
+              <option value="" disabled>Select your gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
           </Field>
 
           {state.submitError && (

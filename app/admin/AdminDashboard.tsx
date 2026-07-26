@@ -33,9 +33,7 @@ interface RegRow {
   application_id: string
   full_name: string
   mobile: string
-  email?: string
-  age?: number
-  address?: string
+  gender?: string
   seat_tier: string
   created_at: string
   registration_status: RegStatus
@@ -308,9 +306,7 @@ function RegistrationsTab() {
                 {[
                   { l: 'Name', v: selected.full_name },
                   { l: 'Mobile', v: selected.mobile },
-                  { l: 'Email', v: selected.email ?? '—' },
-                  { l: 'Age', v: selected.age ? String(selected.age) : '—' },
-                  { l: 'Address', v: selected.address ?? '—' },
+                  { l: 'Gender', v: selected.gender ? selected.gender.charAt(0).toUpperCase() + selected.gender.slice(1) : '—' },
                   { l: 'Application ID', v: selected.application_id },
                   { l: 'Pass', v: `${SEAT_TIERS[selected.seat_tier as keyof typeof SEAT_TIERS]?.badge} ${SEAT_TIERS[selected.seat_tier as keyof typeof SEAT_TIERS]?.label}` },
                   { l: 'Amount Paid', v: `₹${selected.payments?.amount?.toLocaleString() ?? '–'}` },

@@ -62,9 +62,7 @@ export async function POST(req: NextRequest) {
     application_id,
     full_name: data.full_name,
     mobile: data.mobile,
-    email: data.email || null,
-    age: data.age,
-    address: data.address,
+    gender: data.gender,
     seat_tier: data.seat_tier,
   })
 

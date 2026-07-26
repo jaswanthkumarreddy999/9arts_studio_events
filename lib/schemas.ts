@@ -18,9 +18,7 @@ const mobileSchema = z
 export const registrationSchema = z.object({
   full_name: z.string().min(2, 'Name must be at least 2 characters').max(100),
   mobile: mobileSchema,
-  email: z.string().email('Invalid email').optional().or(z.literal('')),
-  age: z.coerce.number().int().min(18, 'Must be 18+').max(60, 'Must be 60 or under'),
-  address: z.string().min(10, 'Please enter full address').max(300),
+  gender: z.enum(['male', 'female', 'other'], { errorMap: () => ({ message: 'Please select your gender' }) }),
   seat_tier: z.enum(['elite', 'gold']),
 })
 

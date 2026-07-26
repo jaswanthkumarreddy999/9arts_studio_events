@@ -28,9 +28,7 @@ export interface Registration {
   application_id: string
   full_name: string
   mobile: string
-  email?: string
-  age: number
-  address: string
+  gender: 'male' | 'female' | 'other'
   seat_tier: SeatTier
   created_at: string
 }
