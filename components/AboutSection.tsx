@@ -1,4 +1,28 @@
-export default function AboutSection() {
+import { supabaseAdmin } from '@/lib/supabase'
+import { SEAT_TIERS } from '@/lib/types'
+
+export default async function AboutSection() {
+  // Fetch live seat counts directly from DB (server component)
+  let eliteRemaining: number = SEAT_TIERS.elite.totalSeats
+  let goldRemaining: number = SEAT_TIERS.gold.totalSeats
+
+  try {
+    const { data: approvals } = await supabaseAdmin
+      .from('payments')
+      .select('registrations!inner(seat_tier)')
+      .eq('status', 'approved')
+
+    const taken: Record<string, number> = { elite: 0, gold: 0 }
+    for (const row of approvals ?? []) {
+      const reg = row.registrations as { seat_tier: string } | { seat_tier: string }[]
+      const tier = Array.isArray(reg) ? reg[0]?.seat_tier : reg?.seat_tier
+      if (tier && tier in taken) taken[tier]++
+    }
+    eliteRemaining = Math.max(0, SEAT_TIERS.elite.totalSeats - (taken.elite ?? 0))
+    goldRemaining = Math.max(0, SEAT_TIERS.gold.totalSeats - (taken.gold ?? 0))
+  } catch { /* use defaults */ }
+
+  const totalRemaining = eliteRemaining + goldRemaining
   const highlights = [
     { icon: '🏆', title: 'Grand Prize', desc: 'Crown, trophy & exciting prizes for the winner' },
     { icon: '💃', title: 'Dance Performance', desc: 'Dancers perform and display their unique talents' },
@@ -52,8 +76,8 @@ export default function AboutSection() {
                 <div className="text-sm text-zinc-500 mt-1">Contestants</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-yellow-400">600</div>
-                <div className="text-sm text-zinc-500 mt-1">Seats Available</div>
+                <div className="text-3xl font-bold text-yellow-400">{totalRemaining}</div>
+                <div className="text-sm text-zinc-500 mt-1">Seats Left</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-yellow-400">1st</div>

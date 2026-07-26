@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useReducer } from 'react'
+import { useState, useReducer, useEffect } from 'react'
 import { SEAT_TIERS, type SeatTier } from '@/lib/types'
 
 interface FormData {
@@ -95,6 +95,11 @@ function validate(form: FormData): Partial<Record<keyof FormData, string>> {
 export default function RegistrationForm() {
   const [state, dispatch] = useReducer(reducer, initialState)
   const UPI_ID = process.env.NEXT_PUBLIC_UPI_ID ?? 'missnellore2026@upi'
+  const [seatData, setSeatData] = useState<Record<string, { total: number; remaining: number; sold: number }>>({})
+
+  useEffect(() => {
+    fetch('/api/seats').then(r => r.json()).then(d => setSeatData(d.seats ?? {})).catch(() => {})
+  }, [])
 
   async function handleDetailsSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -211,17 +216,27 @@ export default function RegistrationForm() {
             <div className="grid grid-cols-2 gap-3">
               {(Object.entries(SEAT_TIERS) as [SeatTier, typeof SEAT_TIERS[SeatTier]][]).map(([key, t]) => {
                 const discount = Math.round((1 - t.price / t.originalPrice) * 100)
+                const live = seatData[key]
+                const remaining = live?.remaining ?? t.totalSeats
+                const soldOut = remaining <= 0
                 return (
                 <label
                   key={key}
-                  className={`relative cursor-pointer rounded-xl p-4 border-2 transition-all ${state.form.seat_tier === key ? 'border-yellow-500 bg-yellow-900/20' : 'border-white/10 bg-white/5 hover:border-yellow-700/50'}`}
+                  className={`relative cursor-pointer rounded-xl p-4 border-2 transition-all ${soldOut ? 'opacity-50 cursor-not-allowed border-white/10 bg-white/5' : state.form.seat_tier === key ? 'border-yellow-500 bg-yellow-900/20' : 'border-white/10 bg-white/5 hover:border-yellow-700/50'}`}
                 >
-                  <input type="radio" name="seat_tier" value={key} checked={state.form.seat_tier === key} onChange={() => dispatch({ type: 'SET_FIELD', field: 'seat_tier', value: key })} className="sr-only" />
+                  <input type="radio" name="seat_tier" value={key} checked={state.form.seat_tier === key} disabled={soldOut} onChange={() => !soldOut && dispatch({ type: 'SET_FIELD', field: 'seat_tier', value: key })} className="sr-only" />
 
                   {/* Discount badge */}
-                  <div className="absolute -top-2.5 -right-2.5 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-lg">
-                    {discount}% OFF
-                  </div>
+                  {!soldOut && (
+                    <div className="absolute -top-2.5 -right-2.5 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-lg">
+                      {discount}% OFF
+                    </div>
+                  )}
+                  {soldOut && (
+                    <div className="absolute -top-2.5 -right-2.5 bg-zinc-600 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow-lg">
+                      SOLD OUT
+                    </div>
+                  )}
 
                   <div className="text-2xl mb-2">{t.badge}</div>
                   <div className="font-bold text-white text-sm">{t.label}</div>
@@ -235,12 +250,13 @@ export default function RegistrationForm() {
 
                   <div className="text-xs text-zinc-500 mt-1">{t.description}</div>
 
-                  {/* Seats left */}
-                  <div className="text-xs text-zinc-600 mt-1.5 flex items-center gap-1">
-                    <span>🎟️</span> {t.totalSeats} seats only
+                  {/* Live seats remaining */}
+                  <div className={`text-xs mt-1.5 flex items-center gap-1 ${remaining <= 20 && remaining > 0 ? 'text-red-400' : 'text-zinc-600'}`}>
+                    <span>🎟️</span>
+                    {soldOut ? 'No seats left' : `${remaining} of ${t.totalSeats} seats left`}
                   </div>
 
-                  {state.form.seat_tier === key && (
+                  {state.form.seat_tier === key && !soldOut && (
                     <div className="absolute top-2 left-2 w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center">
                       <svg className="w-3 h-3 text-black" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
                     </div>

@@ -39,14 +39,15 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Check seat availability
-  const { data: config } = await supabaseAdmin
-    .from('event_config')
-    .select('seats_remaining')
-    .eq('tier', data.seat_tier)
-    .single()
+  // Check seat availability — count approved payments for this tier
+  const { count: approvedCount } = await supabaseAdmin
+    .from('payments')
+    .select('registrations!inner(seat_tier)', { count: 'exact', head: true })
+    .eq('status', 'approved')
+    .eq('registrations.seat_tier', data.seat_tier)
 
-  if (!config || config.seats_remaining <= 0) {
+  const totalSeats = SEAT_TIERS[data.seat_tier].totalSeats
+  if ((approvedCount ?? 0) >= totalSeats) {
     return Response.json(
       { error: `${SEAT_TIERS[data.seat_tier].label} seats are sold out.` },
       { status: 409 }
@@ -79,8 +80,6 @@ export async function POST(req: NextRequest) {
     status: 'pending',
   })
 
-  // Decrement seat count
-  await supabaseAdmin.rpc('reserve_seat', { p_tier: data.seat_tier })
-
+  // Note: seats_remaining decrements when admin approves payment, not at registration time
   return Response.json({ application_id, amount }, { status: 201 })
 }
