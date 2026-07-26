@@ -2,6 +2,15 @@ import { getSession } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase'
 import { NextRequest } from 'next/server'
 
+type RegInfo = { full_name: string; seat_tier: string; mobile: string; gender: string }
+
+function extractReg(raw: unknown): RegInfo | null {
+  if (!raw) return null
+  const item = Array.isArray(raw) ? raw[0] : raw
+  if (!item || typeof item !== 'object') return null
+  return item as RegInfo
+}
+
 // GET — fetch scan history with stats
 export async function GET(req: NextRequest) {
   const session = await getSession()
@@ -11,7 +20,6 @@ export async function GET(req: NextRequest) {
 
   const search = new URL(req.url).searchParams.get('q') ?? ''
 
-  // Fetch all logs with registration info (no limit for stats)
   const { data: allLogs, error } = await supabaseAdmin
     .from('scan_logs')
     .select(`
@@ -35,8 +43,7 @@ export async function GET(req: NextRequest) {
   }
 
   for (const log of logs) {
-    const rawReg = log.registrations
-    const reg = (Array.isArray(rawReg) ? rawReg[0] : rawReg) as { seat_tier: string; gender: string } | null
+    const reg = extractReg(log.registrations)
     const tier = reg?.seat_tier ?? ''
     const gender = reg?.gender ?? ''
 
@@ -56,7 +63,7 @@ export async function GET(req: NextRequest) {
   // ── Filter for search ────────────────────────────────────────────────────
   const filtered = search
     ? logs.filter(l => {
-        const reg = l.registrations as { full_name: string; mobile: string } | null
+        const reg = extractReg(l.registrations)
         const q = search.toLowerCase()
         return (
           l.application_id.toLowerCase().includes(q) ||
