@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json()
-  const { name, tagline, bio, photo_url, category, display_order } = body
+  const { name, tagline, bio, photo_url, category, contestant_category, display_order } = body
 
   if (!name?.trim()) {
     return Response.json({ error: 'Name is required' }, { status: 400 })
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from('contestants')
-    .insert({ name: name.trim(), tagline, bio, photo_url, category, display_order: display_order ?? 0 })
+    .insert({ name: name.trim(), tagline, bio, photo_url, category, contestant_category, display_order: display_order ?? 0 })
     .select()
     .single()
 

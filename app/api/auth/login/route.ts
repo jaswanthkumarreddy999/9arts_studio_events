@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
 
   const { data: reg } = await supabaseAdmin
     .from('registrations')
-    .select('application_id, full_name, seat_tier, mobile')
+    .select('application_id, full_name, seat_tier, mobile, registration_status')
     .eq('application_id', application_id.toUpperCase().trim())
     .eq('mobile', mobile.trim())
     .maybeSingle()
@@ -57,6 +57,13 @@ export async function POST(req: NextRequest) {
     return Response.json(
       { error: 'No registration found with these details. Please check and try again.' },
       { status: 401 }
+    )
+  }
+
+  if (reg.registration_status === 'deleted') {
+    return Response.json(
+      { error: 'This registration has been removed. Please contact the event team for assistance.' },
+      { status: 403 }
     )
   }
 

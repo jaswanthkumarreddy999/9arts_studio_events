@@ -16,7 +16,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { id } = await params
   const body = await req.json()
-  const { name, tagline, bio, photo_url, category, display_order } = body
+  const { name, tagline, bio, photo_url, category, contestant_category, display_order } = body
 
   const updates: Record<string, unknown> = {}
   if (name !== undefined) updates.name = name
@@ -24,6 +24,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (bio !== undefined) updates.bio = bio
   if (photo_url !== undefined) updates.photo_url = photo_url
   if (category !== undefined) updates.category = category
+  if (contestant_category !== undefined) updates.contestant_category = contestant_category
   if (display_order !== undefined) updates.display_order = display_order
 
   const { data, error } = await supabaseAdmin
