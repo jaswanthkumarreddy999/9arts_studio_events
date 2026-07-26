@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { SEAT_TIERS } from '@/lib/types'
 import Link from 'next/link'
 import PassActions from './PassActions'
+import VoteSection from './VoteSection'
 
 export default async function MyPassPage() {
   const session = await getSession()
@@ -135,6 +136,8 @@ export default async function MyPassPage() {
             )}
           </div>
         )}
+
+        <VoteSection />
       </div>
     </div>
   )
