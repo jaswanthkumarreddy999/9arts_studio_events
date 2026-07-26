@@ -11,25 +11,39 @@ export async function GET() {
 
   const { data: voteCounts, error: voteError } = await supabaseAdmin
     .from('votes')
-    .select('contestant_id, contestant_category, contestants(name, photo_url)')
+    .select('id, contestant_id, contestant_category, application_id, voted_at, contestants(name, photo_url)')
+    .order('voted_at', { ascending: false })
 
   if (voteError) return Response.json({ error: 'Fetch failed' }, { status: 500 })
 
-  // Per-category aggregation
+  type VoteRow = {
+    id: string
+    contestantId: string
+    contestantName: string
+    photo_url: string | null
+    category: string
+    applicationId: string
+    votedAt: string
+  }
+
   type CategoryResult = {
     contestantId: string
     name: string
     photo_url: string | null
     count: number
   }
+
   const categoryMap: Record<string, Map<string, CategoryResult>> = {}
-  for (const cat of CATEGORIES) categoryMap[cat] = new Map()
+  const categoryVotes: Record<string, VoteRow[]> = {}
+  for (const cat of CATEGORIES) { categoryMap[cat] = new Map(); categoryVotes[cat] = [] }
 
   for (const row of voteCounts ?? []) {
     const raw = row.contestants as unknown
     const c = (Array.isArray(raw) ? raw[0] : raw) as { name: string; photo_url: string | null } | null
     const cat = row.contestant_category as string
     if (!categoryMap[cat]) continue
+
+    // Aggregate counts
     const map = categoryMap[cat]
     if (!map.has(row.contestant_id)) {
       map.set(row.contestant_id, {
@@ -40,6 +54,17 @@ export async function GET() {
       })
     }
     map.get(row.contestant_id)!.count++
+
+    // Individual votes
+    categoryVotes[cat].push({
+      id: row.id,
+      contestantId: row.contestant_id,
+      contestantName: c?.name ?? 'Unknown',
+      photo_url: c?.photo_url ?? null,
+      category: cat,
+      applicationId: row.application_id,
+      votedAt: row.voted_at,
+    })
   }
 
   const byCategory: Record<string, CategoryResult[]> = {}
@@ -51,7 +76,7 @@ export async function GET() {
     .from('votes')
     .select('*', { count: 'exact', head: true })
 
-  return Response.json({ byCategory, totalVotes: totalVotes ?? 0 })
+  return Response.json({ byCategory, categoryVotes, totalVotes: totalVotes ?? 0 })
 }
 
 // DELETE — reset votes (optionally by category)

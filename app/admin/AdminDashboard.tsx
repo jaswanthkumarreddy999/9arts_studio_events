@@ -758,6 +758,10 @@ function VotesTab() {
         </div>
         <div className="flex items-center gap-3">
           <button onClick={fetchVotes} className="text-xs text-zinc-400 hover:text-white">↻ Refresh</button>
+          <a href="/admin/votes"
+            className="text-xs text-blue-400 hover:text-blue-300 border border-blue-700/40 bg-blue-900/20 px-3 py-1.5 rounded-xl transition-colors">
+            ✏️ Edit Votes
+          </a>
           <button onClick={() => handleReset()} disabled={resetting !== null || totalVotes === 0}
             className="bg-red-900/40 hover:bg-red-800/60 text-red-400 border border-red-700/40 text-xs font-semibold px-4 py-2 rounded-xl disabled:opacity-40">
             {resetting === 'all' ? 'Resetting…' : '🗑️ Reset All'}
