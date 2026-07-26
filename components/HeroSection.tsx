@@ -63,7 +63,14 @@ export default function HeroSection() {
             📅 August 2, 2026
           </span>
           <span className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-zinc-300">
-            📍 DGP kalyana mandapam, Nellore 
+            <a
+              href="https://maps.app.goo.gl/wnjAFBDbuUUtRiLq8"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 hover:text-yellow-400 transition-colors"
+            >
+              📍 DGP kalyana mandapam, Nellore
+            </a>
           </span>
           <span className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-zinc-300">
             🎟️ Limited Seats

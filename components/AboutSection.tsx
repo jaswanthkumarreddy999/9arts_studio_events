@@ -68,18 +68,25 @@ export default function AboutSection() {
               Event Details
             </h4>
             {[
-              { label: 'Date', value: 'August 2, 2026', icon: '📅' },
-              { label: 'Day', value: 'Sunday', icon: '🗓️' },
-              { label: 'Venue', value: 'DGP kalyana mandapam, Nellore', icon: '📍' },
-              { label: 'Location', value: 'Nellore, Andhra Pradesh', icon: '🗺️' },
-              { label: 'Time', value: '2:00 PM onwards', icon: '⏰' },
-              { label: 'Dress Code', value: 'Formal / Traditional / Professional', icon: '👔' },
+              { label: 'Date', value: 'August 2, 2026', icon: '📅', href: null },
+              { label: 'Day', value: 'Sunday', icon: '🗓️', href: null },
+              { label: 'Venue', value: 'DGP kalyana mandapam, Nellore', icon: '📍', href: 'https://maps.app.goo.gl/wnjAFBDbuUUtRiLq8' },
+              { label: 'Location', value: 'Nellore, Andhra Pradesh', icon: '🗺️', href: null },
+              { label: 'Time', value: '2:00 PM onwards', icon: '⏰', href: null },
+              { label: 'Dress Code', value: 'Formal / Traditional / Professional', icon: '👔', href: null },
             ].map((item) => (
               <div key={item.label} className="flex items-start gap-3 py-3 border-b border-white/5 last:border-0">
                 <span className="text-lg">{item.icon}</span>
                 <div>
                   <div className="text-xs text-zinc-500 uppercase tracking-wide">{item.label}</div>
-                  <div className="text-white font-medium">{item.value}</div>
+                  {item.href ? (
+                    <a href={item.href} target="_blank" rel="noopener noreferrer"
+                      className="text-white font-medium hover:text-yellow-400 transition-colors underline underline-offset-2 decoration-yellow-700">
+                      {item.value} ↗
+                    </a>
+                  ) : (
+                    <div className="text-white font-medium">{item.value}</div>
+                  )}
                 </div>
               </div>
             ))}

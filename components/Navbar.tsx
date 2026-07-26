@@ -34,7 +34,7 @@ export default function Navbar() {
         <a href="#home" className="flex items-center gap-2 group">
           <span className="text-2xl">👑</span>
           <span className="font-bold text-lg shimmer">Miss Nellore</span>
-          <span className="text-yellow-600 text-sm font-medium ml-1">2025</span>
+          <span className="text-yellow-600 text-sm font-medium ml-1">2026</span>
         </a>
 
         {/* Desktop nav */}
