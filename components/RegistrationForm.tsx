@@ -497,6 +497,23 @@ function GroupForm({ tickets, setTickets, errors, submitting, submitError, seatD
   )
 }
 
+// ─── CopyButton ───────────────────────────────────────────────────────────────
+
+function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) {
+  const [copied, setCopied] = useState(false)
+  function handleCopy() {
+    navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+  return (
+    <button type="button" onClick={handleCopy}
+      className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all shrink-0 ${copied ? 'bg-green-900/40 border-green-600 text-green-400' : 'bg-yellow-900/30 border-yellow-700/40 text-yellow-400 hover:bg-yellow-900/60'}`}>
+      {copied ? '✓ Copied' : label}
+    </button>
+  )
+}
+
 // ─── PaymentStep ──────────────────────────────────────────────────────────────
 
 function PaymentStep({ isGroup, groupResults, applicationId, amount, tier, upiId, utrNumber, screenshotFile, uploading, submitting, submitError, onUtrChange, onFileChange, onSubmit }: {
@@ -506,12 +523,15 @@ function PaymentStep({ isGroup, groupResults, applicationId, amount, tier, upiId
   onUtrChange: (v: string) => void; onFileChange: (f: File | null) => void; onSubmit: (e: React.FormEvent) => void
 }) {
   const t = SEAT_TIERS[tier]
+  const phone = '9346039342'
+
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
-      {/* Application IDs */}
+    <form onSubmit={onSubmit} className="space-y-5">
+
+      {/* Application ID(s) saved banner */}
       {isGroup ? (
         <div className="bg-green-900/20 border border-green-700/40 rounded-xl p-4 space-y-2">
-          <div className="text-green-400 text-xs uppercase tracking-wide font-semibold mb-2">Group Registration Successful! — Save all IDs</div>
+          <div className="text-green-400 text-xs uppercase tracking-wide font-semibold mb-2">✅ Group Registered! Save these Application IDs</div>
           {groupResults.map(r => (
             <div key={r.application_id} className="flex items-center justify-between gap-2 bg-black/20 rounded-lg px-3 py-2">
               <div>
@@ -521,83 +541,242 @@ function PaymentStep({ isGroup, groupResults, applicationId, amount, tier, upiId
               <div className="text-zinc-400 text-xs">{SEAT_TIERS[r.seat_tier as SeatTier]?.badge} ₹{r.amount}</div>
             </div>
           ))}
+          <div className="text-amber-400 text-xs mt-1 pt-2 border-t border-green-700/20">⚠️ Screenshot or note these IDs — needed to check your pass later</div>
         </div>
       ) : (
         <div className="bg-green-900/20 border border-green-700/40 rounded-xl p-4">
-          <div className="text-green-400 text-xs uppercase tracking-wide font-semibold mb-1">Registration Successful!</div>
-          <div className="text-white font-bold text-lg">{applicationId}</div>
-          <div className="text-zinc-400 text-xs mt-1">⚠️ Save your Application ID — you need it to log in later</div>
+          <div className="text-green-400 text-xs uppercase tracking-wide font-semibold mb-1">✅ Registration Successful!</div>
+          <div className="text-white font-bold text-lg font-mono">{applicationId}</div>
+          <div className="text-amber-400 text-xs mt-1">⚠️ Save this Application ID — you need it to log in and check your pass at <strong>My Pass</strong></div>
         </div>
       )}
 
-      {/* Payment details */}
-      <div className="bg-white/5 border border-yellow-900/30 rounded-xl p-6">
-        <h3 className="text-yellow-400 font-semibold mb-4">Complete Your Payment</h3>
-        {isGroup ? (
-          <div className="space-y-1 mb-4">
-            {groupResults.map(r => (
-              <div key={r.application_id} className="flex justify-between text-sm">
-                <span className="text-zinc-400 truncate mr-2">{r.full_name} ({SEAT_TIERS[r.seat_tier as SeatTier]?.label})</span>
-                <span className="text-white shrink-0">₹{r.amount}</span>
+      {/* ── STEP 1 ── Pay now */}
+      <div className="border border-yellow-700/40 rounded-2xl overflow-hidden">
+        <div className="bg-yellow-900/20 px-4 py-3 flex items-center gap-3 border-b border-yellow-700/20">
+          <span className="bg-yellow-500 text-black text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-base">1</span>
+          <div>
+            <div className="text-yellow-400 font-bold text-sm">Complete Payment</div>
+            <div className="text-zinc-500 text-xs">Scan QR or use UPI ID / mobile to pay</div>
+          </div>
+        </div>
+        <div className="p-4 space-y-5">
+
+          {/* Amount to pay */}
+          <div className="bg-yellow-900/10 border border-yellow-700/20 rounded-xl px-4 py-3">
+            {isGroup ? (
+              <div className="space-y-1.5">
+                <div className="text-zinc-500 text-xs mb-2">Paying for {groupResults.length} people</div>
+                {groupResults.map(r => (
+                  <div key={r.application_id} className="flex justify-between text-sm">
+                    <span className="text-zinc-400 truncate mr-2">{r.full_name} · {SEAT_TIERS[r.seat_tier as SeatTier]?.label}</span>
+                    <span className="text-white shrink-0">₹{r.amount}</span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between pt-2 border-t border-yellow-700/20 mt-1">
+                  <div>
+                    <div className="text-zinc-400 text-xs">Pay to</div>
+                    <div className="text-white font-semibold text-sm">9 Arts Studio</div>
+                  </div>
+                  <div className="text-yellow-400 font-bold text-2xl">₹{amount}</div>
+                </div>
               </div>
-            ))}
-            <div className="flex justify-between pt-2 border-t border-white/10 mt-2">
-              <span className="text-zinc-400 font-semibold">Total</span>
-              <span className="text-yellow-400 font-bold text-xl">₹{amount}</span>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-zinc-400 text-xs mb-0.5">Pay to · {t.badge} {t.label}</div>
+                  <div className="text-white font-semibold text-sm">9 Arts Studio</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-zinc-400 text-xs mb-0.5">Amount</div>
+                  <div className="text-yellow-400 font-bold text-2xl">₹{amount}</div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Option A — QR */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="bg-zinc-800 border border-white/10 text-zinc-300 text-xs font-bold px-2 py-0.5 rounded-full">Option A</span>
+              <span className="text-zinc-300 text-sm font-medium">Scan QR Code</span>
+            </div>
+            <div className="flex flex-col items-center gap-3">
+              <div className="bg-white p-3 rounded-2xl shadow-xl">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/payment-qr.png" alt="Payment QR Code" className="w-52 h-52" />
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href="/payment-qr.png"
+                  download="MissNellore2026-Payment-QR.png"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300 border border-blue-700/40 bg-blue-900/20 px-3 py-2 rounded-lg transition-colors"
+                >
+                  ⬇️ Download QR to Phone
+                </a>
+              </div>
+              <p className="text-zinc-500 text-xs text-center">Open PhonePe / Google Pay / Paytm → tap <strong className="text-zinc-300">Scan QR</strong> → pay ₹{amount}</p>
             </div>
           </div>
-        ) : (
-          <div className="mb-6 pb-4 border-b border-white/10">
-            <div className="flex justify-between mb-2"><span className="text-zinc-400">Pass</span><span className="text-white">{t.badge} {t.label}</span></div>
-            <div className="flex justify-between"><span className="text-zinc-400">Amount</span><span className="text-yellow-400 font-bold text-xl">₹{amount}</span></div>
-          </div>
-        )}
 
-        {/* QR + UPI */}
-        <div className="flex flex-col items-center gap-3 mb-4">
-          <div className="text-sm text-zinc-400">Scan to pay via PhonePe / any UPI app</div>
-          <div className="bg-white p-3 rounded-2xl shadow-lg">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/payment-qr.png" alt="PhonePe QR Code" className="w-44 h-44" />
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-white/10" />
+            <span className="text-zinc-600 text-xs font-semibold">OR</span>
+            <div className="flex-1 h-px bg-white/10" />
           </div>
-          <div className="text-xs text-zinc-500">9 Arts Studio · Open PhonePe / GPay / Paytm and scan</div>
-          <div className="inline-flex items-center gap-2 bg-black/40 border border-yellow-700/30 rounded-lg px-4 py-2">
-            <span className="text-yellow-400 font-mono font-bold text-sm">{upiId}</span>
-            <button type="button" onClick={() => navigator.clipboard.writeText(upiId)} className="text-zinc-500 hover:text-yellow-400 text-xs">Copy</button>
+
+          {/* Option B — UPI ID / Mobile */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="bg-zinc-800 border border-white/10 text-zinc-300 text-xs font-bold px-2 py-0.5 rounded-full">Option B</span>
+              <span className="text-zinc-300 text-sm font-medium">Enter UPI ID or Mobile Number manually</span>
+            </div>
+
+            {/* UPI ID row */}
+            <div className="flex items-center justify-between bg-black/40 border border-yellow-700/30 rounded-xl px-4 py-3 gap-3">
+              <div className="min-w-0">
+                <div className="text-zinc-500 text-xs mb-0.5">UPI ID</div>
+                <div className="text-yellow-400 font-mono font-bold text-sm truncate">{upiId}</div>
+              </div>
+              <CopyButton text={upiId} label="Copy UPI" />
+            </div>
+
+            {/* Mobile number row */}
+            <div className="flex items-center justify-between bg-black/40 border border-white/10 rounded-xl px-4 py-3 gap-3">
+              <div className="min-w-0">
+                <div className="text-zinc-500 text-xs mb-0.5">Mobile Number (UPI)</div>
+                <div className="text-white font-mono font-bold text-sm">+91 {phone}</div>
+              </div>
+              <CopyButton text={phone} label="Copy No." />
+            </div>
+
+            <p className="text-zinc-600 text-xs text-center">In your UPI app → Send Money → enter the UPI ID <em>or</em> mobile number above</p>
           </div>
-          <div className="text-xs text-zinc-600">Open your UPI app → Scan QR or enter UPI ID manually</div>
         </div>
       </div>
 
-      {/* Screenshot + UTR */}
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-1.5">Upload Payment Screenshot <span className="text-zinc-500">(optional but recommended)</span></label>
-          <label className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${screenshotFile ? 'border-green-600 bg-green-900/10' : 'border-white/10 hover:border-yellow-700/50 bg-white/5'}`}>
-            <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={e => onFileChange(e.target.files?.[0] ?? null)} />
-            {screenshotFile ? (
-              <div className="text-center"><div className="text-green-400 text-sm font-medium">{screenshotFile.name}</div><div className="text-zinc-500 text-xs">{(screenshotFile.size / 1024 / 1024).toFixed(1)} MB</div></div>
-            ) : (
-              <div className="text-center"><div className="text-3xl mb-1">📎</div><div className="text-zinc-400 text-sm">Click to upload screenshot</div></div>
+      {/* ── STEP 2 ── Share proof */}
+      <div className="border border-blue-700/30 rounded-2xl overflow-hidden">
+        <div className="bg-blue-900/20 px-4 py-3 flex items-center gap-3 border-b border-blue-700/20">
+          <span className="bg-blue-500 text-white text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-base">2</span>
+          <div>
+            <div className="text-blue-300 font-bold text-sm">Share Payment Proof</div>
+            <div className="text-zinc-500 text-xs">Upload screenshot + enter UTR number</div>
+          </div>
+        </div>
+        <div className="p-4 space-y-4">
+
+          {/* What to submit — checklist */}
+          <div className="bg-blue-900/10 border border-blue-700/20 rounded-xl px-4 py-3 space-y-2">
+            <div className="text-blue-300 text-xs font-semibold uppercase tracking-wide mb-2">After paying, submit both of these:</div>
+            <div className="flex items-start gap-2.5 text-sm">
+              <span className="text-blue-400 mt-0.5 shrink-0">📸</span>
+              <div>
+                <span className="text-white font-medium">A clear screenshot of the payment</span>
+                <span className="text-zinc-400"> — must show the <strong className="text-blue-200">UTR / Transaction ID</strong>, the amount paid, and the recipient name</span>
+              </div>
+            </div>
+            <div className="flex items-start gap-2.5 text-sm">
+              <span className="text-blue-400 mt-0.5 shrink-0">🔢</span>
+              <div>
+                <span className="text-white font-medium">UTR / Transaction ID</span>
+                <span className="text-zinc-400"> — the 12-digit reference number from your UPI app (shown after payment succeeds)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Screenshot upload */}
+          <div>
+            <label className="block text-sm font-semibold text-zinc-200 mb-1.5">
+              📎 Payment Screenshot <span className="text-blue-400 font-normal text-xs">(strongly recommended)</span>
+            </label>
+            <label className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-xl cursor-pointer transition-all ${screenshotFile ? 'border-green-600 bg-green-900/10' : 'border-blue-700/40 hover:border-blue-500/60 bg-white/3'}`}>
+              <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={e => onFileChange(e.target.files?.[0] ?? null)} />
+              {screenshotFile ? (
+                <div className="text-center px-4">
+                  <div className="text-2xl mb-1">✅</div>
+                  <div className="text-green-400 text-sm font-semibold">{screenshotFile.name}</div>
+                  <div className="text-zinc-500 text-xs">{(screenshotFile.size / 1024 / 1024).toFixed(1)} MB — tap to change</div>
+                </div>
+              ) : (
+                <div className="text-center px-4">
+                  <div className="text-3xl mb-1">📎</div>
+                  <div className="text-zinc-300 text-sm font-medium">Tap to upload payment screenshot</div>
+                  <div className="text-zinc-500 text-xs mt-0.5">JPG / PNG / WebP · max 5 MB</div>
+                </div>
+              )}
+            </label>
+            <p className="text-zinc-600 text-xs mt-1.5">The screenshot should clearly show the UTR number and amount ₹{amount}</p>
+          </div>
+
+          {/* UTR */}
+          <div>
+            <label className="block text-sm font-semibold text-zinc-200 mb-1.5">
+              🔢 UTR / Transaction ID <span className="text-red-400">*</span>
+            </label>
+            <input type="text" value={utrNumber} onChange={e => onUtrChange(e.target.value)}
+              placeholder="e.g. 455363533160"
+              inputMode="numeric"
+              className="w-full bg-white/5 border border-white/10 text-white placeholder-zinc-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition-colors font-mono" />
+            <p className="text-zinc-600 text-xs mt-1.5">
+              Find it in your UPI app → <strong className="text-zinc-400">Payment History</strong> → tap the transaction → copy the UTR/Ref number
+            </p>
+            {isGroup && (
+              <p className="text-blue-400 text-xs mt-1.5 bg-blue-900/10 border border-blue-700/20 rounded-lg px-3 py-2">
+                💡 One UTR number covers all {groupResults.length} people in this group booking — enter the single transaction ID.
+              </p>
             )}
-          </label>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-1.5">UTR / Transaction ID *</label>
-          <input type="text" value={utrNumber} onChange={e => onUtrChange(e.target.value)}
-            placeholder="Enter UTR number from your UPI app"
-            className="w-full bg-white/5 border border-white/10 text-white placeholder-zinc-500 rounded-xl px-4 py-3 focus:outline-none focus:border-yellow-500 transition-colors" />
-          {isGroup && <p className="text-zinc-500 text-xs mt-1">One UTR covers all {groupResults.length} registrations in this group.</p>}
+          </div>
         </div>
       </div>
 
-      {submitError && <div className="bg-red-900/20 border border-red-700/50 text-red-400 rounded-lg px-4 py-3 text-sm">{submitError}</div>}
+      {/* ── STEP 3 — What happens next ── */}
+      <div className="border border-purple-700/30 rounded-2xl overflow-hidden">
+        <div className="bg-purple-900/20 px-4 py-3 flex items-center gap-3 border-b border-purple-700/20">
+          <span className="bg-purple-500 text-white text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-base">3</span>
+          <div>
+            <div className="text-purple-300 font-bold text-sm">What Happens After You Submit</div>
+            <div className="text-zinc-500 text-xs">Your pass will be ready once payment is verified</div>
+          </div>
+        </div>
+        <div className="p-4 space-y-3">
+          <div className="flex items-start gap-3 text-sm">
+            <span className="text-purple-400 text-base shrink-0 mt-0.5">⏳</span>
+            <div>
+              <span className="text-white font-medium">We review your payment details</span>
+              <span className="text-zinc-400"> — verification happens within <strong className="text-purple-300">a few hours</strong> after you submit</span>
+            </div>
+          </div>
+          <div className="flex items-start gap-3 text-sm">
+            <span className="text-purple-400 text-base shrink-0 mt-0.5">🎟️</span>
+            <div>
+              <span className="text-white font-medium">Your QR entry pass gets generated</span>
+              <span className="text-zinc-400"> — once approved, your pass is live and ready to use at the event</span>
+            </div>
+          </div>
+          <div className="flex items-start gap-3 text-sm">
+            <span className="text-purple-400 text-base shrink-0 mt-0.5">📱</span>
+            <div>
+              <span className="text-white font-medium">Check your pass anytime at </span>
+              <a href="/my-pass" className="text-purple-300 underline underline-offset-2 hover:text-purple-200 transition-colors font-semibold">My Pass</a>
+              <span className="text-zinc-400"> — log in with your Application ID to see your status and QR code</span>
+            </div>
+          </div>
+          <div className="bg-purple-900/10 border border-purple-700/20 rounded-xl px-4 py-3 mt-1">
+            <div className="text-purple-300 text-xs font-semibold mb-1">🔑 How to check your pass</div>
+            <div className="text-zinc-400 text-xs">Go to <strong className="text-white">My Pass</strong> page → enter your Application ID → see your pass status and download your QR entry ticket</div>
+          </div>
+        </div>
+      </div>
+
+      {submitError && (
+        <div className="bg-red-900/20 border border-red-700/50 text-red-400 rounded-lg px-4 py-3 text-sm">{submitError}</div>
+      )}
 
       <button type="submit" disabled={submitting || uploading}
         className="w-full bg-gradient-to-r from-yellow-600 to-yellow-400 text-black font-bold py-4 rounded-xl text-lg disabled:opacity-60 hover:from-yellow-500 hover:to-yellow-300 transition-all">
-        {uploading ? 'Uploading...' : submitting ? 'Submitting...' : 'Submit Payment for Verification'}
+        {uploading ? 'Uploading screenshot...' : submitting ? 'Submitting...' : '✅ Submit Payment for Verification'}
       </button>
-      <p className="text-zinc-600 text-xs text-center">Payment verified within 24 hours. QR pass issued after verification.</p>
     </form>
   )
 }
