@@ -560,15 +560,12 @@ function PaymentStep({ isGroup, groupResults, applicationId, amount, tier, upiId
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/payment-qr.png" alt="PhonePe QR Code" className="w-44 h-44" />
           </div>
-          <a href={`upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent('9 Arts Studio')}&am=${amount}&cu=INR`}
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white font-bold px-6 py-3 rounded-xl transition-all text-sm">
-            📱 Pay ₹{amount} via UPI App
-          </a>
-          <div className="text-xs text-zinc-500">Opens PhonePe / GPay / Paytm based on your preference</div>
+          <div className="text-xs text-zinc-500">9 Arts Studio · Open PhonePe / GPay / Paytm and scan</div>
           <div className="inline-flex items-center gap-2 bg-black/40 border border-yellow-700/30 rounded-lg px-4 py-2">
             <span className="text-yellow-400 font-mono font-bold text-sm">{upiId}</span>
             <button type="button" onClick={() => navigator.clipboard.writeText(upiId)} className="text-zinc-500 hover:text-yellow-400 text-xs">Copy</button>
           </div>
+          <div className="text-xs text-zinc-600">Open your UPI app → Scan QR or enter UPI ID manually</div>
         </div>
       </div>
 
