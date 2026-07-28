@@ -7,7 +7,7 @@ export const SEAT_TIERS = {
     badge: '👑',
     color: 'amber',
     description: 'Best view, front rows, exclusive experience',
-    totalSeats: 300,
+    totalSeats: 250,
   },
   gold: {
     label: 'Gold Pass',
@@ -17,7 +17,7 @@ export const SEAT_TIERS = {
     badge: '⭐',
     color: 'yellow',
     description: 'Great view, comfortable seating',
-    totalSeats: 300,
+    totalSeats: 250,
   },
 } as const
 
