@@ -7,7 +7,7 @@ import Link from 'next/link'
 
 type PaymentStatus = 'pending' | 'approved' | 'rejected'
 type RegStatus = 'active' | 'done' | 'payment_pending' | 'review' | 'deleted'
-type AdminTab = 'registrations' | 'contestants' | 'votes'
+type AdminTab = 'registrations' | 'contestants' | 'sponsors' | 'votes'
 const VOTE_CATEGORIES = ['kid', 'teen', 'miss', 'misses'] as const
 type VoteCategory = typeof VOTE_CATEGORIES[number]
 
@@ -87,10 +87,10 @@ export default function AdminDashboard({ adminName }: { adminName: string }) {
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-4 flex gap-1">
-          {(['registrations', 'contestants', 'votes'] as const).map((tab) => (
+          {(['registrations', 'contestants', 'sponsors', 'votes'] as const).map((tab) => (
             <button key={tab} onClick={() => setActiveTab(tab)}
               className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-all ${activeTab === tab ? 'border-yellow-500 text-yellow-400' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}>
-              {tab === 'registrations' ? '🎟️ Registrations' : tab === 'contestants' ? '👸 Contestants' : '🗳️ Votes'}
+              {tab === 'registrations' ? '🎟️ Registrations' : tab === 'contestants' ? '👸 Contestants' : tab === 'sponsors' ? '🤝 Sponsors' : '🗳️ Votes'}
             </button>
           ))}
         </div>
@@ -98,6 +98,7 @@ export default function AdminDashboard({ adminName }: { adminName: string }) {
       <div className="max-w-7xl mx-auto px-4 py-6">
         {activeTab === 'registrations' && <RegistrationsTab />}
         {activeTab === 'contestants' && <ContestantsTab />}
+        {activeTab === 'sponsors' && <SponsorsTab />}
         {activeTab === 'votes' && <VotesTab />}
       </div>
     </div>
@@ -117,7 +118,7 @@ function RegistrationsTab() {
   const [statusNote, setStatusNote] = useState('')
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  type SortField = 'name' | 'date' | 'utr' | 'tier' | 'mobile'
+  type SortField = 'name' | 'date' | 'utr' | 'tier' | 'mobile' | 'gender' | 'reg_status' | 'pay_status'
   type SortDir = 'asc' | 'desc'
   const [sortField, setSortField] = useState<SortField>('date')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
@@ -240,6 +241,9 @@ function RegistrationsTab() {
       let cmp = 0
       if (sortField === 'name') cmp = a.full_name.localeCompare(b.full_name)
       else if (sortField === 'mobile') cmp = a.mobile.localeCompare(b.mobile)
+      else if (sortField === 'gender') cmp = (a.gender ?? '').localeCompare(b.gender ?? '')
+      else if (sortField === 'reg_status') cmp = (a.registration_status ?? '').localeCompare(b.registration_status ?? '')
+      else if (sortField === 'pay_status') cmp = (a.payments?.status ?? '').localeCompare(b.payments?.status ?? '')
       else if (sortField === 'date') cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       else if (sortField === 'tier') cmp = a.seat_tier.localeCompare(b.seat_tier)
       else if (sortField === 'utr') {
@@ -416,9 +420,15 @@ function RegistrationsTab() {
                   <th className="text-left px-4 py-3 hidden md:table-cell cursor-pointer hover:text-zinc-300 select-none" onClick={() => toggleSort('tier')}>
                     Pass {sortField === 'tier' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
                   </th>
-                  <th className="text-left px-4 py-3 hidden md:table-cell">Gender</th>
-                  <th className="text-left px-4 py-3">Status</th>
-                  <th className="text-left px-4 py-3">Payment</th>
+                  <th className="text-left px-4 py-3 hidden md:table-cell cursor-pointer hover:text-zinc-300 select-none" onClick={() => toggleSort('gender')}>
+                    Gender {sortField === 'gender' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+                  </th>
+                  <th className="text-left px-4 py-3 cursor-pointer hover:text-zinc-300 select-none" onClick={() => toggleSort('reg_status')}>
+                    Status {sortField === 'reg_status' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+                  </th>
+                  <th className="text-left px-4 py-3 cursor-pointer hover:text-zinc-300 select-none" onClick={() => toggleSort('pay_status')}>
+                    Payment {sortField === 'pay_status' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+                  </th>
                   <th className="text-left px-4 py-3 hidden lg:table-cell cursor-pointer hover:text-zinc-300 select-none" onClick={() => toggleSort('utr')}>
                     UTR {sortField === 'utr' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
                   </th>
@@ -896,6 +906,223 @@ function ContestantsTab() {
               <button onClick={handleSave} disabled={saving || uploading}
                 className="w-full bg-gradient-to-r from-yellow-600 to-yellow-400 text-black font-bold py-3 rounded-xl disabled:opacity-60 hover:from-yellow-500 hover:to-yellow-300 transition-all">
                 {uploading ? 'Uploading…' : saving ? 'Saving…' : creating ? 'Add Contestant' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+// ─── SPONSORS TAB ────────────────────────────────────────────────────────────
+
+interface Sponsor {
+  id: string
+  name: string
+  tagline?: string
+  logo_url?: string
+  website_url?: string
+  tier: 'title' | 'gold' | 'silver' | 'bronze'
+  display_order: number
+}
+
+const SPONSOR_TIERS: { value: Sponsor['tier']; label: string; icon: string; color: string }[] = [
+  { value: 'title',  label: 'Title',  icon: '👑', color: 'text-amber-300' },
+  { value: 'gold',   label: 'Gold',   icon: '🥇', color: 'text-yellow-400' },
+  { value: 'silver', label: 'Silver', icon: '🥈', color: 'text-zinc-300' },
+  { value: 'bronze', label: 'Bronze', icon: '🥉', color: 'text-amber-700' },
+]
+
+const emptySponsorForm = { name: '', tagline: '', logo_url: '', website_url: '', tier: 'gold' as Sponsor['tier'], display_order: 0 }
+
+function SponsorsTab() {
+  const [sponsors, setSponsors] = useState<Sponsor[]>([])
+  const [loading, setLoading] = useState(true)
+  const [editing, setEditing] = useState<Sponsor | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [form, setForm] = useState(emptySponsorForm)
+  const [saving, setSaving] = useState(false)
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState('')
+  const [filterTier, setFilterTier] = useState<Sponsor['tier'] | 'all'>('all')
+
+  const fetchSponsors = useCallback(async () => {
+    setLoading(true)
+    const res = await fetch('/api/admin/sponsors')
+    if (res.ok) { const d = await res.json(); setSponsors(d.sponsors ?? []) }
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { fetchSponsors() }, [fetchSponsors])
+
+  function openCreate() { setForm(emptySponsorForm); setLogoFile(null); setError(''); setCreating(true); setEditing(null) }
+  function openEdit(s: Sponsor) {
+    setForm({ name: s.name, tagline: s.tagline ?? '', logo_url: s.logo_url ?? '', website_url: s.website_url ?? '', tier: s.tier, display_order: s.display_order })
+    setLogoFile(null); setError(''); setEditing(s); setCreating(false)
+  }
+  function closeModal() { setEditing(null); setCreating(false); setError('') }
+
+  async function uploadLogo(sponsorId: string): Promise<string | null> {
+    if (!logoFile) return null
+    setUploading(true)
+    const fd = new FormData()
+    fd.append('file', logoFile)
+    fd.append('sponsorId', sponsorId)
+    const res = await fetch('/api/admin/sponsor-logo-url', { method: 'POST', body: fd })
+    const data = await res.json()
+    setUploading(false)
+    if (!res.ok) { setError(data.error ?? 'Upload failed'); return null }
+    return data.publicUrl
+  }
+
+  async function handleSave() {
+    if (!form.name.trim()) { setError('Name is required'); return }
+    setSaving(true); setError('')
+    const payload = { ...form, display_order: Number(form.display_order) }
+    if (creating) {
+      const res = await fetch('/api/admin/sponsors', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error ?? 'Failed'); setSaving(false); return }
+      if (logoFile) {
+        const url = await uploadLogo(data.sponsor.id)
+        if (!url) { setSaving(false); return }
+        await fetch(`/api/admin/sponsors/${data.sponsor.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ logo_url: url }) })
+      }
+    } else if (editing) {
+      let logoUrl = form.logo_url
+      if (logoFile) {
+        const uploaded = await uploadLogo(editing.id)
+        if (!uploaded) { setSaving(false); return }
+        logoUrl = uploaded
+      }
+      const res = await fetch(`/api/admin/sponsors/${editing.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...payload, logo_url: logoUrl }) })
+      if (!res.ok) { const d = await res.json(); setError(d.error ?? 'Failed'); setSaving(false); return }
+    }
+    setSaving(false); closeModal(); fetchSponsors()
+  }
+
+  async function handleDelete(id: string, name: string) {
+    if (!confirm(`Delete sponsor "${name}"? This cannot be undone.`)) return
+    await fetch(`/api/admin/sponsors/${id}`, { method: 'DELETE' })
+    fetchSponsors()
+  }
+
+  const displayed = filterTier === 'all' ? sponsors : sponsors.filter(s => s.tier === filterTier)
+
+  return (
+    <>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={() => setFilterTier('all')} className={`text-xs px-3 py-1.5 rounded-full border transition-all ${filterTier === 'all' ? 'border-yellow-500 text-yellow-400 bg-yellow-900/20' : 'border-white/10 text-zinc-400'}`}>
+            All ({sponsors.length})
+          </button>
+          {SPONSOR_TIERS.map(t => (
+            <button key={t.value} onClick={() => setFilterTier(t.value)}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-all ${filterTier === t.value ? 'border-yellow-500 text-yellow-400 bg-yellow-900/20' : 'border-white/10 text-zinc-400'}`}>
+              {t.icon} {t.label} ({sponsors.filter(s => s.tier === t.value).length})
+            </button>
+          ))}
+        </div>
+        <button onClick={openCreate} className="bg-gradient-to-r from-yellow-600 to-yellow-400 text-black font-bold px-4 py-2 rounded-xl text-sm hover:from-yellow-500 hover:to-yellow-300 transition-all">
+          + Add Sponsor
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="text-center py-12 text-zinc-500">Loading...</div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {displayed.map(s => {
+            const tierMeta = SPONSOR_TIERS.find(t => t.value === s.tier)!
+            return (
+              <div key={s.id} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden flex flex-col">
+                <div className="aspect-[16/7] bg-gradient-to-br from-zinc-900 to-zinc-800 flex items-center justify-center relative overflow-hidden">
+                  {s.logo_url
+                    ? <img src={s.logo_url} alt={s.name} className="w-full h-full object-contain p-4" /> // eslint-disable-line @next/next/no-img-element
+                    : <div className="text-4xl">🤝</div>
+                  }
+                  <div className={`absolute top-2 left-2 bg-black/70 text-xs px-2 py-1 rounded-full border border-white/10 font-semibold ${tierMeta.color}`}>
+                    {tierMeta.icon} {tierMeta.label}
+                  </div>
+                  <div className="absolute top-2 right-2 bg-black/60 text-zinc-400 text-xs px-2 py-1 rounded-full">#{s.display_order}</div>
+                </div>
+                <div className="p-4 flex-1 flex flex-col">
+                  <div className="font-bold text-white">{s.name}</div>
+                  {s.tagline && <div className="text-zinc-400 text-sm italic mt-0.5">{s.tagline}</div>}
+                  {s.website_url && <a href={s.website_url} target="_blank" rel="noopener noreferrer" className="text-blue-400 text-xs mt-1 hover:underline truncate">{s.website_url}</a>}
+                  <div className="flex gap-2 mt-4 pt-3 border-t border-white/10">
+                    <button onClick={() => openEdit(s)} className="flex-1 bg-white/10 hover:bg-white/20 text-white text-xs font-medium py-2 rounded-lg">✏️ Edit</button>
+                    <button onClick={() => handleDelete(s.id, s.name)} className="flex-1 bg-red-900/30 hover:bg-red-800/50 text-red-400 text-xs font-medium py-2 rounded-lg">🗑️ Delete</button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+          {/* Empty placeholder cards to maintain grid structure */}
+          {displayed.length === 0 && Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="bg-white/3 border border-dashed border-white/10 rounded-2xl aspect-[4/3] flex flex-col items-center justify-center gap-2 text-zinc-700">
+              <span className="text-3xl">🤝</span>
+              <span className="text-xs">No sponsors yet</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {(creating || !!editing) && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={closeModal}>
+          <div className="bg-zinc-900 border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-zinc-900 border-b border-white/10 px-5 py-4 flex items-center justify-between">
+              <h3 className="font-semibold text-white">{creating ? 'Add Sponsor' : `Edit — ${editing?.name}`}</h3>
+              <button onClick={closeModal} className="text-zinc-500 hover:text-white text-xl">✕</button>
+            </div>
+            <div className="p-5 space-y-4">
+              {error && <div className="bg-red-900/20 border border-red-700/40 text-red-400 text-sm rounded-xl px-4 py-3">{error}</div>}
+              <div>
+                <label className="block text-xs text-zinc-400 mb-2">Sponsor Tier *</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {SPONSOR_TIERS.map(t => (
+                    <button key={t.value} type="button" onClick={() => setForm(f => ({ ...f, tier: t.value }))}
+                      className={`py-2 rounded-xl text-xs font-semibold border transition-all ${form.tier === t.value ? 'border-yellow-500 bg-yellow-900/20 text-yellow-400' : 'border-white/10 text-zinc-400 hover:border-white/30'}`}>
+                      {t.icon} {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {[
+                { label: 'Sponsor Name *', field: 'name', placeholder: 'Company or brand name' },
+                { label: 'Tagline', field: 'tagline', placeholder: 'Short description or slogan' },
+                { label: 'Website URL', field: 'website_url', placeholder: 'https://example.com' },
+                { label: 'Display Order', field: 'display_order', placeholder: '1', type: 'number' },
+              ].map(({ label, field, placeholder, type }) => (
+                <div key={field}>
+                  <label className="block text-xs text-zinc-400 mb-1.5">{label}</label>
+                  <input type={type ?? 'text'} value={String(form[field as keyof typeof form])}
+                    onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))} placeholder={placeholder}
+                    className="w-full bg-white/5 border border-white/10 text-white placeholder-zinc-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-yellow-500" />
+                </div>
+              ))}
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1.5">Logo</label>
+                <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-xl cursor-pointer ${logoFile ? 'border-green-600 bg-green-900/10' : 'border-white/10 hover:border-yellow-700/50 bg-white/5'}`}>
+                  <input type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" className="sr-only" onChange={e => setLogoFile(e.target.files?.[0] ?? null)} />
+                  {logoFile
+                    ? <div className="text-center"><div className="text-green-400 text-sm font-medium">{logoFile.name}</div><div className="text-zinc-500 text-xs">{(logoFile.size / 1024 / 1024).toFixed(1)} MB</div></div>
+                    : <div className="text-center"><div className="text-zinc-400 text-sm">🖼️ Click to upload logo</div><div className="text-zinc-600 text-xs mt-0.5">JPG, PNG, WebP or SVG</div></div>
+                  }
+                </label>
+                {!logoFile && form.logo_url && (
+                  <div className="mt-2 flex items-center gap-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={form.logo_url} alt="Current" className="w-10 h-10 rounded-lg object-contain border border-white/10 bg-white p-1" />
+                    <span className="text-zinc-500 text-xs">Current logo (upload new to replace)</span>
+                  </div>
+                )}
+              </div>
+              <button onClick={handleSave} disabled={saving || uploading}
+                className="w-full bg-gradient-to-r from-yellow-600 to-yellow-400 text-black font-bold py-3 rounded-xl disabled:opacity-60 hover:from-yellow-500 hover:to-yellow-300 transition-all">
+                {uploading ? 'Uploading…' : saving ? 'Saving…' : creating ? 'Add Sponsor' : 'Save Changes'}
               </button>
             </div>
           </div>
