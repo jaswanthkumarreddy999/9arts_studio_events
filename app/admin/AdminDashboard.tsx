@@ -117,7 +117,7 @@ function RegistrationsTab() {
   const [statusNote, setStatusNote] = useState('')
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  type SortField = 'name' | 'date' | 'utr' | 'tier'
+  type SortField = 'name' | 'date' | 'utr' | 'tier' | 'mobile'
   type SortDir = 'asc' | 'desc'
   const [sortField, setSortField] = useState<SortField>('date')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
@@ -239,6 +239,7 @@ function RegistrationsTab() {
     .sort((a, b) => {
       let cmp = 0
       if (sortField === 'name') cmp = a.full_name.localeCompare(b.full_name)
+      else if (sortField === 'mobile') cmp = a.mobile.localeCompare(b.mobile)
       else if (sortField === 'date') cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       else if (sortField === 'tier') cmp = a.seat_tier.localeCompare(b.seat_tier)
       else if (sortField === 'utr') {
@@ -409,10 +410,13 @@ function RegistrationsTab() {
                   <th className="text-left px-4 py-3 cursor-pointer hover:text-zinc-300 select-none" onClick={() => toggleSort('name')}>
                     Name / ID {sortField === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
                   </th>
-                  <th className="text-left px-4 py-3 hidden sm:table-cell">Mobile</th>
+                  <th className="text-left px-4 py-3 hidden sm:table-cell cursor-pointer hover:text-zinc-300 select-none" onClick={() => toggleSort('mobile')}>
+                    Mobile {sortField === 'mobile' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+                  </th>
                   <th className="text-left px-4 py-3 hidden md:table-cell cursor-pointer hover:text-zinc-300 select-none" onClick={() => toggleSort('tier')}>
                     Pass {sortField === 'tier' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
                   </th>
+                  <th className="text-left px-4 py-3 hidden md:table-cell">Gender</th>
                   <th className="text-left px-4 py-3">Status</th>
                   <th className="text-left px-4 py-3">Payment</th>
                   <th className="text-left px-4 py-3 hidden lg:table-cell cursor-pointer hover:text-zinc-300 select-none" onClick={() => toggleSort('utr')}>
@@ -437,6 +441,13 @@ function RegistrationsTab() {
                       <td className="px-4 py-3 hidden md:table-cell text-zinc-300">
                         {SEAT_TIERS[row.seat_tier as keyof typeof SEAT_TIERS]?.badge}{' '}
                         {SEAT_TIERS[row.seat_tier as keyof typeof SEAT_TIERS]?.label}
+                      </td>
+                      <td className="px-4 py-3 hidden md:table-cell text-xs">
+                        {row.gender === 'male'
+                          ? <span className="text-blue-300">♂ Male</span>
+                          : row.gender === 'female'
+                          ? <span className="text-pink-300">♀ Female</span>
+                          : <span className="text-purple-300">⚧ Other</span>}
                       </td>
                       <td className="px-4 py-3">
                         <span className={`text-xs font-medium px-2 py-1 rounded-full border ${sm.color}`}>{sm.icon} {sm.label}</span>
