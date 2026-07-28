@@ -117,6 +117,15 @@ function RegistrationsTab() {
   const [statusNote, setStatusNote] = useState('')
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  type SortField = 'name' | 'date' | 'utr' | 'tier'
+  type SortDir = 'asc' | 'desc'
+  const [sortField, setSortField] = useState<SortField>('date')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
+
+  function toggleSort(field: SortField) {
+    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortField(field); setSortDir('asc') }
+  }
 
   const fetchRows = useCallback(async () => {
     setLoading(true)
@@ -221,12 +230,24 @@ function RegistrationsTab() {
   const filtered = rows
     .filter(r => statusFilter === 'all' || (r.registration_status ?? 'active') === statusFilter)
     .filter(r => paymentFilter === 'all' || r.payments?.status === paymentFilter)
-    .filter(r => !search || 
-      r.full_name.toLowerCase().includes(search.toLowerCase()) || 
-      r.mobile.includes(search) || 
+    .filter(r => !search ||
+      r.full_name.toLowerCase().includes(search.toLowerCase()) ||
+      r.mobile.includes(search) ||
       r.application_id.toLowerCase().includes(search.toLowerCase()) ||
       (r.payments?.utr_number ?? '').toLowerCase().includes(search.toLowerCase())
     )
+    .sort((a, b) => {
+      let cmp = 0
+      if (sortField === 'name') cmp = a.full_name.localeCompare(b.full_name)
+      else if (sortField === 'date') cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      else if (sortField === 'tier') cmp = a.seat_tier.localeCompare(b.seat_tier)
+      else if (sortField === 'utr') {
+        const ua = a.payments?.utr_number ?? ''
+        const ub = b.payments?.utr_number ?? ''
+        cmp = ua.localeCompare(ub)
+      }
+      return sortDir === 'asc' ? cmp : -cmp
+    })
 
   const paymentColor = (s?: string) =>
     s === 'approved' ? 'text-green-400 bg-green-900/20 border-green-700/30' :
@@ -385,11 +406,21 @@ function RegistrationsTab() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/10 text-zinc-500 text-xs uppercase tracking-wide">
-                  <th className="text-left px-4 py-3">Name / ID</th>
+                  <th className="text-left px-4 py-3 cursor-pointer hover:text-zinc-300 select-none" onClick={() => toggleSort('name')}>
+                    Name / ID {sortField === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+                  </th>
                   <th className="text-left px-4 py-3 hidden sm:table-cell">Mobile</th>
-                  <th className="text-left px-4 py-3 hidden md:table-cell">Pass</th>
+                  <th className="text-left px-4 py-3 hidden md:table-cell cursor-pointer hover:text-zinc-300 select-none" onClick={() => toggleSort('tier')}>
+                    Pass {sortField === 'tier' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+                  </th>
                   <th className="text-left px-4 py-3">Status</th>
                   <th className="text-left px-4 py-3">Payment</th>
+                  <th className="text-left px-4 py-3 hidden lg:table-cell cursor-pointer hover:text-zinc-300 select-none" onClick={() => toggleSort('utr')}>
+                    UTR {sortField === 'utr' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+                  </th>
+                  <th className="text-left px-4 py-3 hidden sm:table-cell cursor-pointer hover:text-zinc-300 select-none" onClick={() => toggleSort('date')}>
+                    Date {sortField === 'date' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+                  </th>
                   <th className="text-left px-4 py-3">Action</th>
                 </tr>
               </thead>
@@ -414,6 +445,15 @@ function RegistrationsTab() {
                         <span className={`text-xs font-medium px-2 py-1 rounded-full border ${paymentColor(row.payments?.status)}`}>
                           {row.payments?.status ?? 'none'}
                         </span>
+                      </td>
+                      <td className="px-4 py-3 hidden lg:table-cell">
+                        {row.payments?.utr_number
+                          ? <span className="text-xs font-mono text-cyan-400 bg-cyan-900/20 border border-cyan-700/30 px-2 py-1 rounded-lg">{row.payments.utr_number}</span>
+                          : <span className="text-zinc-600 text-xs">—</span>
+                        }
+                      </td>
+                      <td className="px-4 py-3 hidden sm:table-cell text-zinc-500 text-xs">
+                        {new Date(row.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
                       </td>
                       <td className="px-4 py-3">
                         <button onClick={() => openDetail(row)} className="text-xs text-yellow-400 hover:text-yellow-300 font-medium">View →</button>
