@@ -20,6 +20,9 @@ interface VoteRow {
   category: VoteCategory
   applicationId: string
   votedAt: string
+  voterName: string
+  voterMobile: string
+  voterGender: string
 }
 
 interface ContestantResult {
@@ -30,6 +33,9 @@ interface ContestantResult {
   adjustment: number
   displayCount: number
 }
+
+type SortField = 'voterName' | 'voterMobile' | 'voterGender' | 'contestantName' | 'votedAt' | 'applicationId'
+type SortDir = 'asc' | 'desc'
 
 // ─── Inline adjust control ────────────────────────────────────────────────────
 function AdjustControl({ contestantId, category, currentAdjustment, onSaved }: {
@@ -91,6 +97,22 @@ function AdjustControl({ contestantId, category, currentAdjustment, onSaved }: {
   )
 }
 
+// ─── Sort header helper ───────────────────────────────────────────────────────
+function SortTh({ label, field, sortField, sortDir, onSort }: {
+  label: string; field: SortField; sortField: SortField; sortDir: SortDir
+  onSort: (f: SortField) => void
+}) {
+  const active = sortField === field
+  return (
+    <th
+      className="text-left px-4 py-2.5 text-zinc-500 text-xs uppercase tracking-wide cursor-pointer hover:text-zinc-300 select-none whitespace-nowrap"
+      onClick={() => onSort(field)}
+    >
+      {label} {active ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+    </th>
+  )
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function VoteEditor() {
   const [categoryVotes, setCategoryVotes] = useState<Record<string, VoteRow[]>>({})
@@ -101,6 +123,13 @@ export default function VoteEditor() {
   const [search, setSearch] = useState('')
   const [expanded, setExpanded] = useState<VoteCategory | null>(null)
   const [view, setView] = useState<'counts' | 'voters'>('counts')
+  const [sortField, setSortField] = useState<SortField>('votedAt')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
+
+  function toggleSort(field: SortField) {
+    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortField(field); setSortDir('asc') }
+  }
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -116,8 +145,8 @@ export default function VoteEditor() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  async function handleDeleteOne(voteId: string, applicationId: string) {
-    if (!confirm(`Delete vote from ${applicationId}? They will be able to vote again in this category.`)) return
+  async function handleDeleteOne(voteId: string, voterName: string) {
+    if (!confirm(`Delete vote from "${voterName}"? They will be able to vote again in this category.`)) return
     await fetch(`/api/admin/votes/${voteId}`, { method: 'DELETE' })
     fetchData()
   }
@@ -144,6 +173,27 @@ export default function VoteEditor() {
     fetchData()
   }
 
+  // Sort + filter votes for a category
+  function getSortedVotes(cat: VoteCategory): VoteRow[] {
+    const votes = (categoryVotes[cat] ?? []).filter(v =>
+      !search ||
+      v.applicationId.toLowerCase().includes(search.toLowerCase()) ||
+      v.voterName.toLowerCase().includes(search.toLowerCase()) ||
+      v.voterMobile.includes(search) ||
+      v.contestantName.toLowerCase().includes(search.toLowerCase())
+    )
+    return [...votes].sort((a, b) => {
+      let cmp = 0
+      if (sortField === 'voterName') cmp = a.voterName.localeCompare(b.voterName)
+      else if (sortField === 'voterMobile') cmp = a.voterMobile.localeCompare(b.voterMobile)
+      else if (sortField === 'voterGender') cmp = a.voterGender.localeCompare(b.voterGender)
+      else if (sortField === 'contestantName') cmp = a.contestantName.localeCompare(b.contestantName)
+      else if (sortField === 'applicationId') cmp = a.applicationId.localeCompare(b.applicationId)
+      else if (sortField === 'votedAt') cmp = new Date(a.votedAt).getTime() - new Date(b.votedAt).getTime()
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+  }
+
   if (loading) {
     return <div className="text-center py-20 text-zinc-500">Loading votes...</div>
   }
@@ -156,7 +206,7 @@ export default function VoteEditor() {
           <span className="text-zinc-400 text-sm">Total votes: <span className="text-yellow-400 font-semibold">{totalVotes}</span></span>
           <button onClick={fetchData} className="text-xs text-zinc-500 hover:text-white transition-colors">↻ Refresh</button>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           {/* View toggle */}
           <div className="flex bg-white/5 border border-white/10 rounded-lg p-0.5 text-xs">
             <button onClick={() => setView('counts')}
@@ -172,8 +222,8 @@ export default function VoteEditor() {
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search by Application ID…"
-              className="bg-black/40 border border-white/10 text-white placeholder-zinc-600 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500 w-48"
+              placeholder="Search name / mobile / ID…"
+              className="bg-black/40 border border-white/10 text-white placeholder-zinc-600 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500 w-56"
             />
           )}
           <button
@@ -260,16 +310,16 @@ export default function VoteEditor() {
 
       {/* ── VOTERS VIEW ── */}
       {view === 'voters' && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {VOTE_CATEGORIES.map(cat => {
             const meta = CAT_META[cat]
-            const votes = (categoryVotes[cat] ?? []).filter(v =>
-              !search || v.applicationId.toLowerCase().includes(search.toLowerCase())
-            )
+            const votes = getSortedVotes(cat)
+            const rawCount = (categoryVotes[cat] ?? []).length
             const isExpanded = expanded === cat
 
             return (
               <div key={cat} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+                {/* Category header */}
                 <div className="flex items-center">
                   <button
                     onClick={() => setExpanded(isExpanded ? null : cat)}
@@ -278,13 +328,16 @@ export default function VoteEditor() {
                     <span className="text-lg">{meta.icon}</span>
                     <div>
                       <div className="text-white font-semibold">{meta.label}</div>
-                      <div className="text-zinc-500 text-xs mt-0.5">{votes.length} vote{votes.length !== 1 ? 's' : ''}{search ? ' matching' : ''}</div>
+                      <div className="text-zinc-500 text-xs mt-0.5">
+                        {votes.length} vote{votes.length !== 1 ? 's' : ''}{search ? ' matching' : ''}
+                        {search && votes.length !== rawCount && ` of ${rawCount}`}
+                      </div>
                     </div>
                     <span className="text-zinc-500 ml-auto">{isExpanded ? '▲' : '▼'}</span>
                   </button>
-                  {(categoryVotes[cat] ?? []).length > 0 && (
+                  {rawCount > 0 && (
                     <button
-                      onClick={() => handleResetCategory(cat, (categoryVotes[cat] ?? []).length)}
+                      onClick={() => handleResetCategory(cat, rawCount)}
                       className="mr-4 text-xs text-red-400 hover:text-red-300 border border-red-700/30 px-3 py-1.5 rounded-lg transition-colors shrink-0"
                     >
                       🔄 Reset
@@ -297,29 +350,62 @@ export default function VoteEditor() {
                     {votes.length === 0 ? (
                       <div className="text-center py-6 text-zinc-600 text-sm">No votes{search ? ' matching' : ' yet'}</div>
                     ) : (
-                      <div className="divide-y divide-white/5">
-                        {votes.map(vote => (
-                          <div key={vote.id} className="flex items-center gap-3 px-5 py-3">
-                            {vote.photo_url
-                              // eslint-disable-next-line @next/next/no-img-element
-                              ? <img src={vote.photo_url} alt={vote.contestantName} className="w-9 h-9 rounded-full object-cover border border-white/20 shrink-0" />
-                              : <div className="w-9 h-9 rounded-full bg-purple-900/40 flex items-center justify-center text-base shrink-0">👸</div>
-                            }
-                            <div className="flex-1 min-w-0">
-                              <div className="text-white text-sm font-medium truncate">{vote.contestantName}</div>
-                              <div className="text-zinc-500 text-xs font-mono truncate">{vote.applicationId}</div>
-                            </div>
-                            <div className="text-zinc-600 text-xs hidden sm:block shrink-0">
-                              {new Date(vote.votedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                            </div>
-                            <button
-                              onClick={() => handleDeleteOne(vote.id, vote.applicationId)}
-                              className="text-xs text-red-400 hover:text-red-300 border border-red-700/40 bg-red-900/20 px-2.5 py-1.5 rounded-lg transition-colors shrink-0"
-                            >
-                              🗑️
-                            </button>
-                          </div>
-                        ))}
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-white/10 bg-black/20">
+                              <SortTh label="Voter Name"   field="voterName"      sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
+                              <SortTh label="Mobile"       field="voterMobile"    sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
+                              <SortTh label="Gender"       field="voterGender"    sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
+                              <SortTh label="Application ID" field="applicationId" sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
+                              <SortTh label="Voted For"    field="contestantName" sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
+                              <SortTh label="Voted At"     field="votedAt"        sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
+                              <th className="px-4 py-2.5 text-zinc-500 text-xs uppercase tracking-wide text-left">Action</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-white/5">
+                            {votes.map(vote => (
+                              <tr key={vote.id} className="hover:bg-white/5 transition-colors">
+                                <td className="px-4 py-3">
+                                  <div className="text-white font-medium text-sm">{vote.voterName}</div>
+                                </td>
+                                <td className="px-4 py-3 text-zinc-400 text-sm font-mono">{vote.voterMobile}</td>
+                                <td className="px-4 py-3 text-xs">
+                                  {vote.voterGender === 'male'
+                                    ? <span className="text-blue-300">♂ Male</span>
+                                    : vote.voterGender === 'female'
+                                    ? <span className="text-pink-300">♀ Female</span>
+                                    : vote.voterGender === 'other'
+                                    ? <span className="text-purple-300">⚧ Other</span>
+                                    : <span className="text-zinc-600">—</span>}
+                                </td>
+                                <td className="px-4 py-3 text-zinc-500 text-xs font-mono">{vote.applicationId}</td>
+                                <td className="px-4 py-3">
+                                  <div className="flex items-center gap-2">
+                                    {vote.photo_url
+                                      // eslint-disable-next-line @next/next/no-img-element
+                                      ? <img src={vote.photo_url} alt={vote.contestantName} className="w-7 h-7 rounded-full object-cover border border-white/20 shrink-0" />
+                                      : <div className="w-7 h-7 rounded-full bg-purple-900/40 flex items-center justify-center text-xs shrink-0">👸</div>
+                                    }
+                                    <span className="text-zinc-300 text-sm truncate max-w-[120px]">{vote.contestantName}</span>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3 text-zinc-600 text-xs whitespace-nowrap">
+                                  {new Date(vote.votedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}{' '}
+                                  {new Date(vote.votedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                </td>
+                                <td className="px-4 py-3">
+                                  <button
+                                    onClick={() => handleDeleteOne(vote.id, vote.voterName)}
+                                    className="text-xs text-red-400 hover:text-red-300 border border-red-700/40 bg-red-900/20 px-2.5 py-1.5 rounded-lg transition-colors"
+                                  >
+                                    🗑️
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     )}
                   </div>

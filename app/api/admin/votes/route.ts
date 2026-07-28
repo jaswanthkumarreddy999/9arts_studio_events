@@ -11,7 +11,11 @@ export async function GET() {
 
   const { data: voteCounts, error: voteError } = await supabaseAdmin
     .from('votes')
-    .select('id, contestant_id, contestant_category, application_id, voted_at, contestants(name, photo_url)')
+    .select(`
+      id, contestant_id, contestant_category, application_id, voted_at,
+      contestants(name, photo_url),
+      registrations!votes_application_id_fkey(full_name, mobile, gender)
+    `)
     .order('voted_at', { ascending: false })
 
   if (voteError) return Response.json({ error: 'Fetch failed' }, { status: 500 })
@@ -34,6 +38,9 @@ export async function GET() {
     category: string
     applicationId: string
     votedAt: string
+    voterName: string
+    voterMobile: string
+    voterGender: string
   }
 
   type CategoryResult = {
@@ -52,6 +59,8 @@ export async function GET() {
   for (const row of voteCounts ?? []) {
     const raw = row.contestants as unknown
     const c = (Array.isArray(raw) ? raw[0] : raw) as { name: string; photo_url: string | null } | null
+    const regRaw = (row as Record<string, unknown>).registrations as unknown
+    const reg = (Array.isArray(regRaw) ? regRaw[0] : regRaw) as { full_name: string; mobile: string; gender: string } | null
     const cat = row.contestant_category as string
     if (!categoryMap[cat]) continue
 
@@ -78,6 +87,9 @@ export async function GET() {
       category: cat,
       applicationId: row.application_id,
       votedAt: row.voted_at,
+      voterName: reg?.full_name ?? '—',
+      voterMobile: reg?.mobile ?? '—',
+      voterGender: reg?.gender ?? '—',
     })
   }
 
