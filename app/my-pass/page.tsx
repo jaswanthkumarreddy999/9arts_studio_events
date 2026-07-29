@@ -5,6 +5,7 @@ import Link from 'next/link'
 import PassActions from './PassActions'
 import VoteSection from './VoteSection'
 import PaymentSubmit from './PaymentSubmit'
+import DownloadPassButton from './DownloadPassButton'
 
 export default async function MyPassPage() {
   const session = await getSession()
@@ -41,7 +42,7 @@ export default async function MyPassPage() {
             <span className="text-xl">👑</span>
             <span className="font-bold shimmer">Miss Nellore 2026</span>
           </Link>
-          <PassActions />
+          <PassActions hasPass={!!pass?.qr_data_url} />
         </div>
 
         <h1 className="text-2xl font-bold text-white mb-1">My Pass</h1>
@@ -142,6 +143,10 @@ export default async function MyPassPage() {
               Present this QR at the event entrance • One-time use
             </div>
           </div>
+
+          {/* Download button below the pass card */}
+          <DownloadPassButton />
+
         ) : (
           <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center">
             <div className="text-5xl mb-4 float">⏳</div>
