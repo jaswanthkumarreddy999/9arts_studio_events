@@ -106,47 +106,48 @@ export default async function MyPassPage() {
 
         {/* QR Pass */}
         {pass?.qr_data_url ? (
-          <div className={`rounded-2xl p-6 border-2 ${tier === 'elite' ? 'border-amber-500 bg-amber-900/10' : 'border-yellow-600 bg-yellow-900/10'}`}>
-            {/* Pass header */}
-            <div className="text-center mb-6">
-              <div className="text-3xl mb-1">{tierInfo.badge}</div>
-              <div className="text-xl font-bold text-white">Miss Nellore 2026</div>
-              <div className={`text-sm font-semibold mt-1 ${tier === 'elite' ? 'text-amber-400' : 'text-yellow-400'}`}>
-                {tierInfo.label} — {tierInfo.subtitle}
-              </div>
-            </div>
-
-            {/* QR Code */}
-            <div className="flex justify-center mb-6">
-              <div className="bg-white p-3 rounded-xl">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={pass.qr_data_url} alt="QR Code" className="w-48 h-48" />
-              </div>
-            </div>
-
-            {/* Pass details */}
-            <div className="space-y-2 text-sm">
-              {[
-                { label: 'Name', value: pass.full_name },
-                { label: 'Application ID', value: pass.application_id },
-                { label: 'Event', value: 'August 2, 2026' },
-                { label: 'Venue', value: 'DGP kalyana mandapam, Nellore' },
-              ].map((row) => (
-                <div key={row.label} className="flex justify-between items-start gap-4">
-                  <span className="text-zinc-500">{row.label}</span>
-                  <span className="text-white font-medium text-right">{row.value}</span>
+          <>
+            <div className={`rounded-2xl p-6 border-2 ${tier === 'elite' ? 'border-amber-500 bg-amber-900/10' : 'border-yellow-600 bg-yellow-900/10'}`}>
+              {/* Pass header */}
+              <div className="text-center mb-6">
+                <div className="text-3xl mb-1">{tierInfo.badge}</div>
+                <div className="text-xl font-bold text-white">Miss Nellore 2026</div>
+                <div className={`text-sm font-semibold mt-1 ${tier === 'elite' ? 'text-amber-400' : 'text-yellow-400'}`}>
+                  {tierInfo.label} — {tierInfo.subtitle}
                 </div>
-              ))}
+              </div>
+
+              {/* QR Code */}
+              <div className="flex justify-center mb-6">
+                <div className="bg-white p-3 rounded-xl">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={pass.qr_data_url} alt="QR Code" className="w-48 h-48" />
+                </div>
+              </div>
+
+              {/* Pass details */}
+              <div className="space-y-2 text-sm">
+                {[
+                  { label: 'Name', value: pass.full_name },
+                  { label: 'Application ID', value: pass.application_id },
+                  { label: 'Event', value: 'August 2, 2026' },
+                  { label: 'Venue', value: 'DGP kalyana mandapam, Nellore' },
+                ].map((row) => (
+                  <div key={row.label} className="flex justify-between items-start gap-4">
+                    <span className="text-zinc-500">{row.label}</span>
+                    <span className="text-white font-medium text-right">{row.value}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-white/10 text-center text-zinc-500 text-xs">
+                Present this QR at the event entrance • One-time use
+              </div>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-white/10 text-center text-zinc-500 text-xs">
-              Present this QR at the event entrance • One-time use
-            </div>
-          </div>
-
-          {/* Download button below the pass card */}
-          <DownloadPassButton />
-
+            {/* Download button */}
+            <DownloadPassButton />
+          </>
         ) : (
           <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center">
             <div className="text-5xl mb-4 float">⏳</div>
