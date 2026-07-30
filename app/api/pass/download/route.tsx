@@ -8,19 +8,14 @@ export const runtime = 'edge'
 
 export async function GET(req: NextRequest) {
   try {
-    // Manually read session cookie (edge-compatible)
+    // Edge-compatible session read
     const cookieHeader = req.headers.get('cookie') ?? ''
     const match = cookieHeader.match(/mn_session=([^;]+)/)
     const token = match?.[1]
-    
-    if (!token) {
-      return new Response('Unauthorized', { status: 401 })
-    }
+    if (!token) return new Response('Unauthorized', { status: 401 })
 
     const session = await verifyToken(token)
-    if (!session) {
-      return new Response('Unauthorized', { status: 401 })
-    }
+    if (!session) return new Response('Unauthorized', { status: 401 })
 
     const { data: pass } = await supabaseAdmin
       .from('passes')
@@ -36,14 +31,18 @@ export async function GET(req: NextRequest) {
     const tierInfo = SEAT_TIERS[tier]
     const isElite = tier === 'elite'
 
-    const bgColor    = isElite ? '#1c0a00' : '#100e00'
+    const bgColor     = isElite ? '#1c0a00' : '#100e00'
     const borderColor = isElite ? '#d97706' : '#ca8a04'
     const accentColor = isElite ? '#fbbf24' : '#facc15'
-    const dimColor   = isElite ? '#92400e' : '#854d0e'
-    const badgeEmoji = isElite ? '👑' : '⭐'
+    const badgeEmoji  = isElite ? '👑' : '⭐'
 
-    // qr_data_url is already a data: URL — ImageResponse supports it directly
-    const qrSrc = pass.qr_data_url
+    // Convert data URL → ArrayBuffer so satori can render it
+    // data:image/png;base64,<b64>
+    const base64 = pass.qr_data_url.replace(/^data:image\/\w+;base64,/, '')
+    const binaryStr = atob(base64)
+    const qrBytes = new Uint8Array(binaryStr.length)
+    for (let i = 0; i < binaryStr.length; i++) qrBytes[i] = binaryStr.charCodeAt(i)
+    const qrBuffer: ArrayBuffer = qrBytes.buffer
 
     const image = new ImageResponse(
       (
@@ -59,33 +58,12 @@ export async function GET(req: NextRequest) {
             borderRadius: '28px',
             padding: '40px 36px',
             fontFamily: 'system-ui, sans-serif',
-            position: 'relative',
-            overflow: 'hidden',
           }}
         >
-          {/* Glow circle top-right */}
-          <div
-            style={{
-              position: 'absolute', top: -100, right: -100,
-              width: 300, height: 300, borderRadius: '50%',
-              background: `radial-gradient(circle, ${dimColor}40 0%, transparent 70%)`,
-              display: 'flex',
-            }}
-          />
-          {/* Glow circle bottom-left */}
-          <div
-            style={{
-              position: 'absolute', bottom: -80, left: -80,
-              width: 250, height: 250, borderRadius: '50%',
-              background: `radial-gradient(circle, ${dimColor}30 0%, transparent 70%)`,
-              display: 'flex',
-            }}
-          />
-
           {/* Header */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px' }}>
             <div style={{ fontSize: 48, marginBottom: 8 }}>{badgeEmoji}</div>
-            <div style={{ color: '#ffffff', fontSize: 28, fontWeight: 700, letterSpacing: 1 }}>
+            <div style={{ color: '#ffffff', fontSize: 28, fontWeight: 700 }}>
               Miss Nellore 2026
             </div>
             <div style={{ color: accentColor, fontSize: 14, fontWeight: 600, marginTop: 6, letterSpacing: 3, textTransform: 'uppercase' }}>
@@ -96,33 +74,33 @@ export async function GET(req: NextRequest) {
           {/* Divider */}
           <div style={{ width: '100%', height: 1, background: `${borderColor}55`, marginBottom: '24px', display: 'flex' }} />
 
-          {/* QR Code */}
+          {/* QR Code — passed as ArrayBuffer, supported by satori */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
             <div style={{ background: '#ffffff', padding: 14, borderRadius: 16, display: 'flex' }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={qrSrc} width={200} height={200} alt="QR" style={{ display: 'block' }} />
+              {/* @ts-expect-error satori accepts ArrayBuffer for img src */}
+              <img src={qrBuffer} width={200} height={200} alt="QR" style={{ display: 'block' }} />
             </div>
           </div>
 
-          {/* Details box */}
+          {/* Details */}
           <div
             style={{
               display: 'flex', flexDirection: 'column', width: '100%',
               background: '#ffffff0a', borderRadius: 16, padding: '18px 20px',
-              border: `1px solid ${borderColor}44`, gap: 12,
+              border: `1px solid ${borderColor}44`, gap: 14,
             }}
           >
-            {[
-              { label: 'Name',            value: pass.full_name },
-              { label: 'Application ID',  value: pass.application_id },
-              { label: 'Event Date',      value: 'August 2, 2026' },
-              { label: 'Venue',           value: 'DGP Kalyana Mandapam, Nellore' },
-              { label: 'Pass Type',       value: `${tierInfo.label} — ${tierInfo.subtitle}` },
-            ].map(row => (
-              <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ color: '#9ca3af', fontSize: 13 }}>{row.label}</span>
-                <span style={{ color: '#ffffff', fontSize: 14, fontWeight: 600, textAlign: 'right', maxWidth: 320 }}>
-                  {row.value}
+            {([
+              ['Name',           pass.full_name],
+              ['Application ID', pass.application_id],
+              ['Event Date',     'August 2, 2026'],
+              ['Venue',          'DGP Kalyana Mandapam, Nellore'],
+              ['Pass Type',      `${tierInfo.label} — ${tierInfo.subtitle}`],
+            ] as [string, string][]).map(([label, value]) => (
+              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#9ca3af', fontSize: 13 }}>{label}</span>
+                <span style={{ color: '#ffffff', fontSize: 13, fontWeight: 600, textAlign: 'right', maxWidth: 310 }}>
+                  {value}
                 </span>
               </div>
             ))}
@@ -140,7 +118,6 @@ export async function GET(req: NextRequest) {
       { width: 600, height: 900 }
     )
 
-    // Read the full image body into a buffer first — avoids stream loss
     const imageBuffer = await image.arrayBuffer()
 
     return new Response(imageBuffer, {
@@ -154,6 +131,9 @@ export async function GET(req: NextRequest) {
     })
   } catch (err) {
     console.error('Pass download error:', err)
-    return new Response('Failed to generate pass', { status: 500 })
+    return new Response(
+      `Failed to generate pass: ${err instanceof Error ? err.message : String(err)}`,
+      { status: 500 }
+    )
   }
 }

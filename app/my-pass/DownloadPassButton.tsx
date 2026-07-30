@@ -13,8 +13,7 @@ export default function DownloadPassButton() {
         const text = await res.text()
         alert(`Could not download pass: ${text}`)
         return
-      }
-      const blob = await res.blob()
+      }      const blob = await res.blob()
       if (!blob || blob.size === 0) {
         alert('Pass image could not be generated. Please try again.')
         return
