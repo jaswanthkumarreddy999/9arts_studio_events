@@ -3,38 +3,45 @@
 import { useState } from 'react'
 
 export default function DownloadPassButton() {
-  const [downloading, setDownloading] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   async function handleDownload() {
-    setDownloading(true)
+    setLoading(true)
     try {
       const res = await fetch('/api/pass/download')
-      if (!res.ok) { alert('Pass not ready yet.'); return }
+      if (!res.ok) {
+        const text = await res.text()
+        alert(`Could not download pass: ${text}`)
+        return
+      }
       const blob = await res.blob()
+      if (!blob || blob.size === 0) {
+        alert('Pass image could not be generated. Please try again.')
+        return
+      }
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
       a.download = 'MissNellore2026-Pass.png'
+      document.body.appendChild(a)
       a.click()
-      URL.revokeObjectURL(url)
-    } catch {
+      document.body.removeChild(a)
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch (err) {
+      console.error('Download error:', err)
       alert('Download failed. Please try again.')
     } finally {
-      setDownloading(false)
+      setLoading(false)
     }
   }
 
   return (
     <button
       onClick={handleDownload}
-      disabled={downloading}
+      disabled={loading}
       className="w-full mt-4 flex items-center justify-center gap-2 bg-gradient-to-r from-yellow-600 to-yellow-400 hover:from-yellow-500 hover:to-yellow-300 disabled:opacity-60 text-black font-bold py-3.5 rounded-xl text-sm transition-all"
     >
-      {downloading ? (
-        <>⏳ Preparing your pass…</>
-      ) : (
-        <>⬇️ Download Pass as Image</>
-      )}
+      {loading ? '⏳ Generating pass…' : '⬇️ Download Pass as Image'}
     </button>
   )
 }

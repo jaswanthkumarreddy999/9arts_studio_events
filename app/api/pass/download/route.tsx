@@ -140,10 +140,18 @@ export async function GET(req: NextRequest) {
       { width: 600, height: 900 }
     )
 
-    // Return with download header
-    const headers = new Headers(image.headers)
-    headers.set('Content-Disposition', `attachment; filename="MissNellore2026-Pass-${pass.application_id}.png"`)
-    return new Response(image.body, { status: 200, headers })
+    // Read the full image body into a buffer first — avoids stream loss
+    const imageBuffer = await image.arrayBuffer()
+
+    return new Response(imageBuffer, {
+      status: 200,
+      headers: {
+        'Content-Type': 'image/png',
+        'Content-Length': String(imageBuffer.byteLength),
+        'Content-Disposition': `attachment; filename="MissNellore2026-Pass-${pass.application_id}.png"`,
+        'Cache-Control': 'no-store',
+      },
+    })
   } catch (err) {
     console.error('Pass download error:', err)
     return new Response('Failed to generate pass', { status: 500 })
