@@ -1,14 +1,23 @@
-import { getSession } from '@/lib/auth'
+import { verifyToken } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase'
 import { SEAT_TIERS } from '@/lib/types'
 import { ImageResponse } from 'next/og'
+import { NextRequest } from 'next/server'
 
-// Node.js runtime — required for cookies() / getSession()
-export const runtime = 'nodejs'
+export const runtime = 'edge'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const session = await getSession()
+    // Manually read session cookie (edge-compatible)
+    const cookieHeader = req.headers.get('cookie') ?? ''
+    const match = cookieHeader.match(/mn_session=([^;]+)/)
+    const token = match?.[1]
+    
+    if (!token) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+
+    const session = await verifyToken(token)
     if (!session) {
       return new Response('Unauthorized', { status: 401 })
     }
