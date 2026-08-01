@@ -14,7 +14,7 @@ export default async function MyPassPage() {
   const [{ data: pass }, { data: payment }, { data: reg }] = await Promise.all([
     supabaseAdmin
       .from('passes')
-      .select('application_id, full_name, seat_tier, qr_data_url, issued_at')
+      .select('application_id, full_name, seat_tier, qr_data_url, issued_at, ticket_no, table_number')
       .eq('application_id', session.sub)
       .maybeSingle(),
     supabaseAdmin
@@ -24,7 +24,7 @@ export default async function MyPassPage() {
       .maybeSingle(),
     supabaseAdmin
       .from('registrations')
-      .select('seat_tier')
+      .select('seat_tier, mobile, gender')
       .eq('application_id', session.sub)
       .maybeSingle(),
   ])
@@ -130,8 +130,12 @@ export default async function MyPassPage() {
                 {[
                   { label: 'Name', value: pass.full_name },
                   { label: 'Application ID', value: pass.application_id },
+                  ...(pass.ticket_no ? [{ label: 'Ticket No', value: String(pass.ticket_no) }] : []),
+                  ...(pass.table_number ? [{ label: 'Table No', value: String(pass.table_number) }] : []),
+                  { label: 'Pass', value: `${tierInfo.badge} ${tierInfo.label}` },
+                  { label: 'Mobile', value: reg?.mobile ?? '—' },
                   { label: 'Event', value: 'August 2, 2026' },
-                  { label: 'Venue', value: 'DGP kalyana mandapam, Nellore' },
+                  { label: 'Venue', value: 'DGP Kalyana Mandapam, Nellore' },
                 ].map((row) => (
                   <div key={row.label} className="flex justify-between items-start gap-4">
                     <span className="text-zinc-500">{row.label}</span>

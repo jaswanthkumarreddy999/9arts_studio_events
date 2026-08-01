@@ -105,6 +105,77 @@ export default function AdminDashboard({ adminName }: { adminName: string }) {
   )
 }
 
+// ─── TicketAssignPanel ────────────────────────────────────────────────────────
+
+function TicketAssignPanel({ applicationId, onSaved }: { applicationId: string; onSaved: () => void }) {
+  const [ticketNo, setTicketNo] = useState('')
+  const [tableNo, setTableNo] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    // Load existing values
+    fetch(`/api/admin/passes/${applicationId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.pass) {
+          setTicketNo(d.pass.ticket_no ?? '')
+          setTableNo(d.pass.table_number ?? '')
+        }
+      })
+      .catch(() => {})
+  }, [applicationId])
+
+  async function handleSave() {
+    setSaving(true)
+    const res = await fetch(`/api/admin/passes/${applicationId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ticket_no: ticketNo.trim() || null,
+        table_number: tableNo.trim() || null,
+      }),
+    })
+    setSaving(false)
+    if (res.ok) { setSaved(true); setTimeout(() => setSaved(false), 2000); onSaved() }
+  }
+
+  return (
+    <div className="border border-cyan-700/30 rounded-xl p-4 space-y-3">
+      <div className="text-xs text-cyan-400 font-semibold uppercase tracking-wide">🎫 Ticket & Table Assignment</div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs text-zinc-500 mb-1">Ticket No</label>
+          <input
+            type="text"
+            value={ticketNo}
+            onChange={e => setTicketNo(e.target.value)}
+            placeholder="e.g. T-001"
+            className="w-full bg-white/5 border border-white/10 text-white placeholder-zinc-600 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-cyan-500"
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-zinc-500 mb-1">Table No</label>
+          <input
+            type="text"
+            value={tableNo}
+            onChange={e => setTableNo(e.target.value)}
+            placeholder="e.g. T-12"
+            className="w-full bg-white/5 border border-white/10 text-white placeholder-zinc-600 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-cyan-500"
+          />
+        </div>
+      </div>
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        className="w-full py-2 rounded-xl text-sm font-semibold bg-cyan-900/30 border border-cyan-700/40 text-cyan-300 hover:bg-cyan-900/50 disabled:opacity-50 transition-colors"
+      >
+        {saving ? 'Saving…' : saved ? '✅ Saved' : '💾 Save Ticket & Table'}
+      </button>
+    </div>
+  )
+}
+
 // ─── REGISTRATIONS TAB ────────────────────────────────────────────────────────
 
 function RegistrationsTab() {
@@ -761,6 +832,12 @@ function RegistrationsTab() {
                   )}
                 </div>
               )}
+
+              {/* Ticket No & Table Number */}
+              <TicketAssignPanel
+                applicationId={selected.application_id}
+                onSaved={fetchRows}
+              />
 
               {/* Registration status management */}
               <div className="border border-white/10 rounded-xl p-4 space-y-3">
