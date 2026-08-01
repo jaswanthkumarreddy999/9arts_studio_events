@@ -113,42 +113,42 @@ export default async function MyPassPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/ticket-template.png" alt="ticket" className="absolute inset-0 w-full h-full object-fill" />
 
-              {/* QR — x:63.2 y:68 → left:63.2% top:32% */}
+              {/* QR — x:70.2 y:68 → left:70.2% top:32% */}
               <div className="absolute flex items-center justify-center"
-                style={{ top: '32%', left: '63.2%', width: '23.4%', height: '33%' }}>
+                style={{ top: '32%', left: '70.2%', width: '23.4%', height: '33%' }}>
                 <div className="w-[86%] h-[86%] flex items-center justify-center bg-white p-[2%]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={pass.qr_data_url} alt="QR" className="w-full h-full object-contain" />
                 </div>
               </div>
 
-              {/* Name — x:55 y:80 → left:55% top:20% */}
+              {/* Name — x:53 y:78 → left:53% top:22% */}
               <div className="absolute text-white font-bold leading-tight"
-                style={{ top: '20%', left: '55%', maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)', wordBreak: 'break-word', lineHeight: 1.25 }}>
+                style={{ top: '22%', left: '53%', maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)', wordBreak: 'break-word', lineHeight: 1.25 }}>
                 {pass.full_name}
               </div>
 
-              {/* Application ID — x:45 y:65.5 → left:45% top:34.5% */}
+              {/* Application ID — x:45 y:62.5 → left:45% top:37.5% */}
               <div className="absolute text-yellow-300 font-mono font-bold leading-tight"
-                style={{ top: '34.5%', left: '45%', maxWidth: '34%', fontSize: 'clamp(4px,0.75vw,11px)', wordBreak: 'break-all', lineHeight: 1.25 }}>
+                style={{ top: '37.5%', left: '45%', maxWidth: '34%', fontSize: 'clamp(4px,0.75vw,11px)', wordBreak: 'break-all', lineHeight: 1.25 }}>
                 {pass.application_id}
               </div>
 
-              {/* Mobile — x:55 y:48 → left:55% top:52% */}
+              {/* Mobile — x:55 y:51 → left:55% top:49% */}
               <div className="absolute text-white font-semibold"
-                style={{ top: '52%', left: '55%', maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)', whiteSpace: 'nowrap' }}>
+                style={{ top: '49%', left: '55%', maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)', whiteSpace: 'nowrap' }}>
                 {reg?.mobile ?? '—'}
               </div>
 
-              {/* Gender — x:55 y:37.3 → left:55% top:62.7% */}
+              {/* Gender — x:55 y:40.3 → left:55% top:59.7% */}
               <div className="absolute text-white font-semibold"
-                style={{ top: '62.7%', left: '55%', maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)' }}>
+                style={{ top: '59.7%', left: '55%', maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)' }}>
                 {reg?.gender === 'male' ? 'Male' : reg?.gender === 'female' ? 'Female' : reg?.gender === 'other' ? 'Other' : '—'}
               </div>
 
-              {/* Pass — x:55 y:27.5 → left:55% top:72.5% */}
+              {/* Pass — x:55 y:30.5 → left:55% top:69.5% */}
               <div className="absolute text-yellow-400 font-bold"
-                style={{ top: '72.5%', left: '55%', maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)' }}>
+                style={{ top: '69.5%', left: '55%', maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)' }}>
                 {tierInfo.label}
               </div>
 
