@@ -113,9 +113,9 @@ export default async function MyPassPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/ticket-template.png" alt="ticket" className="absolute inset-0 w-full h-full object-fill" />
 
-              {/* QR — x:70.2 y:68 → left:70.2% top:32% */}
+              {/* QR — x:70.2 y:70 → left:70.2% top:30% */}
               <div className="absolute flex items-center justify-center"
-                style={{ top: '32%', left: '70.2%', width: '23.4%', height: '33%' }}>
+                style={{ top: '30%', left: '70.2%', width: '23.4%', height: '33%' }}>
                 <div className="w-[86%] h-[86%] flex items-center justify-center bg-white p-[2%]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={pass.qr_data_url} alt="QR" className="w-full h-full object-contain" />
