@@ -409,60 +409,151 @@ function SeatingTab() {
 
       {/* ── TABLE OCCUPANCY VIEW ── */}
       {viewMode === 'tables' && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 text-xs text-zinc-500">
+        <div className="space-y-6">
+          {/* Legend */}
+          <div className="flex items-center gap-4 text-xs text-zinc-500">
             <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-600 inline-block" /> Available</span>
             <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-600 inline-block" /> Partial</span>
             <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-600 inline-block" /> Full</span>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {Array.from({ length: config.round_table_count }, (_, i) => {
-              const tLabel = `Table ${i + 1}`
-              const occupants = tableOccupancy.get(tLabel) ?? []
-              const count = occupants.length
-              const pct = tableCapacity > 0 ? count / tableCapacity : 0
-              const color = pct === 0 ? 'border-green-700/40 bg-green-900/10' : pct < 1 ? 'border-yellow-700/40 bg-yellow-900/10' : 'border-red-700/40 bg-red-900/10'
-              const textColor = pct === 0 ? 'text-green-400' : pct < 1 ? 'text-yellow-400' : 'text-red-400'
-              const isSelected = tableFilter === tLabel
-              return (
-                <button key={tLabel} onClick={() => setTableFilter(isSelected ? null : tLabel)}
-                  className={`rounded-xl border p-3 text-left transition-all hover:scale-[1.02] ${color} ${isSelected ? 'ring-2 ring-yellow-500' : ''}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-white font-bold text-sm">{tLabel}</span>
-                    <span className={`text-xs font-bold ${textColor}`}>{count}/{tableCapacity}</span>
-                  </div>
-                  {/* Seat dots */}
-                  <div className="flex gap-1 flex-wrap">
-                    {Array.from({ length: tableCapacity }, (_, s) => (
-                      <div key={s} className={`w-4 h-4 rounded-full ${s < count ? 'bg-amber-500' : 'bg-white/10'}`} />
-                    ))}
-                  </div>
-                  {count > 0 && (
-                    <div className="mt-2 text-zinc-400 text-xs truncate">
-                      {occupants[0].full_name}{count > 1 ? ` +${count - 1}` : ''}
+
+          {/* ── SOFAS (VIP / Parents / Sponsors) ── */}
+          <div>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex-1 h-px bg-white/10" />
+              <span className="text-purple-400 text-xs font-bold uppercase tracking-widest">🛋️ Sofas — VIP / Parents / Sponsors</span>
+              <div className="flex-1 h-px bg-white/10" />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+              {Array.from({ length: config.sofa_count }, (_, i) => {
+                const sLabel = `Sofa ${i + 1}`
+                const occupants = tableOccupancy.get(sLabel) ?? []
+                const count = occupants.length
+                const cap = config.sofa_capacity
+                const pct = cap > 0 ? count / cap : 0
+                const color = pct === 0 ? 'border-green-700/40 bg-green-900/10' : pct < 1 ? 'border-yellow-700/40 bg-yellow-900/10' : 'border-red-700/40 bg-red-900/10'
+                const textColor = pct === 0 ? 'text-green-400' : pct < 1 ? 'text-yellow-400' : 'text-red-400'
+                const isSelected = tableFilter === sLabel
+                return (
+                  <button key={sLabel} onClick={() => setTableFilter(isSelected ? null : sLabel)}
+                    className={`rounded-xl border p-3 text-left transition-all hover:scale-[1.02] ${color} ${isSelected ? 'ring-2 ring-purple-500' : ''}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-white font-bold text-sm">{sLabel}</span>
+                      <span className={`text-xs font-bold ${textColor}`}>{count}/{cap}</span>
                     </div>
-                  )}
-                  {count === 0 && <div className="mt-2 text-green-600 text-xs">Best to assign</div>}
-                </button>
-              )
-            })}
+                    <div className="flex gap-1">
+                      {Array.from({ length: cap }, (_, s) => (
+                        <div key={s} className={`w-5 h-5 rounded ${s < count ? 'bg-purple-500' : 'bg-white/10'}`} />
+                      ))}
+                    </div>
+                    {count > 0 && <div className="mt-1.5 text-zinc-400 text-xs truncate">{occupants[0].full_name}{count > 1 ? ` +${count - 1}` : ''}</div>}
+                    {count === 0 && <div className="mt-1.5 text-green-600 text-xs">Available</div>}
+                  </button>
+                )
+              })}
+            </div>
           </div>
+
+          {/* ── ROUND TABLES (Elite) ── */}
+          <div>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex-1 h-px bg-white/10" />
+              <span className="text-amber-400 text-xs font-bold uppercase tracking-widest">🪑 Round Tables — Elite Passes</span>
+              <div className="flex-1 h-px bg-white/10" />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {Array.from({ length: config.round_table_count }, (_, i) => {
+                const tLabel = `Table ${i + 1}`
+                const occupants = tableOccupancy.get(tLabel) ?? []
+                const count = occupants.length
+                const pct = tableCapacity > 0 ? count / tableCapacity : 0
+                const color = pct === 0 ? 'border-green-700/40 bg-green-900/10' : pct < 1 ? 'border-yellow-700/40 bg-yellow-900/10' : 'border-red-700/40 bg-red-900/10'
+                const textColor = pct === 0 ? 'text-green-400' : pct < 1 ? 'text-yellow-400' : 'text-red-400'
+                const isSelected = tableFilter === tLabel
+                return (
+                  <button key={tLabel} onClick={() => setTableFilter(isSelected ? null : tLabel)}
+                    className={`rounded-xl border p-3 text-left transition-all hover:scale-[1.02] ${color} ${isSelected ? 'ring-2 ring-yellow-500' : ''}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-white font-bold text-sm">{tLabel}</span>
+                      <span className={`text-xs font-bold ${textColor}`}>{count}/{tableCapacity}</span>
+                    </div>
+                    <div className="flex gap-1 flex-wrap">
+                      {Array.from({ length: tableCapacity }, (_, s) => (
+                        <div key={s} className={`w-4 h-4 rounded-full ${s < count ? 'bg-amber-500' : 'bg-white/10'}`} />
+                      ))}
+                    </div>
+                    {count > 0 && <div className="mt-2 text-zinc-400 text-xs truncate">{occupants[0].full_name}{count > 1 ? ` +${count - 1}` : ''}</div>}
+                    {count === 0 && <div className="mt-2 text-green-600 text-xs">Best to assign</div>}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* ── CHAIRS (Gold — grouped in rows of 10) ── */}
+          <div>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex-1 h-px bg-white/10" />
+              <span className="text-yellow-400 text-xs font-bold uppercase tracking-widest">💺 Chair Rows — Gold Passes</span>
+              <div className="flex-1 h-px bg-white/10" />
+            </div>
+            {(() => {
+              const rowSize = 10
+              const rowCount = Math.ceil(config.chair_count / rowSize)
+              return (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                  {Array.from({ length: rowCount }, (_, r) => {
+                    const rowLabel = `Row ${r + 1}`
+                    const occupants = tableOccupancy.get(rowLabel) ?? []
+                    const count = occupants.length
+                    const cap = Math.min(rowSize, config.chair_count - r * rowSize)
+                    const pct = cap > 0 ? count / cap : 0
+                    const color = pct === 0 ? 'border-green-700/40 bg-green-900/10' : pct < 1 ? 'border-yellow-700/40 bg-yellow-900/10' : 'border-red-700/40 bg-red-900/10'
+                    const textColor = pct === 0 ? 'text-green-400' : pct < 1 ? 'text-yellow-400' : 'text-red-400'
+                    const isSelected = tableFilter === rowLabel
+                    return (
+                      <button key={rowLabel} onClick={() => setTableFilter(isSelected ? null : rowLabel)}
+                        className={`rounded-xl border p-3 text-left transition-all hover:scale-[1.02] ${color} ${isSelected ? 'ring-2 ring-yellow-500' : ''}`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-white font-bold text-sm">{rowLabel}</span>
+                          <span className={`text-xs font-bold ${textColor}`}>{count}/{cap}</span>
+                        </div>
+                        <div className="flex gap-0.5 flex-wrap">
+                          {Array.from({ length: cap }, (_, s) => (
+                            <div key={s} className={`w-3 h-3 rounded-sm ${s < count ? 'bg-yellow-500' : 'bg-white/10'}`} />
+                          ))}
+                        </div>
+                        {count > 0 && <div className="mt-1.5 text-zinc-400 text-xs truncate">{occupants[0].full_name}{count > 1 ? ` +${count - 1}` : ''}</div>}
+                        {count === 0 && <div className="mt-1.5 text-green-600 text-xs">Available</div>}
+                      </button>
+                    )
+                  })}
+                </div>
+              )
+            })()}
+          </div>
+
+          {/* ── Detail panel for selected table/sofa/row ── */}
           {tableFilter && (
             <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
               <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
-                <span className="text-white font-semibold text-sm">👥 {tableFilter} — {tableOccupancy.get(tableFilter)?.length ?? 0}/{tableCapacity} seated</span>
+                <span className="text-white font-semibold text-sm">
+                  👥 {tableFilter} — {tableOccupancy.get(tableFilter)?.length ?? 0} seated
+                </span>
                 <button onClick={() => setTableFilter(null)} className="text-zinc-500 hover:text-white text-xs">✕ Close</button>
               </div>
               <div className="divide-y divide-white/5">
                 {(tableOccupancy.get(tableFilter) ?? []).length === 0
-                  ? <div className="text-center py-6 text-zinc-600 text-sm">No one seated at this table yet</div>
+                  ? <div className="text-center py-6 text-zinc-600 text-sm">No one seated here yet</div>
                   : (tableOccupancy.get(tableFilter) ?? []).map(r => (
                     <div key={r.application_id} className="flex items-center gap-3 px-4 py-3">
                       <div className="flex-1">
                         <div className="text-white text-sm font-medium">{r.full_name}</div>
                         <div className="text-zinc-500 text-xs font-mono">{r.application_id}</div>
                       </div>
-                      <span className="text-cyan-400 font-mono text-xs">{r.ticket_no}</span>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${r.seat_tier === 'elite' ? 'text-amber-400 bg-amber-900/20' : 'text-yellow-400 bg-yellow-900/20'}`}>
+                        {r.seat_tier === 'elite' ? '👑' : '⭐'} {r.ticket_no}
+                      </span>
                       <button onClick={() => clearSeat(r.application_id)}
                         className="text-xs text-red-400 border border-red-700/30 px-2 py-1 rounded-lg hover:bg-red-900/20">✕</button>
                     </div>
