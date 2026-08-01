@@ -615,10 +615,43 @@ function SeatAssignRow({ row, selected, onSelect, onClear, onSave }: {
   onClear: () => void; onSave: (seat: string, table: string) => void
 }) {
   const [editing, setEditing] = useState(false)
+  const [seatType, setSeatType] = useState<'sofa' | 'table' | 'chair'>('table')
   const [seat, setSeat] = useState(row.ticket_no ?? '')
   const [table, setTable] = useState(row.table_number ?? '')
+  const [config, setConfig] = useState({ sofa_count: 20, sofa_capacity: 2, round_table_count: 20, round_table_capacity: 6, chair_count: 250, chairs_per_row: 10 })
+  const [cfgLoaded, setCfgLoaded] = useState(false)
 
-  useEffect(() => { setSeat(row.ticket_no ?? ''); setTable(row.table_number ?? '') }, [row])
+  useEffect(() => {
+    setSeat(row.ticket_no ?? '')
+    setTable(row.table_number ?? '')
+    // Detect type from existing seat label
+    if (row.ticket_no?.startsWith('S')) setSeatType('sofa')
+    else if (row.ticket_no?.startsWith('T')) setSeatType('table')
+    else if (row.ticket_no?.startsWith('C')) setSeatType('chair')
+  }, [row])
+
+  useEffect(() => {
+    if (editing && !cfgLoaded) {
+      fetch('/api/admin/seating/config').then(r => r.ok ? r.json() : null).then(d => { if (d?.config) setConfig(d.config); setCfgLoaded(true) }).catch(() => {})
+    }
+  }, [editing, cfgLoaded])
+
+  function buildOptions() {
+    const opts: { label: string; table: string }[] = []
+    if (seatType === 'sofa') {
+      for (let s = 1; s <= config.sofa_count; s++)
+        for (let p = 1; p <= config.sofa_capacity; p++)
+          opts.push({ label: `S${s}-${p}`, table: `Sofa ${s}` })
+    } else if (seatType === 'table') {
+      for (let t = 1; t <= config.round_table_count; t++)
+        for (let p = 1; p <= config.round_table_capacity; p++)
+          opts.push({ label: `T${t}-${p}`, table: `Table ${t}` })
+    } else {
+      for (let c = 1; c <= config.chair_count; c++)
+        opts.push({ label: `C${c}`, table: `Row ${Math.ceil(c / (config.chairs_per_row || 10))}` })
+    }
+    return opts
+  }
 
   return (
     <tr className={`hover:bg-white/5 transition-colors ${selected ? 'bg-yellow-900/10' : ''}`}>
@@ -636,8 +669,15 @@ function SeatAssignRow({ row, selected, onSelect, onClear, onSave }: {
       </td>
       <td className="px-4 py-3">
         {editing ? (
-          <input value={seat} onChange={e => setSeat(e.target.value)} placeholder="e.g. T1-3"
-            className="w-24 bg-white/5 border border-white/10 text-white rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-yellow-500" />
+          <div className="flex gap-1 items-center">
+            {/* Type pills */}
+            {(['sofa', 'table', 'chair'] as const).map(t => (
+              <button key={t} type="button" onClick={() => { setSeatType(t); setSeat(''); setTable('') }}
+                className={`text-xs px-2 py-1 rounded border transition-all ${seatType === t ? 'border-cyan-500 text-cyan-300 bg-cyan-900/20' : 'border-white/10 text-zinc-500 hover:border-white/20'}`}>
+                {t === 'sofa' ? '🛋' : t === 'table' ? '🪑' : '💺'}
+              </button>
+            ))}
+          </div>
         ) : (
           row.ticket_no
             ? <span className="text-cyan-400 font-mono text-xs bg-cyan-900/20 border border-cyan-700/30 px-2 py-1 rounded-lg">{row.ticket_no}</span>
@@ -646,8 +686,44 @@ function SeatAssignRow({ row, selected, onSelect, onClear, onSave }: {
       </td>
       <td className="px-4 py-3">
         {editing ? (
-          <input value={table} onChange={e => setTable(e.target.value)} placeholder="e.g. Table 1"
-            className="w-24 bg-white/5 border border-white/10 text-white rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-yellow-500" />
+          <select
+            value={seat}
+            onChange={e => {
+              const opts = buildOptions()
+              const opt = opts.find(o => o.label === e.target.value)
+              setSeat(e.target.value)
+              setTable(opt?.table ?? '')
+            }}
+            className="bg-zinc-900 border border-white/10 text-white rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-yellow-500 w-32 appearance-none"
+            style={{ colorScheme: 'dark' }}
+          >
+            <option value="">— Seat —</option>
+            {seatType === 'table' && Array.from({ length: config.round_table_count }, (_, i) => (
+              <optgroup key={i} label={`Table ${i + 1}`}>
+                {Array.from({ length: config.round_table_capacity }, (_, s) => {
+                  const lbl = `T${i + 1}-${s + 1}`
+                  return <option key={lbl} value={lbl}>{lbl}</option>
+                })}
+              </optgroup>
+            ))}
+            {seatType === 'sofa' && Array.from({ length: config.sofa_count }, (_, i) => (
+              <optgroup key={i} label={`Sofa ${i + 1}`}>
+                {Array.from({ length: config.sofa_capacity }, (_, s) => {
+                  const lbl = `S${i + 1}-${s + 1}`
+                  return <option key={lbl} value={lbl}>{lbl}</option>
+                })}
+              </optgroup>
+            ))}
+            {seatType === 'chair' && Array.from({ length: Math.ceil(config.chair_count / (config.chairs_per_row || 10)) }, (_, r) => (
+              <optgroup key={r} label={`Row ${r + 1}`}>
+                {Array.from({ length: Math.min(config.chairs_per_row || 10, config.chair_count - r * (config.chairs_per_row || 10)) }, (_, s) => {
+                  const num = r * (config.chairs_per_row || 10) + s + 1
+                  const lbl = `C${num}`
+                  return <option key={lbl} value={lbl}>{lbl}</option>
+                })}
+              </optgroup>
+            ))}
+          </select>
         ) : (
           row.table_number
             ? <span className="text-zinc-300 text-xs">{row.table_number}</span>
@@ -658,8 +734,9 @@ function SeatAssignRow({ row, selected, onSelect, onClear, onSave }: {
         <div className="flex gap-2">
           {editing ? (
             <>
-              <button onClick={() => { onSave(seat, table); setEditing(false) }}
-                className="text-xs bg-green-700 hover:bg-green-600 text-white px-2.5 py-1 rounded-lg">✓ Save</button>
+              <button onClick={() => { if (seat) { onSave(seat, table); setEditing(false) } }}
+                disabled={!seat}
+                className="text-xs bg-green-700 hover:bg-green-600 text-white px-2.5 py-1 rounded-lg disabled:opacity-40">✓ Save</button>
               <button onClick={() => setEditing(false)}
                 className="text-xs text-zinc-400 hover:text-white px-2 py-1 rounded-lg">✕</button>
             </>
