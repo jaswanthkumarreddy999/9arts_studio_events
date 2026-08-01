@@ -8,7 +8,6 @@ export const runtime = 'edge'
 
 export async function GET(req: NextRequest) {
   try {
-    // Edge-compatible session read
     const cookieHeader = req.headers.get('cookie') ?? ''
     const match = cookieHeader.match(/mn_session=([^;]+)/)
     const token = match?.[1]
@@ -17,7 +16,6 @@ export async function GET(req: NextRequest) {
     const session = await verifyToken(token)
     if (!session) return new Response('Unauthorized', { status: 401 })
 
-    // Fetch all needed data in parallel
     const [{ data: pass }, { data: reg }, { data: payment }] = await Promise.all([
       supabaseAdmin
         .from('passes')
@@ -50,119 +48,92 @@ export async function GET(req: NextRequest) {
 
     const amountLabel = payment?.amount ? `₹${payment.amount}` : `₹${tierInfo.price}`
 
-    // Convert QR data URL → ArrayBuffer (satori doesn't support data: URLs)
+    // Convert QR data URL → ArrayBuffer
     const base64 = pass.qr_data_url.replace(/^data:image\/\w+;base64,/, '')
     const binaryStr = atob(base64)
     const qrBytes = new Uint8Array(binaryStr.length)
     for (let i = 0; i < binaryStr.length; i++) qrBytes[i] = binaryStr.charCodeAt(i)
     const qrBuffer: ArrayBuffer = qrBytes.buffer
 
-    // Template background URL
     const host = req.headers.get('host') ?? 'localhost:3000'
     const proto = host.startsWith('localhost') ? 'http' : 'https'
     const templateUrl = `${proto}://${host}/ticket-template.png`
 
-    // Check if template exists by trying to fetch it
-    let useTemplate = false
-    try {
-      const check = await fetch(templateUrl, { method: 'HEAD' })
-      useTemplate = check.ok
-    } catch { useTemplate = false }
+    // Template is 1536×1024px (measured from actual file)
+    // Data area is roughly x:700-1100, labels start around x:820
+    // Row positions (y) measured from template layout:
+    //   Name row    ≈ y:390
+    //   App ID row  ≈ y:460
+    //   Mobile row  ≈ y:530
+    //   Gender row  ≈ y:600
+    //   Pass row    ≈ y:670
+    //   QR box      ≈ x:1100, y:220, size:240
+    //   Amount box  ≈ x:1110, y:870
+    const W = 1536
+    const H = 1024
 
-    const W = 1050
-    const H = 650
+    const valueX = 830   // x start for value text (after the ":" in template)
+    const fontSize = 28
 
     const image = new ImageResponse(
-      useTemplate ? (
-        // ── Branded ticket template overlay ──
+      (
         <div style={{ display: 'flex', width: `${W}px`, height: `${H}px`, position: 'relative', overflow: 'hidden' }}>
-          {/* Background */}
+          {/* Background template */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={templateUrl} width={W} height={H} style={{ position: 'absolute', top: 0, left: 0 }} alt="bg" />
 
           {/* Name */}
-          <div style={{ display: 'flex', position: 'absolute', top: 245, left: 562, color: '#ffffff', fontSize: 21, fontWeight: 700, fontFamily: 'sans-serif', maxWidth: 210 }}>
+          <div style={{ display: 'flex', position: 'absolute', top: 388, left: valueX, color: '#ffffff', fontSize, fontWeight: 700, fontFamily: 'sans-serif', maxWidth: 260 }}>
             {pass.full_name}
           </div>
+
           {/* Application ID */}
-          <div style={{ display: 'flex', position: 'absolute', top: 300, left: 562, color: '#facc15', fontSize: 17, fontWeight: 700, fontFamily: 'monospace', maxWidth: 210 }}>
+          <div style={{ display: 'flex', position: 'absolute', top: 458, left: valueX, color: '#facc15', fontSize: 26, fontWeight: 700, fontFamily: 'monospace', maxWidth: 260 }}>
             {pass.application_id}
           </div>
+
           {/* Mobile */}
-          <div style={{ display: 'flex', position: 'absolute', top: 355, left: 562, color: '#ffffff', fontSize: 20, fontWeight: 600, fontFamily: 'sans-serif' }}>
+          <div style={{ display: 'flex', position: 'absolute', top: 528, left: valueX, color: '#ffffff', fontSize, fontWeight: 600, fontFamily: 'sans-serif' }}>
             {reg?.mobile ?? '—'}
           </div>
+
           {/* Gender */}
-          <div style={{ display: 'flex', position: 'absolute', top: 408, left: 562, color: '#ffffff', fontSize: 20, fontWeight: 600, fontFamily: 'sans-serif' }}>
+          <div style={{ display: 'flex', position: 'absolute', top: 598, left: valueX, color: '#ffffff', fontSize, fontWeight: 600, fontFamily: 'sans-serif' }}>
             {genderLabel}
           </div>
+
           {/* Pass type */}
-          <div style={{ display: 'flex', position: 'absolute', top: 460, left: 562, color: '#fbbf24', fontSize: 20, fontWeight: 700, fontFamily: 'sans-serif' }}>
+          <div style={{ display: 'flex', position: 'absolute', top: 668, left: valueX, color: '#fbbf24', fontSize, fontWeight: 700, fontFamily: 'sans-serif' }}>
             {tierInfo.label} Pass
           </div>
-          {/* Ticket No (if assigned) */}
+
+          {/* Ticket No */}
           {pass.ticket_no && (
-            <div style={{ display: 'flex', position: 'absolute', top: 515, left: 562, color: '#86efac', fontSize: 18, fontWeight: 700, fontFamily: 'monospace' }}>
+            <div style={{ display: 'flex', position: 'absolute', top: 738, left: valueX, color: '#86efac', fontSize: 26, fontWeight: 700, fontFamily: 'monospace' }}>
               # {String(pass.ticket_no)}
             </div>
           )}
-          {/* Table No (if assigned) */}
+
+          {/* Table No */}
           {pass.table_number && (
-            <div style={{ display: 'flex', position: 'absolute', top: 515, left: 700, color: '#93c5fd', fontSize: 18, fontWeight: 700, fontFamily: 'sans-serif' }}>
+            <div style={{ display: 'flex', position: 'absolute', top: 738, left: valueX + 200, color: '#93c5fd', fontSize: 26, fontWeight: 700, fontFamily: 'sans-serif' }}>
               Table {String(pass.table_number)}
             </div>
           )}
-          {/* Amount */}
-          <div style={{ display: 'flex', position: 'absolute', top: 582, left: 836, color: '#000000', fontSize: 22, fontWeight: 800, fontFamily: 'sans-serif' }}>
+
+          {/* Amount — over the white amount box */}
+          <div style={{ display: 'flex', position: 'absolute', top: 880, left: 1130, color: '#000000', fontSize: 30, fontWeight: 900, fontFamily: 'sans-serif' }}>
             {amountLabel}
           </div>
-          {/* QR Code */}
-          <div style={{ display: 'flex', position: 'absolute', top: 230, left: 782, background: '#ffffff', padding: 4, borderRadius: 6 }}>
+
+          {/* QR Code — over the white QR placeholder */}
+          <div style={{ display: 'flex', position: 'absolute', top: 218, left: 1092, background: '#ffffff', padding: 6, borderRadius: 8 }}>
             {/* @ts-expect-error satori accepts ArrayBuffer */}
-            <img src={qrBuffer} width={155} height={155} alt="QR" />
-          </div>
-        </div>
-      ) : (
-        // ── Fallback plain ticket (no template uploaded yet) ──
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '600px', height: '900px', background: tier === 'elite' ? '#1c0a00' : '#100e00', border: `4px solid ${tier === 'elite' ? '#d97706' : '#ca8a04'}`, borderRadius: '28px', padding: '40px 36px', fontFamily: 'system-ui, sans-serif' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px' }}>
-            <div style={{ display: 'flex', fontSize: 48, marginBottom: 8 }}>{tierInfo.badge}</div>
-            <div style={{ display: 'flex', color: '#ffffff', fontSize: 28, fontWeight: 700 }}>Miss Nellore 2026</div>
-            <div style={{ display: 'flex', color: tier === 'elite' ? '#fbbf24' : '#facc15', fontSize: 13, fontWeight: 600, marginTop: 6, letterSpacing: 3, textTransform: 'uppercase' }}>{tierInfo.label} — {tierInfo.subtitle}</div>
-          </div>
-          <div style={{ display: 'flex', width: '100%', height: 1, background: '#ffffff33', marginBottom: '24px' }} />
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
-            <div style={{ display: 'flex', background: '#ffffff', padding: 14, borderRadius: 16 }}>
-              {/* @ts-expect-error satori accepts ArrayBuffer */}
-              <img src={qrBuffer} width={200} height={200} alt="QR" />
-            </div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', width: '100%', background: '#ffffff0a', borderRadius: 16, padding: '18px 20px', border: `1px solid #ffffff22` }}>
-            {([
-              ['Name', pass.full_name],
-              ['Application ID', pass.application_id],
-              ['Mobile', reg?.mobile ?? '—'],
-              ['Gender', genderLabel],
-              ['Pass Type', `${tierInfo.label} — ${tierInfo.subtitle}`],
-              ...(pass.ticket_no ? [['Ticket No', String(pass.ticket_no)]] : []),
-              ...(pass.table_number ? [['Table No', String(pass.table_number)]] : []),
-              ['Amount', amountLabel],
-              ['Event Date', 'August 2, 2026'],
-              ['Venue', 'DGP Kalyana Mandapam, Nellore'],
-            ] as [string, string][]).map(([label, value], i) => (
-              <div key={i} style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <div style={{ display: 'flex', color: '#9ca3af', fontSize: 13 }}>{label}</div>
-                <div style={{ display: 'flex', color: '#ffffff', fontSize: 13, fontWeight: 600 }}>{value}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 'auto', paddingTop: 20 }}>
-            <div style={{ display: 'flex', color: tier === 'elite' ? '#d97706' : '#ca8a04', fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Present this pass at the entrance</div>
-            <div style={{ display: 'flex', color: '#4b5563', fontSize: 11 }}>One-time use · Non-transferable</div>
+            <img src={qrBuffer} width={240} height={240} alt="QR" />
           </div>
         </div>
       ),
-      { width: useTemplate ? W : 600, height: useTemplate ? H : 900 }
+      { width: W, height: H }
     )
 
     const imageBuffer = await image.arrayBuffer()
