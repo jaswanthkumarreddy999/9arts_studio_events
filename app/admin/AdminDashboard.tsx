@@ -7,7 +7,7 @@ import Link from 'next/link'
 
 type PaymentStatus = 'pending' | 'approved' | 'rejected'
 type RegStatus = 'active' | 'done' | 'payment_pending' | 'review' | 'deleted'
-type AdminTab = 'registrations' | 'contestants' | 'sponsors' | 'seating' | 'votes'
+type AdminTab = 'registrations' | 'contestants' | 'sponsors' | 'seating' | 'scanhistory' | 'votes'
 const VOTE_CATEGORIES = ['kid', 'teen', 'miss', 'misses'] as const
 type VoteCategory = typeof VOTE_CATEGORIES[number]
 
@@ -87,10 +87,10 @@ export default function AdminDashboard({ adminName }: { adminName: string }) {
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-4 flex gap-1">
-          {(['registrations', 'contestants', 'sponsors', 'seating', 'votes'] as const).map((tab) => (
+          {(['registrations', 'contestants', 'sponsors', 'seating', 'scanhistory', 'votes'] as const).map((tab) => (
             <button key={tab} onClick={() => setActiveTab(tab)}
               className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-all ${activeTab === tab ? 'border-yellow-500 text-yellow-400' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}>
-              {tab === 'registrations' ? '🎟️ Registrations' : tab === 'contestants' ? '👸 Contestants' : tab === 'sponsors' ? '🤝 Sponsors' : tab === 'seating' ? '🪑 Seating' : '🗳️ Votes'}
+              {tab === 'registrations' ? '🎟️ Registrations' : tab === 'contestants' ? '👸 Contestants' : tab === 'sponsors' ? '🤝 Sponsors' : tab === 'seating' ? '🪑 Seating' : tab === 'scanhistory' ? '📋 Scan History' : '🗳️ Votes'}
             </button>
           ))}
         </div>
@@ -100,6 +100,7 @@ export default function AdminDashboard({ adminName }: { adminName: string }) {
         {activeTab === 'contestants' && <ContestantsTab />}
         {activeTab === 'sponsors' && <SponsorsTab />}
         {activeTab === 'seating' && <SeatingTab />}
+        {activeTab === 'scanhistory' && <ScanHistoryTab />}
         {activeTab === 'votes' && <VotesTab />}
       </div>
     </div>
@@ -998,65 +999,113 @@ function TicketAssignPanel({ applicationId, onSaved }: { applicationId: string; 
   const [tableNo, setTableNo] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [seatType, setSeatType] = useState<'sofa' | 'table' | 'chair'>('table')
+  const [config, setConfig] = useState({ sofa_count: 20, sofa_capacity: 2, round_table_count: 20, round_table_capacity: 6, chair_count: 250, chairs_per_row: 10 })
 
   useEffect(() => {
-    // Load existing values
-    fetch(`/api/admin/passes/${applicationId}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (d?.pass) {
-          setTicketNo(d.pass.ticket_no ?? '')
-          setTableNo(d.pass.table_number ?? '')
-        }
-      })
-      .catch(() => {})
+    fetch('/api/admin/seating/config').then(r => r.ok ? r.json() : null).then(d => { if (d?.config) setConfig(d.config) }).catch(() => {})
+    fetch(`/api/admin/passes/${applicationId}`).then(r => r.ok ? r.json() : null).then(d => {
+      if (d?.pass) { setTicketNo(d.pass.ticket_no ?? ''); setTableNo(d.pass.table_number ?? '') }
+    }).catch(() => {})
   }, [applicationId])
+
+  // Build seat options based on type
+  const tableOptions: { label: string; table: string }[] = []
+  if (seatType === 'sofa') {
+    for (let s = 1; s <= config.sofa_count; s++)
+      for (let p = 1; p <= config.sofa_capacity; p++)
+        tableOptions.push({ label: `S${s}-${p}`, table: `Sofa ${s}` })
+  } else if (seatType === 'table') {
+    for (let t = 1; t <= config.round_table_count; t++)
+      for (let p = 1; p <= config.round_table_capacity; p++)
+        tableOptions.push({ label: `T${t}-${p}`, table: `Table ${t}` })
+  } else {
+    for (let c = 1; c <= config.chair_count; c++)
+      tableOptions.push({ label: `C${c}`, table: `Row ${Math.ceil(c / (config.chairs_per_row || 10))}` })
+  }
 
   async function handleSave() {
     setSaving(true)
     const res = await fetch(`/api/admin/passes/${applicationId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ticket_no: ticketNo.trim() || null,
-        table_number: tableNo.trim() || null,
-      }),
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticket_no: ticketNo.trim() || null, table_number: tableNo.trim() || null }),
     })
     setSaving(false)
     if (res.ok) { setSaved(true); setTimeout(() => setSaved(false), 2000); onSaved() }
   }
 
+  const inp = 'w-full bg-white/5 border border-white/10 text-white placeholder-zinc-600 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-cyan-500 bg-zinc-900 appearance-none'
+
   return (
     <div className="border border-cyan-700/30 rounded-xl p-4 space-y-3">
       <div className="text-xs text-cyan-400 font-semibold uppercase tracking-wide">🎫 Ticket & Table Assignment</div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs text-zinc-500 mb-1">Ticket No</label>
-          <input
-            type="text"
-            value={ticketNo}
-            onChange={e => setTicketNo(e.target.value)}
-            placeholder="e.g. T-001"
-            className="w-full bg-white/5 border border-white/10 text-white placeholder-zinc-600 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-cyan-500"
-          />
-        </div>
-        <div>
-          <label className="block text-xs text-zinc-500 mb-1">Table No</label>
-          <input
-            type="text"
-            value={tableNo}
-            onChange={e => setTableNo(e.target.value)}
-            placeholder="e.g. T-12"
-            className="w-full bg-white/5 border border-white/10 text-white placeholder-zinc-600 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-cyan-500"
-          />
-        </div>
+
+      {/* Seat type selector */}
+      <div className="grid grid-cols-3 gap-2">
+        {([['sofa', '🛋️ Sofa'], ['table', '🪑 Table'], ['chair', '💺 Chair']] as const).map(([type, label]) => (
+          <button key={type} type="button" onClick={() => { setSeatType(type); setTicketNo(''); setTableNo('') }}
+            className={`py-2 rounded-xl text-xs font-semibold border transition-all ${seatType === type ? 'border-cyan-500 bg-cyan-900/20 text-cyan-300' : 'border-white/10 text-zinc-400 hover:border-white/30'}`}>
+            {label}
+          </button>
+        ))}
       </div>
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        className="w-full py-2 rounded-xl text-sm font-semibold bg-cyan-900/30 border border-cyan-700/40 text-cyan-300 hover:bg-cyan-900/50 disabled:opacity-50 transition-colors"
-      >
-        {saving ? 'Saving…' : saved ? '✅ Saved' : '💾 Save Ticket & Table'}
+
+      {/* Smart seat selector */}
+      <div>
+        <label className="block text-xs text-zinc-500 mb-1">Select Seat</label>
+        <select
+          value={ticketNo}
+          onChange={e => {
+            const opt = tableOptions.find(o => o.label === e.target.value)
+            setTicketNo(e.target.value)
+            setTableNo(opt?.table ?? '')
+          }}
+          className={inp}
+          style={{ colorScheme: 'dark' }}
+        >
+          <option value="">— Choose a seat —</option>
+          {seatType === 'table' && Array.from({ length: config.round_table_count }, (_, i) => (
+            <optgroup key={i} label={`Table ${i + 1}`}>
+              {Array.from({ length: config.round_table_capacity }, (_, s) => {
+                const lbl = `T${i + 1}-${s + 1}`
+                return <option key={lbl} value={lbl}>{lbl}</option>
+              })}
+            </optgroup>
+          ))}
+          {seatType === 'sofa' && Array.from({ length: config.sofa_count }, (_, i) => (
+            <optgroup key={i} label={`Sofa ${i + 1}`}>
+              {Array.from({ length: config.sofa_capacity }, (_, s) => {
+                const lbl = `S${i + 1}-${s + 1}`
+                return <option key={lbl} value={lbl}>{lbl}</option>
+              })}
+            </optgroup>
+          ))}
+          {seatType === 'chair' && Array.from({ length: Math.ceil(config.chair_count / (config.chairs_per_row || 10)) }, (_, r) => (
+            <optgroup key={r} label={`Row ${r + 1}`}>
+              {Array.from({ length: Math.min(config.chairs_per_row || 10, config.chair_count - r * (config.chairs_per_row || 10)) }, (_, s) => {
+                const num = r * (config.chairs_per_row || 10) + s + 1
+                const lbl = `C${num}`
+                return <option key={lbl} value={lbl}>{lbl}</option>
+              })}
+            </optgroup>
+          ))}
+        </select>
+      </div>
+
+      {/* Show resolved table/row */}
+      {tableNo && (
+        <div className="flex items-center gap-2 bg-cyan-900/10 border border-cyan-700/20 rounded-lg px-3 py-2 text-xs">
+          <span className="text-zinc-500">Location:</span>
+          <span className="text-cyan-300 font-semibold">{tableNo}</span>
+          <span className="text-zinc-600">·</span>
+          <span className="text-zinc-400">Seat</span>
+          <span className="text-cyan-400 font-mono font-bold">{ticketNo}</span>
+        </div>
+      )}
+
+      <button onClick={handleSave} disabled={saving || !ticketNo}
+        className="w-full py-2 rounded-xl text-sm font-semibold bg-cyan-900/30 border border-cyan-700/40 text-cyan-300 hover:bg-cyan-900/50 disabled:opacity-50 transition-colors">
+        {saving ? 'Saving…' : saved ? '✅ Saved' : '💾 Save Seat Assignment'}
       </button>
     </div>
   )
@@ -2236,6 +2285,148 @@ function SponsorsTab() {
         </div>
       )}
     </>
+  )
+}
+
+// ─── SCAN HISTORY TAB ────────────────────────────────────────────────────────
+
+interface ScanLogRow {
+  id: string
+  application_id: string
+  scanned_at: string
+  scanner_device?: string
+  registrations: { full_name: string; seat_tier: string; mobile: string; gender: string } | null
+}
+
+function ScanHistoryTab() {
+  const [logs, setLogs] = useState<ScanLogRow[]>([])
+  const [stats, setStats] = useState<{ total: number; elite: number; gold: number; male: number; female: number; other: number } | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [filterTier, setFilterTier] = useState<'all' | 'elite' | 'gold'>('all')
+
+  const fetchHistory = useCallback(async (q = '') => {
+    setLoading(true)
+    const res = await fetch(`/api/scan/history?q=${encodeURIComponent(q)}`)
+    if (res.ok) { const d = await res.json(); setLogs(d.logs ?? []); setStats(d.stats ?? null) }
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { fetchHistory() }, [fetchHistory])
+
+  async function handleDelete(id: string) {
+    if (!confirm('Remove this scan record? The person will be able to enter again.')) return
+    setDeletingId(id)
+    await fetch('/api/scan/history', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+    setDeletingId(null)
+    fetchHistory(search)
+  }
+
+  const filtered = logs.filter(l => {
+    const reg = l.registrations
+    if (filterTier !== 'all' && reg?.seat_tier !== filterTier) return false
+    if (!search) return true
+    const q = search.toLowerCase()
+    return l.application_id.toLowerCase().includes(q) || reg?.full_name.toLowerCase().includes(q) || reg?.mobile.includes(search)
+  })
+
+  const tierLabel = (tier?: string) => tier === 'elite' ? '👑 Elite' : '⭐ Gold'
+
+  return (
+    <div className="space-y-5">
+      {/* Stats */}
+      {stats && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: 'Total Scanned', value: stats.total, color: 'text-white' },
+            { label: '👑 Elite', value: stats.elite, color: 'text-amber-400' },
+            { label: '⭐ Gold', value: stats.gold, color: 'text-yellow-400' },
+            { label: '♀ Female', value: stats.female, color: 'text-pink-400' },
+          ].map(({ label, value, color }) => (
+            <div key={label} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center">
+              <div className={`text-2xl font-bold ${color}`}>{value}</div>
+              <div className="text-zinc-500 text-xs mt-0.5">{label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Filters + search */}
+      <div className="flex flex-wrap gap-2 items-center">
+        {(['all', 'elite', 'gold'] as const).map(t => (
+          <button key={t} onClick={() => setFilterTier(t)}
+            className={`text-xs px-3 py-1.5 rounded-full border transition-all ${filterTier === t ? 'border-yellow-500 text-yellow-400 bg-yellow-900/20' : 'border-white/10 text-zinc-400'}`}>
+            {t === 'all' ? 'All' : t === 'elite' ? '👑 Elite' : '⭐ Gold'}
+          </button>
+        ))}
+        <input value={search} onChange={e => { setSearch(e.target.value); fetchHistory(e.target.value) }}
+          placeholder="Search name / mobile / ID…"
+          className="ml-auto bg-black/40 border border-white/10 text-white placeholder-zinc-600 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-yellow-500 w-64" />
+        <button onClick={() => fetchHistory(search)} className="text-xs text-zinc-400 hover:text-white transition-colors">↻</button>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-white/10">
+          <span className="text-white text-sm font-semibold">Entry Log ({filtered.length})</span>
+        </div>
+        {loading ? (
+          <div className="text-center py-10 text-zinc-500">Loading…</div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-10 text-zinc-500">No entries yet</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/10 text-zinc-500 text-xs uppercase tracking-wide">
+                  <th className="text-left px-4 py-3">Name / ID</th>
+                  <th className="text-left px-4 py-3">Mobile</th>
+                  <th className="text-left px-4 py-3">Gender</th>
+                  <th className="text-left px-4 py-3">Tier</th>
+                  <th className="text-left px-4 py-3">Scanned At</th>
+                  <th className="text-left px-4 py-3">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {filtered.map(log => {
+                  const reg = log.registrations
+                  return (
+                    <tr key={log.id} className="hover:bg-white/5 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="text-white font-medium text-sm">{reg?.full_name ?? '—'}</div>
+                        <div className="text-zinc-500 text-xs font-mono">{log.application_id}</div>
+                      </td>
+                      <td className="px-4 py-3 text-zinc-400 text-sm">{reg?.mobile ?? '—'}</td>
+                      <td className="px-4 py-3 text-xs">
+                        {reg?.gender === 'male' ? <span className="text-blue-300">♂ Male</span>
+                          : reg?.gender === 'female' ? <span className="text-pink-300">♀ Female</span>
+                          : <span className="text-purple-300">⚧ Other</span>}
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        <span className={`px-2 py-1 rounded-full border font-semibold ${reg?.seat_tier === 'elite' ? 'text-amber-400 bg-amber-900/20 border-amber-700/30' : 'text-yellow-400 bg-yellow-900/20 border-yellow-700/30'}`}>
+                          {tierLabel(reg?.seat_tier)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-zinc-500 text-xs whitespace-nowrap">
+                        {new Date(log.scanned_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}{' '}
+                        {new Date(log.scanned_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td className="px-4 py-3">
+                        <button onClick={() => handleDelete(log.id)} disabled={deletingId === log.id}
+                          className="text-xs text-red-400 hover:text-red-300 border border-red-700/40 bg-red-900/20 px-2.5 py-1.5 rounded-lg disabled:opacity-50 transition-colors">
+                          {deletingId === log.id ? '…' : '🗑️'}
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
   )
 }
 
