@@ -122,9 +122,9 @@ export default async function MyPassPage() {
                 </div>
               </div>
 
-              {/* Name — x:53 y:78 → left:53% top:22% */}
+              {/* Name — x:52 y:78.5 → left:52% top:21.5% */}
               <div className="absolute text-white font-bold leading-tight"
-                style={{ top: '22%', left: '53%', maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)', wordBreak: 'break-word', lineHeight: 1.25 }}>
+                style={{ top: '21.5%', left: '52%', maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)', wordBreak: 'break-word', lineHeight: 1.25 }}>
                 {pass.full_name}
               </div>
 
