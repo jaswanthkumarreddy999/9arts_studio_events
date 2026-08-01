@@ -161,9 +161,9 @@ export default async function MyPassPage() {
                 </div>
               )}
 
-              {/* Amount — x:76 y:14 → left:76% top:86% */}
+              {/* Amount — x:77 y:14 → left:77% top:86% */}
               <div className="absolute text-black font-black"
-                style={{ top: '86%', left: '76%', fontSize: 'clamp(7px,1.5vw,22px)' }}>
+                style={{ top: '86%', left: '77%', fontSize: 'clamp(7px,1.5vw,22px)' }}>
                 ₹{payment?.amount ?? tierInfo.price}
               </div>
             </div>
