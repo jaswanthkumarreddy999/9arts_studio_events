@@ -108,69 +108,67 @@ export default async function MyPassPage() {
         {pass?.qr_data_url ? (
           <>
             {/* Branded ticket — template background with data overlaid */}
-            <div className="relative w-full overflow-hidden rounded-2xl border-2 border-yellow-700/40 shadow-2xl" style={{ aspectRatio: '1536/1024' }}>
+            <div className="relative w-full overflow-hidden rounded-2xl shadow-2xl" style={{ aspectRatio: '1536/1024' }}>
               {/* Background template */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/ticket-template.png" alt="ticket" className="absolute inset-0 w-full h-full object-fill" />
 
-              {/* ── Data overlays — positions as % of template size ── */}
-
-              {/* QR code — top-right white box */}
-              <div className="absolute bg-white p-[0.4%] rounded-md"
-                style={{ top: '21%', left: '71.5%', width: '16%', aspectRatio: '1/1' }}>
+              {/* QR code — right panel white box, above "SCAN TO VERIFY" */}
+              <div className="absolute bg-white"
+                style={{ top: '21%', left: '72.5%', width: '15.5%', aspectRatio: '1/1', padding: '0.3%' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={pass.qr_data_url} alt="QR" className="w-full h-full object-fill" />
+                <img src={pass.qr_data_url} alt="QR" className="w-full h-full" />
               </div>
 
-              {/* Name */}
-              <div className="absolute text-white font-bold truncate"
-                style={{ top: '38%', left: '54%', width: '17%', fontSize: 'clamp(8px,1.4vw,20px)' }}>
+              {/* Name — after "Name :" label */}
+              <div className="absolute text-white font-bold overflow-hidden"
+                style={{ top: '37%', left: '57.5%', width: '14%', fontSize: 'clamp(6px,1.3vw,18px)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {pass.full_name}
               </div>
 
               {/* Application ID */}
-              <div className="absolute text-yellow-300 font-mono font-bold truncate"
-                style={{ top: '45%', left: '54%', width: '17%', fontSize: 'clamp(7px,1.1vw,16px)' }}>
+              <div className="absolute text-yellow-300 font-mono font-bold"
+                style={{ top: '44%', left: '57.5%', width: '14%', fontSize: 'clamp(5px,1vw,14px)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {pass.application_id}
               </div>
 
               {/* Mobile */}
               <div className="absolute text-white font-semibold"
-                style={{ top: '52%', left: '54%', width: '17%', fontSize: 'clamp(8px,1.4vw,20px)' }}>
+                style={{ top: '51%', left: '57.5%', width: '14%', fontSize: 'clamp(6px,1.3vw,18px)', whiteSpace: 'nowrap' }}>
                 {reg?.mobile ?? '—'}
               </div>
 
               {/* Gender */}
               <div className="absolute text-white font-semibold"
-                style={{ top: '59%', left: '54%', width: '17%', fontSize: 'clamp(8px,1.4vw,20px)' }}>
+                style={{ top: '58%', left: '57.5%', width: '14%', fontSize: 'clamp(6px,1.3vw,18px)' }}>
                 {reg?.gender === 'male' ? 'Male' : reg?.gender === 'female' ? 'Female' : reg?.gender === 'other' ? 'Other' : '—'}
               </div>
 
               {/* Pass type */}
               <div className="absolute text-yellow-400 font-bold"
-                style={{ top: '66%', left: '54%', width: '17%', fontSize: 'clamp(8px,1.4vw,20px)' }}>
+                style={{ top: '64.5%', left: '57.5%', width: '14%', fontSize: 'clamp(6px,1.3vw,18px)' }}>
                 {tierInfo.label} Pass
               </div>
 
               {/* Ticket No */}
               {pass.ticket_no && (
                 <div className="absolute text-green-300 font-mono font-bold"
-                  style={{ top: '73%', left: '54%', fontSize: 'clamp(7px,1.2vw,17px)' }}>
-                  # {String(pass.ticket_no)}
+                  style={{ top: '71%', left: '57.5%', fontSize: 'clamp(5px,1.1vw,15px)' }}>
+                  #{String(pass.ticket_no)}
                 </div>
               )}
 
               {/* Table No */}
               {pass.table_number && (
                 <div className="absolute text-blue-300 font-bold"
-                  style={{ top: '73%', left: '63%', fontSize: 'clamp(7px,1.2vw,17px)' }}>
+                  style={{ top: '71%', left: '64%', fontSize: 'clamp(5px,1.1vw,15px)' }}>
                   Table {String(pass.table_number)}
                 </div>
               )}
 
-              {/* Amount — bottom-right white box */}
+              {/* Amount */}
               <div className="absolute text-black font-black"
-                style={{ top: '85.5%', left: '73%', fontSize: 'clamp(8px,1.5vw,22px)' }}>
+                style={{ top: '85%', left: '73.5%', fontSize: 'clamp(7px,1.4vw,20px)' }}>
                 {payment?.amount ? `₹${payment.amount}` : `₹${tierInfo.price}`}
               </div>
             </div>
