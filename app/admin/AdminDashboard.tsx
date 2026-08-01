@@ -276,6 +276,13 @@ function SeatingTab() {
   }
   void groupMap // suppress unused warning
 
+  const totalSofaSeats = config.sofa_count * config.sofa_capacity
+  const totalTableSeats = config.round_table_count * config.round_table_capacity
+  const totalCapacity = totalSofaSeats + totalTableSeats + config.chair_count
+  const eliteCount = seats.filter(s => s.seat_tier === 'elite').length
+  const goldCount = seats.filter(s => s.seat_tier === 'gold').length
+  const assignedCount = seats.filter(s => s.ticket_no).length
+
   async function bulkClear() {
     if (selectedIds.size === 0) return
     if (!confirm(`Clear seat assignments for ${selectedIds.size} people?`)) return
@@ -302,6 +309,11 @@ function SeatingTab() {
   function selectAll() {
     setSelectedIds(new Set(filtered.map(r => r.application_id)))
   }
+
+  const filtered = seats
+    .filter(s => filterTier === 'all' || s.seat_tier === filterTier)
+    .filter(s => filterAssigned === 'all' || (filterAssigned === 'assigned' ? !!s.ticket_no : !s.ticket_no))
+    .filter(s => !search || s.full_name.toLowerCase().includes(search.toLowerCase()) || s.application_id.toLowerCase().includes(search.toLowerCase()) || (s.ticket_no ?? '').toLowerCase().includes(search.toLowerCase()))
 
   const filteredForTable = tableFilter
     ? seats.filter(s => s.table_number === tableFilter)
