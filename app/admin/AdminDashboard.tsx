@@ -2298,9 +2298,18 @@ interface ScanLogRow {
   registrations: { full_name: string; seat_tier: string; mobile: string; gender: string } | null
 }
 
+interface ScanStats {
+  total: number
+  elite: number; gold: number
+  male: number; female: number; other: number
+  male_elite: number; male_gold: number
+  female_elite: number; female_gold: number
+  other_elite: number; other_gold: number
+}
+
 function ScanHistoryTab() {
   const [logs, setLogs] = useState<ScanLogRow[]>([])
-  const [stats, setStats] = useState<{ total: number; elite: number; gold: number; male: number; female: number; other: number } | null>(null)
+  const [stats, setStats] = useState<ScanStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -2337,18 +2346,67 @@ function ScanHistoryTab() {
     <div className="space-y-5">
       {/* Stats */}
       {stats && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { label: 'Total Scanned', value: stats.total, color: 'text-white' },
-            { label: '👑 Elite', value: stats.elite, color: 'text-amber-400' },
-            { label: '⭐ Gold', value: stats.gold, color: 'text-yellow-400' },
-            { label: '♀ Female', value: stats.female, color: 'text-pink-400' },
-          ].map(({ label, value, color }) => (
-            <div key={label} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center">
-              <div className={`text-2xl font-bold ${color}`}>{value}</div>
-              <div className="text-zinc-500 text-xs mt-0.5">{label}</div>
+        <div className="space-y-3">
+          {/* Top row — totals */}
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+            {[
+              { label: 'Total Entered', value: stats.total, color: 'text-white', bg: 'bg-white/5 border-white/10' },
+              { label: '👑 Elite', value: stats.elite, color: 'text-amber-400', bg: 'bg-amber-900/10 border-amber-700/20' },
+              { label: '⭐ Gold', value: stats.gold, color: 'text-yellow-400', bg: 'bg-yellow-900/10 border-yellow-700/20' },
+              { label: '♂ Male', value: stats.male, color: 'text-blue-400', bg: 'bg-blue-900/10 border-blue-700/20' },
+              { label: '♀ Female', value: stats.female, color: 'text-pink-400', bg: 'bg-pink-900/10 border-pink-700/20' },
+            ].map(({ label, value, color, bg }) => (
+              <div key={label} className={`border rounded-xl px-3 py-3 text-center ${bg}`}>
+                <div className={`text-2xl font-bold ${color}`}>{value}</div>
+                <div className="text-zinc-500 text-xs mt-0.5">{label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Gender × Tier breakdown table */}
+          <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+            <div className="px-4 py-2 border-b border-white/10 text-xs text-zinc-500 uppercase tracking-wide font-semibold">
+              Gender × Pass Breakdown
             </div>
-          ))}
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/5">
+                  <th className="text-left px-4 py-2 text-zinc-600 text-xs font-medium">Gender</th>
+                  <th className="text-center px-4 py-2 text-amber-600 text-xs font-medium">👑 Elite</th>
+                  <th className="text-center px-4 py-2 text-yellow-600 text-xs font-medium">⭐ Gold</th>
+                  <th className="text-center px-4 py-2 text-zinc-400 text-xs font-medium">Total</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                <tr>
+                  <td className="px-4 py-2 text-blue-300 text-xs">♂ Male</td>
+                  <td className="px-4 py-2 text-center text-white text-xs font-medium">{stats.male_elite}</td>
+                  <td className="px-4 py-2 text-center text-white text-xs font-medium">{stats.male_gold}</td>
+                  <td className="px-4 py-2 text-center text-zinc-300 text-xs font-bold">{stats.male}</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2 text-pink-300 text-xs">♀ Female</td>
+                  <td className="px-4 py-2 text-center text-white text-xs font-medium">{stats.female_elite}</td>
+                  <td className="px-4 py-2 text-center text-white text-xs font-medium">{stats.female_gold}</td>
+                  <td className="px-4 py-2 text-center text-zinc-300 text-xs font-bold">{stats.female}</td>
+                </tr>
+                {stats.other > 0 && (
+                  <tr>
+                    <td className="px-4 py-2 text-purple-300 text-xs">⚧ Other</td>
+                    <td className="px-4 py-2 text-center text-white text-xs font-medium">{stats.other_elite}</td>
+                    <td className="px-4 py-2 text-center text-white text-xs font-medium">{stats.other_gold}</td>
+                    <td className="px-4 py-2 text-center text-zinc-300 text-xs font-bold">{stats.other}</td>
+                  </tr>
+                )}
+                <tr className="bg-white/5">
+                  <td className="px-4 py-2 text-zinc-400 text-xs font-semibold">Total</td>
+                  <td className="px-4 py-2 text-center text-amber-400 text-xs font-bold">{stats.elite}</td>
+                  <td className="px-4 py-2 text-center text-yellow-400 text-xs font-bold">{stats.gold}</td>
+                  <td className="px-4 py-2 text-center text-white text-xs font-bold">{stats.total}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
