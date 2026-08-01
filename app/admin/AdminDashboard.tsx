@@ -7,7 +7,7 @@ import Link from 'next/link'
 
 type PaymentStatus = 'pending' | 'approved' | 'rejected'
 type RegStatus = 'active' | 'done' | 'payment_pending' | 'review' | 'deleted'
-type AdminTab = 'registrations' | 'contestants' | 'sponsors' | 'votes'
+type AdminTab = 'registrations' | 'contestants' | 'sponsors' | 'seating' | 'votes'
 const VOTE_CATEGORIES = ['kid', 'teen', 'miss', 'misses'] as const
 type VoteCategory = typeof VOTE_CATEGORIES[number]
 
@@ -87,10 +87,10 @@ export default function AdminDashboard({ adminName }: { adminName: string }) {
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-4 flex gap-1">
-          {(['registrations', 'contestants', 'sponsors', 'votes'] as const).map((tab) => (
+          {(['registrations', 'contestants', 'sponsors', 'seating', 'votes'] as const).map((tab) => (
             <button key={tab} onClick={() => setActiveTab(tab)}
               className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-all ${activeTab === tab ? 'border-yellow-500 text-yellow-400' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}>
-              {tab === 'registrations' ? '🎟️ Registrations' : tab === 'contestants' ? '👸 Contestants' : tab === 'sponsors' ? '🤝 Sponsors' : '🗳️ Votes'}
+              {tab === 'registrations' ? '🎟️ Registrations' : tab === 'contestants' ? '👸 Contestants' : tab === 'sponsors' ? '🤝 Sponsors' : tab === 'seating' ? '🪑 Seating' : '🗳️ Votes'}
             </button>
           ))}
         </div>
@@ -99,9 +99,351 @@ export default function AdminDashboard({ adminName }: { adminName: string }) {
         {activeTab === 'registrations' && <RegistrationsTab />}
         {activeTab === 'contestants' && <ContestantsTab />}
         {activeTab === 'sponsors' && <SponsorsTab />}
+        {activeTab === 'seating' && <SeatingTab />}
         {activeTab === 'votes' && <VotesTab />}
       </div>
     </div>
+  )
+}
+
+// ─── TierUpgradePanel ─────────────────────────────────────────────────────────
+
+function TierUpgradePanel({ applicationId, currentTier, onSaved }: {
+  applicationId: string; currentTier: 'elite' | 'gold'; onSaved: () => void
+}) {
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  async function changeTier(tier: 'elite' | 'gold') {
+    if (tier === currentTier) return
+    if (!confirm(`Change pass from ${currentTier.toUpperCase()} to ${tier.toUpperCase()}?\n\nThis will update the tier, price, and regenerate the QR pass.`)) return
+    setSaving(true)
+    const res = await fetch(`/api/admin/registrations/${applicationId}/tier`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tier }),
+    })
+    setSaving(false)
+    if (res.ok) { setSaved(true); setTimeout(() => setSaved(false), 2000); onSaved() }
+    else { const d = await res.json(); alert(d.error ?? 'Failed') }
+  }
+
+  return (
+    <div className="border border-purple-700/30 rounded-xl p-4 space-y-3">
+      <div className="text-xs text-purple-400 font-semibold uppercase tracking-wide">🔄 Upgrade / Downgrade Pass</div>
+      <div className="flex gap-3">
+        <button onClick={() => changeTier('elite')} disabled={saving || currentTier === 'elite'}
+          className={`flex-1 py-2.5 rounded-xl text-sm font-bold border transition-all ${currentTier === 'elite' ? 'border-amber-500 bg-amber-900/20 text-amber-400 cursor-default' : 'border-amber-700/40 text-amber-400 hover:bg-amber-900/20 disabled:opacity-50'}`}>
+          👑 Elite Pass {currentTier === 'elite' ? '(Current)' : '↑ Upgrade · ₹499'}
+        </button>
+        <button onClick={() => changeTier('gold')} disabled={saving || currentTier === 'gold'}
+          className={`flex-1 py-2.5 rounded-xl text-sm font-bold border transition-all ${currentTier === 'gold' ? 'border-yellow-500 bg-yellow-900/20 text-yellow-400 cursor-default' : 'border-yellow-700/40 text-yellow-400 hover:bg-yellow-900/20 disabled:opacity-50'}`}>
+          ⭐ Gold Pass {currentTier === 'gold' ? '(Current)' : '↓ Downgrade · ₹299'}
+        </button>
+      </div>
+      {saved && <div className="text-green-400 text-xs text-center">✅ Tier updated & QR regenerated</div>}
+    </div>
+  )
+}
+
+// ─── SeatingTab ───────────────────────────────────────────────────────────────
+
+interface SeatingConfig {
+  sofa_count: number; sofa_capacity: number
+  round_table_count: number; round_table_capacity: number
+  chair_count: number
+}
+
+interface SeatRow {
+  application_id: string; full_name: string; seat_tier: string
+  ticket_no: string | null; table_number: string | null
+}
+
+function SeatingTab() {
+  const [config, setConfig] = useState<SeatingConfig>({
+    sofa_count: 20, sofa_capacity: 2,
+    round_table_count: 20, round_table_capacity: 6,
+    chair_count: 250,
+  })
+  const [seats, setSeats] = useState<SeatRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [autoAssigning, setAutoAssigning] = useState(false)
+  const [search, setSearch] = useState('')
+  const [filterTier, setFilterTier] = useState<'all' | 'elite' | 'gold'>('all')
+  const [filterAssigned, setFilterAssigned] = useState<'all' | 'assigned' | 'unassigned'>('all')
+
+  const fetchAll = useCallback(async () => {
+    setLoading(true)
+    const [cfgRes, regRes, passRes] = await Promise.all([
+      fetch('/api/admin/seating/config'),
+      fetch('/api/admin/registrations'),
+      fetch('/api/admin/passes-all'),
+    ])
+    if (cfgRes.ok) { const d = await cfgRes.json(); if (d.config) setConfig(d.config) }
+
+    if (regRes.ok && passRes.ok) {
+      const regData = await regRes.json()
+      const passData = await passRes.json()
+      const passMap = new Map<string, { ticket_no: string | null; table_number: string | null }>(
+        (passData.data ?? []).map((p: { application_id: string; ticket_no: string | null; table_number: string | null }) => [p.application_id, p])
+      )
+      const rows: SeatRow[] = (regData.registrations ?? [])
+        .filter((r: { payments: { status: string } | null; registration_status: string }) =>
+          r.payments?.status === 'approved' && r.registration_status !== 'deleted'
+        )
+        .map((r: { application_id: string; full_name: string; seat_tier: string }) => {
+          const p = passMap.get(r.application_id)
+          return {
+            application_id: r.application_id,
+            full_name: r.full_name,
+            seat_tier: r.seat_tier,
+            ticket_no: p?.ticket_no ?? null,
+            table_number: p?.table_number ?? null,
+          }
+        })
+      setSeats(rows)
+    }
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { fetchAll() }, [fetchAll])
+
+  async function saveConfig() {
+    setSaving(true)
+    await fetch('/api/admin/seating/config', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config),
+    })
+    setSaving(false)
+  }
+
+  async function autoAssign() {
+    if (!confirm('Auto-assign seats to all approved unassigned registrations?\n\nElite → Round Tables, Gold → Chairs. This will not overwrite existing assignments.')) return
+    setAutoAssigning(true)
+    const res = await fetch('/api/admin/seating/assign', { method: 'POST' })
+    const d = await res.json()
+    setAutoAssigning(false)
+    if (res.ok) { alert(`✅ Assigned ${d.assigned} seats`); fetchAll() }
+    else alert(d.error ?? 'Failed')
+  }
+
+  async function clearSeat(applicationId: string) {
+    await fetch('/api/admin/seating/assign', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ applicationId, seatLabel: null, tableLabel: null }),
+    })
+    fetchAll()
+  }
+
+  async function updateSeat(applicationId: string, seatLabel: string, tableLabel: string) {
+    await fetch('/api/admin/seating/assign', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ applicationId, seatLabel, tableLabel }),
+    })
+    fetchAll()
+  }
+
+  const totalSofaSeats = config.sofa_count * config.sofa_capacity
+  const totalTableSeats = config.round_table_count * config.round_table_capacity
+  const totalCapacity = totalSofaSeats + totalTableSeats + config.chair_count
+
+  const eliteCount = seats.filter(s => s.seat_tier === 'elite').length
+  const goldCount = seats.filter(s => s.seat_tier === 'gold').length
+  const assignedCount = seats.filter(s => s.ticket_no).length
+
+  const filtered = seats
+    .filter(s => filterTier === 'all' || s.seat_tier === filterTier)
+    .filter(s => filterAssigned === 'all' || (filterAssigned === 'assigned' ? !!s.ticket_no : !s.ticket_no))
+    .filter(s => !search || s.full_name.toLowerCase().includes(search.toLowerCase()) || s.application_id.toLowerCase().includes(search.toLowerCase()) || (s.ticket_no ?? '').toLowerCase().includes(search.toLowerCase()))
+
+  return (
+    <div className="space-y-6">
+      {/* Venue Config */}
+      <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+        <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
+          <span className="text-white font-semibold text-sm">🏟️ Venue Configuration</span>
+          <button onClick={saveConfig} disabled={saving}
+            className="text-xs bg-yellow-500 hover:bg-yellow-400 text-black font-bold px-4 py-1.5 rounded-lg disabled:opacity-50 transition-colors">
+            {saving ? 'Saving…' : '💾 Save Config'}
+          </button>
+        </div>
+        <div className="p-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          {([
+            { label: 'Sofas', field: 'sofa_count', desc: 'VIP/Parents/Sponsors' },
+            { label: 'Per Sofa', field: 'sofa_capacity', desc: 'Seats per sofa' },
+            { label: 'Round Tables', field: 'round_table_count', desc: 'Elite section' },
+            { label: 'Per Table', field: 'round_table_capacity', desc: 'Seats per table' },
+            { label: 'Chairs', field: 'chair_count', desc: 'Gold section' },
+          ] as { label: string; field: keyof SeatingConfig; desc: string }[]).map(({ label, field, desc }) => (
+            <div key={field}>
+              <label className="block text-xs text-zinc-400 mb-1">{label}</label>
+              <input type="number" min={0} value={config[field]}
+                onChange={e => setConfig(c => ({ ...c, [field]: Number(e.target.value) }))}
+                className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-yellow-500" />
+              <div className="text-zinc-600 text-xs mt-0.5">{desc}</div>
+            </div>
+          ))}
+        </div>
+        {/* Capacity summary */}
+        <div className="px-5 pb-4 grid grid-cols-3 sm:grid-cols-5 gap-3 text-center">
+          {[
+            { label: 'Sofa seats', value: totalSofaSeats, color: 'text-purple-400' },
+            { label: 'Table seats', value: totalTableSeats, color: 'text-amber-400' },
+            { label: 'Chair seats', value: config.chair_count, color: 'text-yellow-400' },
+            { label: 'Total capacity', value: totalCapacity, color: 'text-green-400' },
+            { label: 'Assigned', value: `${assignedCount}/${seats.length}`, color: 'text-cyan-400' },
+          ].map(({ label, value, color }) => (
+            <div key={label} className="bg-white/5 rounded-xl px-3 py-2">
+              <div className={`font-bold text-lg ${color}`}>{value}</div>
+              <div className="text-zinc-500 text-xs">{label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Seat overview per tier */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-amber-900/10 border border-amber-700/30 rounded-2xl p-4">
+          <div className="text-amber-400 font-semibold text-sm mb-1">👑 Elite Registrations</div>
+          <div className="text-3xl font-bold text-white">{eliteCount}</div>
+          <div className="text-zinc-500 text-xs mt-1">Assigned to Round Tables (capacity: {totalTableSeats})</div>
+          {eliteCount > totalTableSeats && (
+            <div className="text-red-400 text-xs mt-1">⚠️ Overflow: {eliteCount - totalTableSeats} without a table seat</div>
+          )}
+        </div>
+        <div className="bg-yellow-900/10 border border-yellow-700/30 rounded-2xl p-4">
+          <div className="text-yellow-400 font-semibold text-sm mb-1">⭐ Gold Registrations</div>
+          <div className="text-3xl font-bold text-white">{goldCount}</div>
+          <div className="text-zinc-500 text-xs mt-1">Assigned to Chairs (capacity: {config.chair_count})</div>
+          {goldCount > config.chair_count && (
+            <div className="text-red-400 text-xs mt-1">⚠️ Overflow: {goldCount - config.chair_count} without a chair</div>
+          )}
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex flex-wrap gap-3 items-center">
+        <button onClick={autoAssign} disabled={autoAssigning}
+          className="bg-green-700 hover:bg-green-600 text-white text-sm font-bold px-5 py-2.5 rounded-xl disabled:opacity-50 transition-colors">
+          {autoAssigning ? '⏳ Assigning…' : '🪄 Auto-Assign All Unassigned'}
+        </button>
+        <button onClick={fetchAll} className="text-xs text-zinc-400 hover:text-white transition-colors">↻ Refresh</button>
+      </div>
+
+      {/* Seat table */}
+      <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-white/10 flex flex-wrap gap-3 items-center">
+          <span className="text-white text-sm font-semibold">Seat Assignments ({filtered.length})</span>
+          <div className="flex gap-2 flex-wrap ml-auto">
+            {(['all', 'elite', 'gold'] as const).map(t => (
+              <button key={t} onClick={() => setFilterTier(t)}
+                className={`text-xs px-2.5 py-1 rounded-full border transition-all capitalize ${filterTier === t ? 'border-yellow-500 text-yellow-400 bg-yellow-900/20' : 'border-white/10 text-zinc-400'}`}>
+                {t === 'all' ? 'All tiers' : t === 'elite' ? '👑 Elite' : '⭐ Gold'}
+              </button>
+            ))}
+            {(['all', 'assigned', 'unassigned'] as const).map(f => (
+              <button key={f} onClick={() => setFilterAssigned(f)}
+                className={`text-xs px-2.5 py-1 rounded-full border transition-all capitalize ${filterAssigned === f ? 'border-cyan-500 text-cyan-400 bg-cyan-900/20' : 'border-white/10 text-zinc-400'}`}>
+                {f}
+              </button>
+            ))}
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name / ID / seat…"
+              className="bg-black/40 border border-white/10 text-white placeholder-zinc-600 rounded-lg px-3 py-1 text-xs focus:outline-none focus:border-yellow-500 w-44" />
+          </div>
+        </div>
+        {loading ? (
+          <div className="text-center py-8 text-zinc-500">Loading…</div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-8 text-zinc-500">No approved registrations found</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/10 text-zinc-500 text-xs uppercase tracking-wide">
+                  <th className="text-left px-4 py-3">Name / ID</th>
+                  <th className="text-left px-4 py-3">Tier</th>
+                  <th className="text-left px-4 py-3">Seat No</th>
+                  <th className="text-left px-4 py-3">Table / Row</th>
+                  <th className="text-left px-4 py-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {filtered.map(row => (
+                  <SeatAssignRow key={row.application_id} row={row}
+                    onClear={() => clearSeat(row.application_id)}
+                    onSave={(seat, table) => updateSeat(row.application_id, seat, table)} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function SeatAssignRow({ row, onClear, onSave }: {
+  row: SeatRow; onClear: () => void; onSave: (seat: string, table: string) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [seat, setSeat] = useState(row.ticket_no ?? '')
+  const [table, setTable] = useState(row.table_number ?? '')
+
+  useEffect(() => { setSeat(row.ticket_no ?? ''); setTable(row.table_number ?? '') }, [row])
+
+  return (
+    <tr className="hover:bg-white/5 transition-colors">
+      <td className="px-4 py-3">
+        <div className="text-white font-medium text-sm">{row.full_name}</div>
+        <div className="text-zinc-500 text-xs font-mono">{row.application_id}</div>
+      </td>
+      <td className="px-4 py-3">
+        <span className={`text-xs font-bold px-2 py-1 rounded-full border ${row.seat_tier === 'elite' ? 'text-amber-400 bg-amber-900/20 border-amber-700/30' : 'text-yellow-400 bg-yellow-900/20 border-yellow-700/30'}`}>
+          {row.seat_tier === 'elite' ? '👑 Elite' : '⭐ Gold'}
+        </span>
+      </td>
+      <td className="px-4 py-3">
+        {editing ? (
+          <input value={seat} onChange={e => setSeat(e.target.value)} placeholder="e.g. T1-3"
+            className="w-24 bg-white/5 border border-white/10 text-white rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-yellow-500" />
+        ) : (
+          row.ticket_no
+            ? <span className="text-cyan-400 font-mono text-xs bg-cyan-900/20 border border-cyan-700/30 px-2 py-1 rounded-lg">{row.ticket_no}</span>
+            : <span className="text-zinc-600 text-xs">Not assigned</span>
+        )}
+      </td>
+      <td className="px-4 py-3">
+        {editing ? (
+          <input value={table} onChange={e => setTable(e.target.value)} placeholder="e.g. Table 1"
+            className="w-24 bg-white/5 border border-white/10 text-white rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-yellow-500" />
+        ) : (
+          row.table_number
+            ? <span className="text-zinc-300 text-xs">{row.table_number}</span>
+            : <span className="text-zinc-600 text-xs">—</span>
+        )}
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex gap-2">
+          {editing ? (
+            <>
+              <button onClick={() => { onSave(seat, table); setEditing(false) }}
+                className="text-xs bg-green-700 hover:bg-green-600 text-white px-2.5 py-1 rounded-lg">✓ Save</button>
+              <button onClick={() => setEditing(false)}
+                className="text-xs text-zinc-400 hover:text-white px-2 py-1 rounded-lg">✕</button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => setEditing(true)}
+                className="text-xs text-yellow-400 hover:text-yellow-300 border border-yellow-700/30 px-2.5 py-1 rounded-lg">✏️</button>
+              {row.ticket_no && (
+                <button onClick={onClear}
+                  className="text-xs text-red-400 hover:text-red-300 border border-red-700/30 px-2.5 py-1 rounded-lg">✕</button>
+              )}
+            </>
+          )}
+        </div>
+      </td>
+    </tr>
   )
 }
 
@@ -832,6 +1174,13 @@ function RegistrationsTab() {
                   )}
                 </div>
               )}
+
+              {/* Tier Upgrade / Downgrade */}
+              <TierUpgradePanel
+                applicationId={selected.application_id}
+                currentTier={selected.seat_tier as 'elite' | 'gold'}
+                onSaved={fetchRows}
+              />
 
               {/* Ticket No & Table Number */}
               <TicketAssignPanel
