@@ -122,9 +122,9 @@ export default async function MyPassPage() {
                 </div>
               </div>
 
-              {/* Name — below "Name" label, starts at left:37% to clear the logo */}
+              {/* Name — x:45 y:75 → left:45% top:25% */}
               <div className="absolute text-white font-bold leading-tight"
-                style={{ top: '30.7%', left: '37%', maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)', wordBreak: 'break-word', lineHeight: 1.25 }}>
+                style={{ top: '25%', left: '45%', maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)', wordBreak: 'break-word', lineHeight: 1.25 }}>
                 {pass.full_name}
               </div>
 
