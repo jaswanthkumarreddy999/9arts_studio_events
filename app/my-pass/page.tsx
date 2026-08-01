@@ -113,49 +113,49 @@ export default async function MyPassPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/ticket-template.png" alt="ticket" className="absolute inset-0 w-full h-full object-fill" />
 
-              {/* QR code — measured: top 32%, left 73.2%, width 23.8%, height 33% */}
+              {/* QR — measured: top 32%, left 73.2%, width 23.4%, height 33% */}
               <div className="absolute flex items-center justify-center"
-                style={{ top: '32%', left: '73.2%', width: '23.8%', height: '33%' }}>
-                <div className="bg-white w-[88%] h-[88%] flex items-center justify-center p-[2%]">
+                style={{ top: '32%', left: '73.2%', width: '23.4%', height: '33%' }}>
+                <div className="w-[86%] h-[86%] flex items-center justify-center bg-white p-[2%]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={pass.qr_data_url} alt="QR" className="w-full h-full object-contain" />
                 </div>
               </div>
 
-              {/* Name — row y=27.5% */}
+              {/* Name — label y=26.7%, value aligned same row */}
               <div className="absolute text-white font-bold leading-tight"
-                style={{ top: '25.5%', left: '57%', maxWidth: '15%', fontSize: 'clamp(5px,0.85vw,12px)', wordBreak: 'break-word', lineHeight: 1.25 }}>
+                style={{ top: '24.5%', left: '47%', maxWidth: '25%', fontSize: 'clamp(5px,0.85vw,13px)', wordBreak: 'break-word', lineHeight: 1.3 }}>
                 {pass.full_name}
               </div>
 
-              {/* Application ID — row y=34.2% */}
+              {/* Application ID — label y=34.5% */}
               <div className="absolute text-yellow-300 font-mono font-bold leading-tight"
-                style={{ top: '32.5%', left: '57%', maxWidth: '15%', fontSize: 'clamp(4px,0.7vw,10px)', wordBreak: 'break-all', lineHeight: 1.25 }}>
+                style={{ top: '32.5%', left: '47%', maxWidth: '25%', fontSize: 'clamp(4px,0.7vw,10px)', wordBreak: 'break-all', lineHeight: 1.3 }}>
                 {pass.application_id}
               </div>
 
-              {/* Mobile — row y=41.7% */}
+              {/* Mobile — label y=47.2% */}
               <div className="absolute text-white font-semibold"
-                style={{ top: '40%', left: '57%', maxWidth: '15%', fontSize: 'clamp(5px,0.85vw,12px)', whiteSpace: 'nowrap' }}>
+                style={{ top: '45.5%', left: '47%', maxWidth: '25%', fontSize: 'clamp(5px,0.85vw,13px)', whiteSpace: 'nowrap' }}>
                 {reg?.mobile ?? '—'}
               </div>
 
-              {/* Gender — row y=47.4% */}
+              {/* Gender — label y=57% */}
               <div className="absolute text-white font-semibold"
-                style={{ top: '46%', left: '57%', maxWidth: '15%', fontSize: 'clamp(5px,0.85vw,12px)' }}>
+                style={{ top: '55%', left: '47%', maxWidth: '25%', fontSize: 'clamp(5px,0.85vw,13px)' }}>
                 {reg?.gender === 'male' ? 'Male' : reg?.gender === 'female' ? 'Female' : reg?.gender === 'other' ? 'Other' : '—'}
               </div>
 
-              {/* Pass — row y=52.7% */}
+              {/* Pass — label y=66.6% */}
               <div className="absolute text-yellow-400 font-bold"
-                style={{ top: '51.5%', left: '57%', maxWidth: '15%', fontSize: 'clamp(5px,0.85vw,12px)' }}>
+                style={{ top: '64.5%', left: '47%', maxWidth: '25%', fontSize: 'clamp(5px,0.85vw,13px)' }}>
                 {tierInfo.label}
               </div>
 
               {/* Ticket No + Table No */}
               {(pass.ticket_no || pass.table_number) && (
                 <div className="absolute flex gap-1"
-                  style={{ top: '58%', left: '57%', fontSize: 'clamp(4px,0.75vw,10px)' }}>
+                  style={{ top: '71%', left: '47%', fontSize: 'clamp(4px,0.75vw,10px)' }}>
                   {pass.ticket_no && <span className="text-green-300 font-mono font-bold">#{String(pass.ticket_no)}</span>}
                   {pass.table_number && <span className="text-blue-300 font-bold">Table {String(pass.table_number)}</span>}
                 </div>
