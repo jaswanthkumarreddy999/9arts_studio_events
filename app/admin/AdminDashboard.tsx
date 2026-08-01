@@ -253,18 +253,62 @@ function SeatingTab() {
     fetchAll()
   }
 
-  const totalSofaSeats = config.sofa_count * config.sofa_capacity
-  const totalTableSeats = config.round_table_count * config.round_table_capacity
-  const totalCapacity = totalSofaSeats + totalTableSeats + config.chair_count
+  // ── Group detection: people sharing same mobile or same UTR ──
+  const groupMap = new Map<string, string[]>() // groupKey → [application_id, ...]
+  // We don't have mobile/UTR in SeatRow, so we group by table_number if assigned
+  // For unassigned, we detect families from name similarity (same last name or common prefix)
+  // Real grouping is done by same table assignment
 
-  const eliteCount = seats.filter(s => s.seat_tier === 'elite').length
-  const goldCount = seats.filter(s => s.seat_tier === 'gold').length
-  const assignedCount = seats.filter(s => s.ticket_no).length
+  // ── Table occupancy ──
+  type ViewMode = 'list' | 'tables'
+  const [viewMode, setViewMode] = useState<ViewMode>('list')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkClearing, setBulkClearing] = useState(false)
+  const [tableFilter, setTableFilter] = useState<string | null>(null)
 
-  const filtered = seats
-    .filter(s => filterTier === 'all' || s.seat_tier === filterTier)
-    .filter(s => filterAssigned === 'all' || (filterAssigned === 'assigned' ? !!s.ticket_no : !s.ticket_no))
-    .filter(s => !search || s.full_name.toLowerCase().includes(search.toLowerCase()) || s.application_id.toLowerCase().includes(search.toLowerCase()) || (s.ticket_no ?? '').toLowerCase().includes(search.toLowerCase()))
+  // Build table occupancy map
+  const tableOccupancy = new Map<string, SeatRow[]>()
+  for (const s of seats) {
+    if (s.table_number) {
+      if (!tableOccupancy.has(s.table_number)) tableOccupancy.set(s.table_number, [])
+      tableOccupancy.get(s.table_number)!.push(s)
+    }
+  }
+  void groupMap // suppress unused warning
+
+  async function bulkClear() {
+    if (selectedIds.size === 0) return
+    if (!confirm(`Clear seat assignments for ${selectedIds.size} people?`)) return
+    setBulkClearing(true)
+    await Promise.all([...selectedIds].map(id =>
+      fetch('/api/admin/seating/assign', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationId: id, seatLabel: null, tableLabel: null }),
+      })
+    ))
+    setBulkClearing(false)
+    setSelectedIds(new Set())
+    fetchAll()
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  function selectAll() {
+    setSelectedIds(new Set(filtered.map(r => r.application_id)))
+  }
+
+  const filteredForTable = tableFilter
+    ? seats.filter(s => s.table_number === tableFilter)
+    : filtered
+
+  // Elite table capacity for occupancy colour
+  const tableCapacity = config.round_table_capacity
 
   return (
     <div className="space-y-6">
@@ -294,7 +338,6 @@ function SeatingTab() {
             </div>
           ))}
         </div>
-        {/* Capacity summary */}
         <div className="px-5 pb-4 grid grid-cols-3 sm:grid-cols-5 gap-3 text-center">
           {[
             { label: 'Sofa seats', value: totalSofaSeats, color: 'text-purple-400' },
@@ -311,89 +354,182 @@ function SeatingTab() {
         </div>
       </div>
 
-      {/* Seat overview per tier */}
+      {/* Tier overview */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-amber-900/10 border border-amber-700/30 rounded-2xl p-4">
           <div className="text-amber-400 font-semibold text-sm mb-1">👑 Elite Registrations</div>
           <div className="text-3xl font-bold text-white">{eliteCount}</div>
-          <div className="text-zinc-500 text-xs mt-1">Assigned to Round Tables (capacity: {totalTableSeats})</div>
-          {eliteCount > totalTableSeats && (
-            <div className="text-red-400 text-xs mt-1">⚠️ Overflow: {eliteCount - totalTableSeats} without a table seat</div>
-          )}
+          <div className="text-zinc-500 text-xs mt-1">Round Tables capacity: {totalTableSeats}</div>
+          {eliteCount > totalTableSeats && <div className="text-red-400 text-xs mt-1">⚠️ Overflow: {eliteCount - totalTableSeats}</div>}
         </div>
         <div className="bg-yellow-900/10 border border-yellow-700/30 rounded-2xl p-4">
           <div className="text-yellow-400 font-semibold text-sm mb-1">⭐ Gold Registrations</div>
           <div className="text-3xl font-bold text-white">{goldCount}</div>
-          <div className="text-zinc-500 text-xs mt-1">Assigned to Chairs (capacity: {config.chair_count})</div>
-          {goldCount > config.chair_count && (
-            <div className="text-red-400 text-xs mt-1">⚠️ Overflow: {goldCount - config.chair_count} without a chair</div>
-          )}
+          <div className="text-zinc-500 text-xs mt-1">Chairs capacity: {config.chair_count}</div>
+          {goldCount > config.chair_count && <div className="text-red-400 text-xs mt-1">⚠️ Overflow: {goldCount - config.chair_count}</div>}
         </div>
       </div>
 
-      {/* Actions */}
+      {/* Actions row */}
       <div className="flex flex-wrap gap-3 items-center">
         <button onClick={autoAssign} disabled={autoAssigning}
           className="bg-green-700 hover:bg-green-600 text-white text-sm font-bold px-5 py-2.5 rounded-xl disabled:opacity-50 transition-colors">
           {autoAssigning ? '⏳ Assigning…' : '🪄 Auto-Assign All Unassigned'}
         </button>
+        {selectedIds.size > 0 && (
+          <button onClick={bulkClear} disabled={bulkClearing}
+            className="bg-red-700 hover:bg-red-600 text-white text-sm font-bold px-5 py-2.5 rounded-xl disabled:opacity-50 transition-colors">
+            {bulkClearing ? '⏳ Clearing…' : `🗑️ Clear ${selectedIds.size} Selected`}
+          </button>
+        )}
+        <div className="ml-auto flex gap-2">
+          <button onClick={() => { setViewMode('list'); setTableFilter(null) }}
+            className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${viewMode === 'list' ? 'border-yellow-500 text-yellow-400 bg-yellow-900/20' : 'border-white/10 text-zinc-400'}`}>
+            📋 List
+          </button>
+          <button onClick={() => setViewMode('tables')}
+            className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${viewMode === 'tables' ? 'border-yellow-500 text-yellow-400 bg-yellow-900/20' : 'border-white/10 text-zinc-400'}`}>
+            🗂️ Tables
+          </button>
+        </div>
         <button onClick={fetchAll} className="text-xs text-zinc-400 hover:text-white transition-colors">↻ Refresh</button>
       </div>
 
-      {/* Seat table */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-white/10 flex flex-wrap gap-3 items-center">
-          <span className="text-white text-sm font-semibold">Seat Assignments ({filtered.length})</span>
-          <div className="flex gap-2 flex-wrap ml-auto">
-            {(['all', 'elite', 'gold'] as const).map(t => (
-              <button key={t} onClick={() => setFilterTier(t)}
-                className={`text-xs px-2.5 py-1 rounded-full border transition-all capitalize ${filterTier === t ? 'border-yellow-500 text-yellow-400 bg-yellow-900/20' : 'border-white/10 text-zinc-400'}`}>
-                {t === 'all' ? 'All tiers' : t === 'elite' ? '👑 Elite' : '⭐ Gold'}
-              </button>
-            ))}
-            {(['all', 'assigned', 'unassigned'] as const).map(f => (
-              <button key={f} onClick={() => setFilterAssigned(f)}
-                className={`text-xs px-2.5 py-1 rounded-full border transition-all capitalize ${filterAssigned === f ? 'border-cyan-500 text-cyan-400 bg-cyan-900/20' : 'border-white/10 text-zinc-400'}`}>
-                {f}
-              </button>
-            ))}
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name / ID / seat…"
-              className="bg-black/40 border border-white/10 text-white placeholder-zinc-600 rounded-lg px-3 py-1 text-xs focus:outline-none focus:border-yellow-500 w-44" />
+      {/* ── TABLE OCCUPANCY VIEW ── */}
+      {viewMode === 'tables' && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 text-xs text-zinc-500">
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-600 inline-block" /> Available</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-600 inline-block" /> Partial</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-600 inline-block" /> Full</span>
           </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {Array.from({ length: config.round_table_count }, (_, i) => {
+              const tLabel = `Table ${i + 1}`
+              const occupants = tableOccupancy.get(tLabel) ?? []
+              const count = occupants.length
+              const pct = tableCapacity > 0 ? count / tableCapacity : 0
+              const color = pct === 0 ? 'border-green-700/40 bg-green-900/10' : pct < 1 ? 'border-yellow-700/40 bg-yellow-900/10' : 'border-red-700/40 bg-red-900/10'
+              const textColor = pct === 0 ? 'text-green-400' : pct < 1 ? 'text-yellow-400' : 'text-red-400'
+              const isSelected = tableFilter === tLabel
+              return (
+                <button key={tLabel} onClick={() => setTableFilter(isSelected ? null : tLabel)}
+                  className={`rounded-xl border p-3 text-left transition-all hover:scale-[1.02] ${color} ${isSelected ? 'ring-2 ring-yellow-500' : ''}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-white font-bold text-sm">{tLabel}</span>
+                    <span className={`text-xs font-bold ${textColor}`}>{count}/{tableCapacity}</span>
+                  </div>
+                  {/* Seat dots */}
+                  <div className="flex gap-1 flex-wrap">
+                    {Array.from({ length: tableCapacity }, (_, s) => (
+                      <div key={s} className={`w-4 h-4 rounded-full ${s < count ? 'bg-amber-500' : 'bg-white/10'}`} />
+                    ))}
+                  </div>
+                  {count > 0 && (
+                    <div className="mt-2 text-zinc-400 text-xs truncate">
+                      {occupants[0].full_name}{count > 1 ? ` +${count - 1}` : ''}
+                    </div>
+                  )}
+                  {count === 0 && <div className="mt-2 text-green-600 text-xs">Best to assign</div>}
+                </button>
+              )
+            })}
+          </div>
+          {tableFilter && (
+            <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
+                <span className="text-white font-semibold text-sm">👥 {tableFilter} — {tableOccupancy.get(tableFilter)?.length ?? 0}/{tableCapacity} seated</span>
+                <button onClick={() => setTableFilter(null)} className="text-zinc-500 hover:text-white text-xs">✕ Close</button>
+              </div>
+              <div className="divide-y divide-white/5">
+                {(tableOccupancy.get(tableFilter) ?? []).length === 0
+                  ? <div className="text-center py-6 text-zinc-600 text-sm">No one seated at this table yet</div>
+                  : (tableOccupancy.get(tableFilter) ?? []).map(r => (
+                    <div key={r.application_id} className="flex items-center gap-3 px-4 py-3">
+                      <div className="flex-1">
+                        <div className="text-white text-sm font-medium">{r.full_name}</div>
+                        <div className="text-zinc-500 text-xs font-mono">{r.application_id}</div>
+                      </div>
+                      <span className="text-cyan-400 font-mono text-xs">{r.ticket_no}</span>
+                      <button onClick={() => clearSeat(r.application_id)}
+                        className="text-xs text-red-400 border border-red-700/30 px-2 py-1 rounded-lg hover:bg-red-900/20">✕</button>
+                    </div>
+                  ))
+                }
+              </div>
+            </div>
+          )}
         </div>
-        {loading ? (
-          <div className="text-center py-8 text-zinc-500">Loading…</div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-8 text-zinc-500">No registrations found</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/10 text-zinc-500 text-xs uppercase tracking-wide">
-                  <th className="text-left px-4 py-3">Name / ID</th>
-                  <th className="text-left px-4 py-3">Tier</th>
-                  <th className="text-left px-4 py-3">Seat No</th>
-                  <th className="text-left px-4 py-3">Table / Row</th>
-                  <th className="text-left px-4 py-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {filtered.map(row => (
-                  <SeatAssignRow key={row.application_id} row={row}
-                    onClear={() => clearSeat(row.application_id)}
-                    onSave={(seat, table) => updateSeat(row.application_id, seat, table)} />
-                ))}
-              </tbody>
-            </table>
+      )}
+
+      {/* ── LIST VIEW ── */}
+      {viewMode === 'list' && (
+        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-white/10 flex flex-wrap gap-3 items-center">
+            <div className="flex items-center gap-2">
+              <input type="checkbox" checked={selectedIds.size === filtered.length && filtered.length > 0}
+                onChange={e => e.target.checked ? selectAll() : setSelectedIds(new Set())}
+                className="rounded" />
+              <span className="text-white text-sm font-semibold">
+                Seat Assignments ({filtered.length})
+                {selectedIds.size > 0 && <span className="text-yellow-400 ml-1">· {selectedIds.size} selected</span>}
+              </span>
+            </div>
+            <div className="flex gap-2 flex-wrap ml-auto">
+              {(['all', 'elite', 'gold'] as const).map(t => (
+                <button key={t} onClick={() => setFilterTier(t)}
+                  className={`text-xs px-2.5 py-1 rounded-full border transition-all ${filterTier === t ? 'border-yellow-500 text-yellow-400 bg-yellow-900/20' : 'border-white/10 text-zinc-400'}`}>
+                  {t === 'all' ? 'All' : t === 'elite' ? '👑 Elite' : '⭐ Gold'}
+                </button>
+              ))}
+              {(['all', 'assigned', 'unassigned'] as const).map(f => (
+                <button key={f} onClick={() => setFilterAssigned(f)}
+                  className={`text-xs px-2.5 py-1 rounded-full border transition-all capitalize ${filterAssigned === f ? 'border-cyan-500 text-cyan-400 bg-cyan-900/20' : 'border-white/10 text-zinc-400'}`}>
+                  {f}
+                </button>
+              ))}
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…"
+                className="bg-black/40 border border-white/10 text-white placeholder-zinc-600 rounded-lg px-3 py-1 text-xs focus:outline-none focus:border-yellow-500 w-36" />
+            </div>
           </div>
-        )}
-      </div>
+          {loading ? (
+            <div className="text-center py-8 text-zinc-500">Loading…</div>
+          ) : (filteredForTable.length === 0) ? (
+            <div className="text-center py-8 text-zinc-500">No registrations found</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-white/10 text-zinc-500 text-xs uppercase tracking-wide">
+                    <th className="px-4 py-3 w-8"></th>
+                    <th className="text-left px-4 py-3">Name / ID</th>
+                    <th className="text-left px-4 py-3">Tier</th>
+                    <th className="text-left px-4 py-3">Seat No</th>
+                    <th className="text-left px-4 py-3">Table / Row</th>
+                    <th className="text-left px-4 py-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {filteredForTable.map(row => (
+                    <SeatAssignRow key={row.application_id} row={row}
+                      selected={selectedIds.has(row.application_id)}
+                      onSelect={() => toggleSelect(row.application_id)}
+                      onClear={() => clearSeat(row.application_id)}
+                      onSave={(seat, table) => updateSeat(row.application_id, seat, table)} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
 
-function SeatAssignRow({ row, onClear, onSave }: {
-  row: SeatRow; onClear: () => void; onSave: (seat: string, table: string) => void
+function SeatAssignRow({ row, selected, onSelect, onClear, onSave }: {
+  row: SeatRow; selected: boolean; onSelect: () => void
+  onClear: () => void; onSave: (seat: string, table: string) => void
 }) {
   const [editing, setEditing] = useState(false)
   const [seat, setSeat] = useState(row.ticket_no ?? '')
@@ -402,7 +538,10 @@ function SeatAssignRow({ row, onClear, onSave }: {
   useEffect(() => { setSeat(row.ticket_no ?? ''); setTable(row.table_number ?? '') }, [row])
 
   return (
-    <tr className="hover:bg-white/5 transition-colors">
+    <tr className={`hover:bg-white/5 transition-colors ${selected ? 'bg-yellow-900/10' : ''}`}>
+      <td className="px-4 py-3 w-8">
+        <input type="checkbox" checked={selected} onChange={onSelect} className="rounded" />
+      </td>
       <td className="px-4 py-3">
         <div className="text-white font-medium text-sm">{row.full_name}</div>
         <div className="text-zinc-500 text-xs font-mono">{row.application_id}</div>
