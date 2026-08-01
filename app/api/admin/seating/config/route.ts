@@ -8,7 +8,6 @@ async function requireAdmin() {
   return session
 }
 
-// GET — fetch seating venue config
 export async function GET() {
   if (!(await requireAdmin())) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -19,41 +18,33 @@ export async function GET() {
     .limit(1)
     .maybeSingle()
 
-  // Return defaults if not configured yet
   return Response.json({
     config: data ?? {
-      sofa_count: 20,
-      sofa_capacity: 2,
-      round_table_count: 20,
-      round_table_capacity: 6,
-      chair_count: 250,
+      sofa_count: 20, sofa_capacity: 2,
+      round_table_count: 20, round_table_capacity: 6,
+      chair_count: 250, chairs_per_row: 10,
     }
   })
 }
 
-// POST — save seating venue config
 export async function POST(req: NextRequest) {
   if (!(await requireAdmin())) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { sofa_count, sofa_capacity, round_table_count, round_table_capacity, chair_count } = body
+  const { sofa_count, sofa_capacity, round_table_count, round_table_capacity, chair_count, chairs_per_row } = body
 
-  // Upsert single config row
   const { data: existing } = await supabaseAdmin
     .from('seating_config')
     .select('id')
     .limit(1)
     .maybeSingle()
 
+  const payload = { sofa_count, sofa_capacity, round_table_count, round_table_capacity, chair_count, chairs_per_row: chairs_per_row ?? 10 }
+
   if (existing) {
-    await supabaseAdmin
-      .from('seating_config')
-      .update({ sofa_count, sofa_capacity, round_table_count, round_table_capacity, chair_count })
-      .eq('id', existing.id)
+    await supabaseAdmin.from('seating_config').update(payload).eq('id', existing.id)
   } else {
-    await supabaseAdmin
-      .from('seating_config')
-      .insert({ sofa_count, sofa_capacity, round_table_count, round_table_capacity, chair_count })
+    await supabaseAdmin.from('seating_config').insert(payload)
   }
 
   return Response.json({ success: true })

@@ -150,21 +150,23 @@ function TierUpgradePanel({ applicationId, currentTier, onSaved }: {
 interface SeatingConfig {
   sofa_count: number; sofa_capacity: number
   round_table_count: number; round_table_capacity: number
-  chair_count: number
+  chair_count: number; chairs_per_row: number
 }
 
 interface SeatRow {
   application_id: string; full_name: string; seat_tier: string
   ticket_no: string | null; table_number: string | null
+  mobile?: string
 }
 
 function SeatingTab() {
   const [config, setConfig] = useState<SeatingConfig>({
     sofa_count: 20, sofa_capacity: 2,
     round_table_count: 20, round_table_capacity: 6,
-    chair_count: 250,
+    chair_count: 250, chairs_per_row: 10,
   })
   const [seats, setSeats] = useState<SeatRow[]>([])
+  const [allRegs, setAllRegs] = useState<SeatRow[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [autoAssigning, setAutoAssigning] = useState(false)
@@ -189,29 +191,28 @@ function SeatingTab() {
       )
       type RawReg = {
         application_id: string; full_name: string; seat_tier: string
-        registration_status: string
+        registration_status: string; mobile?: string
         payments: { status: string } | { status: string }[] | null
       }
-      const rows: SeatRow[] = (regData.registrations ?? [])
+      const allRows: SeatRow[] = (regData.registrations ?? [])
         .map((r: RawReg) => {
-          // Normalize payments array → single object (same as RegistrationsTab)
           const payment = Array.isArray(r.payments) ? (r.payments[0] ?? null) : r.payments
           return { ...r, payments: payment }
         })
-        .filter((r: RawReg & { payments: { status: string } | null }) =>
-          r.registration_status !== 'deleted'
-        )
+        .filter((r: RawReg) => r.registration_status !== 'deleted')
         .map((r: RawReg) => {
           const p = passMap.get(r.application_id)
           return {
             application_id: r.application_id,
             full_name: r.full_name,
             seat_tier: r.seat_tier,
+            mobile: r.mobile ?? '',
             ticket_no: p?.ticket_no ?? null,
             table_number: p?.table_number ?? null,
           }
         })
-      setSeats(rows)
+      setAllRegs(allRows)
+      setSeats(allRows)
     }
     setLoading(false)
   }, [])
@@ -340,6 +341,7 @@ function SeatingTab() {
             { label: 'Round Tables', field: 'round_table_count', desc: 'Elite section' },
             { label: 'Per Table', field: 'round_table_capacity', desc: 'Seats per table' },
             { label: 'Chairs', field: 'chair_count', desc: 'Gold section' },
+            { label: 'Per Row', field: 'chairs_per_row', desc: 'Chairs per row' },
           ] as { label: string; field: keyof SeatingConfig; desc: string }[]).map(({ label, field, desc }) => (
             <div key={field}>
               <label className="block text-xs text-zinc-400 mb-1">{label}</label>
@@ -436,7 +438,7 @@ function SeatingTab() {
                     onSelect={() => setTableFilter(tableFilter === sLabel ? null : sLabel)}
                     onRemove={id => { clearSeat(id); fetchAll() }}
                     onAddMember={() => fetchAll()}
-                    unassigned={seats.filter(s => !s.ticket_no)} />
+                    unassigned={allRegs.filter(s => !s.ticket_no)} />
                 )
               })}
             </div>
@@ -461,7 +463,7 @@ function SeatingTab() {
                     onSelect={() => setTableFilter(tableFilter === tLabel ? null : tLabel)}
                     onRemove={id => { clearSeat(id); fetchAll() }}
                     onAddMember={() => fetchAll()}
-                    unassigned={seats.filter(s => !s.ticket_no)} />
+                    unassigned={allRegs.filter(s => !s.ticket_no)} />
                 )
               })}
             </div>
@@ -475,7 +477,7 @@ function SeatingTab() {
               <div className="flex-1 h-px bg-white/10" />
             </div>
             {(() => {
-              const rowSize = 10
+              const rowSize = config.chairs_per_row || 10
               const rowCount = Math.ceil(config.chair_count / rowSize)
               return (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -491,7 +493,7 @@ function SeatingTab() {
                         onSelect={() => setTableFilter(tableFilter === rowLabel ? null : rowLabel)}
                         onRemove={id => { clearSeat(id); fetchAll() }}
                         onAddMember={() => fetchAll()}
-                        unassigned={seats.filter(s => !s.ticket_no)} />
+                        unassigned={allRegs.filter(s => !s.ticket_no)} />
                     )
                   })}
                 </div>
@@ -738,7 +740,7 @@ function VenueCard({
       {/* Hover popover */}
       {hovered && (
         <div
-          className="absolute z-50 left-0 top-full mt-1 w-72 bg-zinc-900 border border-white/20 rounded-2xl shadow-2xl overflow-hidden"
+          className="absolute z-50 left-0 top-full mt-1 w-80 bg-zinc-900 border border-white/20 rounded-2xl shadow-2xl overflow-hidden"
           onMouseEnter={() => { if (leaveTimer.current) clearTimeout(leaveTimer.current) }}
           onMouseLeave={() => { leaveTimer.current = setTimeout(() => setHovered(false), 200) }}
         >
@@ -749,20 +751,24 @@ function VenueCard({
           </div>
 
           {/* Occupants list */}
-          <div className="max-h-48 overflow-y-auto divide-y divide-white/5">
+          <div className="max-h-52 overflow-y-auto divide-y divide-white/5">
             {occupants.length === 0
-              ? <div className="px-4 py-3 text-zinc-600 text-xs">No one seated here yet</div>
-              : occupants.map(r => (
-                <div key={r.application_id} className="flex items-center gap-2 px-4 py-2.5">
+              ? <div className="px-4 py-4 text-zinc-500 text-xs text-center">No one seated here yet</div>
+              : occupants.map((r, idx) => (
+                <div key={r.application_id} className="flex items-center gap-2 px-4 py-2.5 hover:bg-white/5">
+                  <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-xs text-zinc-400 shrink-0">{idx + 1}</div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-white text-xs font-medium truncate">{r.full_name}</div>
-                    <div className="text-zinc-500 text-xs font-mono">{r.ticket_no ?? '—'}</div>
+                    <div className="text-white text-xs font-semibold truncate">{r.full_name}</div>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      {r.mobile && <span className="text-zinc-500 text-xs">{r.mobile}</span>}
+                      {r.ticket_no && <span className="text-cyan-400 text-xs font-mono">· {r.ticket_no}</span>}
+                    </div>
                   </div>
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${r.seat_tier === 'elite' ? 'text-amber-400 bg-amber-900/30' : 'text-yellow-400 bg-yellow-900/30'}`}>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full shrink-0 ${r.seat_tier === 'elite' ? 'text-amber-400 bg-amber-900/30' : 'text-yellow-400 bg-yellow-900/30'}`}>
                     {r.seat_tier === 'elite' ? '👑' : '⭐'}
                   </span>
                   <button onClick={() => onRemove(r.application_id)}
-                    className="text-red-400 hover:text-red-300 text-xs px-1.5 py-0.5 rounded border border-red-700/30 hover:bg-red-900/20 transition-colors">
+                    className="text-red-400 hover:text-red-300 text-xs w-6 h-6 rounded border border-red-700/30 hover:bg-red-900/20 flex items-center justify-center transition-colors shrink-0">
                     ✕
                   </button>
                 </div>
@@ -772,46 +778,53 @@ function VenueCard({
 
           {/* Add member */}
           {count < capacity && (
-            <div className="border-t border-white/10 px-4 py-3">
+            <div className="border-t border-white/10 px-4 py-3 bg-black/20">
               {!addingMember ? (
                 <button onClick={() => setAddingMember(true)}
-                  className="w-full text-xs text-green-400 border border-green-700/40 bg-green-900/10 hover:bg-green-900/20 py-2 rounded-lg transition-colors">
-                  + Add Member to {label}
+                  className="w-full text-xs text-green-400 border border-green-700/40 bg-green-900/10 hover:bg-green-900/20 py-2.5 rounded-xl font-semibold transition-colors">
+                  ＋ Add Member to {label} ({capacity - count} {capacity - count === 1 ? 'seat' : 'seats'} left)
                 </button>
               ) : (
                 <div className="space-y-2">
                   <div className="flex gap-2">
                     <input value={search} onChange={e => setSearch(e.target.value)}
-                      placeholder="Search unassigned…"
-                      className="flex-1 bg-black/40 border border-white/10 text-white placeholder-zinc-600 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-yellow-500" />
+                      placeholder="Search by name or ID…" autoFocus
+                      className="flex-1 bg-zinc-800 border border-white/10 text-white placeholder-zinc-500 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-yellow-500" />
                     <input value={seatNo} onChange={e => setSeatNo(e.target.value)}
                       placeholder="Seat #"
-                      className="w-16 bg-black/40 border border-white/10 text-white placeholder-zinc-600 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-yellow-500" />
+                      className="w-16 bg-zinc-800 border border-white/10 text-white placeholder-zinc-500 rounded-lg px-2 py-2 text-xs focus:outline-none focus:border-yellow-500" />
                   </div>
-                  <div className="max-h-28 overflow-y-auto divide-y divide-white/5 rounded-lg border border-white/10">
+                  <div className="rounded-xl border border-white/10 overflow-hidden bg-zinc-800/50 max-h-36 overflow-y-auto">
                     {filteredUnassigned.length === 0
-                      ? <div className="px-3 py-2 text-zinc-600 text-xs">No unassigned people found</div>
-                      : filteredUnassigned.slice(0, 8).map(u => (
+                      ? <div className="px-3 py-3 text-zinc-500 text-xs text-center">No unassigned people found</div>
+                      : filteredUnassigned.slice(0, 10).map(u => (
                         <button key={u.application_id} onClick={() => assignMember(u.application_id)}
                           disabled={saving}
-                          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-white/5 text-left transition-colors">
+                          className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-white/10 text-left transition-colors border-b border-white/5 last:border-0">
                           <div className="flex-1 min-w-0">
                             <div className="text-white text-xs font-medium truncate">{u.full_name}</div>
-                            <div className="text-zinc-500 text-xs truncate">{u.application_id}</div>
+                            <div className="text-zinc-500 text-xs truncate">{u.mobile || u.application_id}</div>
                           </div>
-                          <span className={`text-xs ${u.seat_tier === 'elite' ? 'text-amber-400' : 'text-yellow-400'}`}>
+                          <span className={`text-xs shrink-0 ${u.seat_tier === 'elite' ? 'text-amber-400' : 'text-yellow-400'}`}>
                             {u.seat_tier === 'elite' ? '👑' : '⭐'}
                           </span>
+                          {saving ? <span className="text-zinc-500 text-xs">…</span>
+                            : <span className="text-green-400 text-xs">+ Add</span>}
                         </button>
                       ))
                     }
                   </div>
-                  <button onClick={() => setAddingMember(false)}
+                  <button onClick={() => { setAddingMember(false); setSearch('') }}
                     className="w-full text-zinc-500 hover:text-zinc-300 text-xs py-1 transition-colors">
                     Cancel
                   </button>
                 </div>
               )}
+            </div>
+          )}
+          {count >= capacity && (
+            <div className="px-4 py-2.5 border-t border-white/10 text-center text-red-400 text-xs font-semibold bg-red-900/10">
+              🔴 Table Full
             </div>
           )}
         </div>
