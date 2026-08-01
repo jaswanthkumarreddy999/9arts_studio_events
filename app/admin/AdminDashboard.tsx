@@ -844,6 +844,141 @@ function VenueCard({
   )
 }
 
+// ─── EditRegistrationPanel ────────────────────────────────────────────────────
+
+function EditRegistrationPanel({ selected, onSaved }: { selected: RegRow; onSaved: () => void }) {
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [form, setForm] = useState({
+    full_name: selected.full_name,
+    mobile: selected.mobile,
+    gender: selected.gender ?? '',
+    seat_tier: selected.seat_tier,
+    utr_number: selected.payments?.utr_number ?? '',
+    amount: String(selected.payments?.amount ?? ''),
+  })
+
+  // Sync if selected changes
+  useEffect(() => {
+    setForm({
+      full_name: selected.full_name,
+      mobile: selected.mobile,
+      gender: selected.gender ?? '',
+      seat_tier: selected.seat_tier,
+      utr_number: selected.payments?.utr_number ?? '',
+      amount: String(selected.payments?.amount ?? ''),
+    })
+    setEditing(false)
+    setError('')
+  }, [selected.application_id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleSave() {
+    if (!form.full_name.trim()) { setError('Name is required'); return }
+    setSaving(true); setError('')
+    const res = await fetch(`/api/admin/registrations/${selected.application_id}/edit`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        full_name: form.full_name,
+        mobile: form.mobile,
+        gender: form.gender,
+        seat_tier: form.seat_tier,
+        utr_number: form.utr_number,
+        amount: form.amount ? Number(form.amount) : undefined,
+      }),
+    })
+    setSaving(false)
+    if (res.ok) { setEditing(false); onSaved() }
+    else { const d = await res.json(); setError(d.error ?? 'Save failed') }
+  }
+
+  const inp = 'w-full bg-white/5 border border-white/10 text-white placeholder-zinc-500 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-yellow-500'
+
+  return (
+    <div className="border border-white/10 rounded-xl overflow-hidden">
+      <div className="px-4 py-2.5 bg-white/5 border-b border-white/10 flex items-center justify-between">
+        <span className="text-xs text-zinc-400 font-semibold uppercase tracking-wide">Registration Info</span>
+        <button onClick={() => { setEditing(e => !e); setError('') }}
+          className={`text-xs font-semibold px-3 py-1 rounded-lg border transition-all ${editing ? 'border-zinc-600 text-zinc-400' : 'border-yellow-700/40 text-yellow-400 hover:bg-yellow-900/20'}`}>
+          {editing ? '✕ Cancel' : '✏️ Edit'}
+        </button>
+      </div>
+      <div className="p-4 space-y-3">
+        {error && <div className="bg-red-900/20 border border-red-700/40 text-red-400 text-xs rounded-lg px-3 py-2">{error}</div>}
+
+        {/* Application ID — read only always */}
+        <div className="flex justify-between items-center text-sm">
+          <span className="text-zinc-500 shrink-0">Application ID</span>
+          <span className="text-white font-mono font-bold text-xs break-all">{selected.application_id}</span>
+        </div>
+
+        {editing ? (
+          <>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">Full Name *</label>
+              <input value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))}
+                className={inp} placeholder="Full name" />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">Mobile</label>
+              <input value={form.mobile} onChange={e => setForm(f => ({ ...f, mobile: e.target.value }))}
+                className={inp} placeholder="Mobile number" inputMode="tel" />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">Gender</label>
+              <select value={form.gender} onChange={e => setForm(f => ({ ...f, gender: e.target.value }))}
+                className={inp + ' bg-zinc-900 appearance-none'} style={{ colorScheme: 'dark' }}>
+                <option value="">Select</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">Pass Type</label>
+              <select value={form.seat_tier} onChange={e => setForm(f => ({ ...f, seat_tier: e.target.value }))}
+                className={inp + ' bg-zinc-900 appearance-none'} style={{ colorScheme: 'dark' }}>
+                <option value="elite">👑 Elite Pass — ₹499</option>
+                <option value="gold">⭐ Gold Pass — ₹299</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">UTR / Transaction ID</label>
+              <input value={form.utr_number} onChange={e => setForm(f => ({ ...f, utr_number: e.target.value }))}
+                className={inp} placeholder="UTR number" />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1">Amount Paid (₹)</label>
+              <input type="number" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
+                className={inp} placeholder="e.g. 499" />
+            </div>
+            <button onClick={handleSave} disabled={saving}
+              className="w-full bg-gradient-to-r from-yellow-600 to-yellow-400 text-black font-bold py-2.5 rounded-xl text-sm disabled:opacity-60 hover:from-yellow-500 hover:to-yellow-300 transition-all">
+              {saving ? 'Saving…' : '💾 Save Changes'}
+            </button>
+          </>
+        ) : (
+          <>
+            {[
+              { l: 'Name', v: selected.full_name },
+              { l: 'Mobile', v: selected.mobile },
+              { l: 'Gender', v: selected.gender ? selected.gender.charAt(0).toUpperCase() + selected.gender.slice(1) : '—' },
+              { l: 'Pass', v: `${SEAT_TIERS[selected.seat_tier as keyof typeof SEAT_TIERS]?.badge} ${SEAT_TIERS[selected.seat_tier as keyof typeof SEAT_TIERS]?.label}` },
+              { l: 'UTR', v: selected.payments?.utr_number ?? '—' },
+              { l: 'Amount Paid', v: `₹${selected.payments?.amount?.toLocaleString() ?? '—'}` },
+            ].map(({ l, v }) => (
+              <div key={l} className="flex justify-between gap-4 text-sm">
+                <span className="text-zinc-500 shrink-0">{l}</span>
+                <span className="text-white text-right font-medium break-all">{v}</span>
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── TicketAssignPanel ────────────────────────────────────────────────────────
 
 function TicketAssignPanel({ applicationId, onSaved }: { applicationId: string; onSaved: () => void }) {
@@ -928,6 +1063,7 @@ function RegistrationsTab() {
   const [statusNote, setStatusNote] = useState('')
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [showAnomalies, setShowAnomalies] = useState(true)
   type SortField = 'name' | 'date' | 'utr' | 'tier' | 'mobile' | 'gender' | 'reg_status' | 'pay_status'
   type SortDir = 'asc' | 'desc'
   const [sortField, setSortField] = useState<SortField>('date')
@@ -1271,35 +1407,40 @@ function RegistrationsTab() {
       {/* ── Anomaly Panel ── */}
       {anomalies.length > 0 && (
         <div className="mb-4 border border-red-700/30 bg-red-900/10 rounded-2xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-red-700/20 flex items-center gap-2">
+          <button
+            onClick={() => setShowAnomalies(s => !s)}
+            className="w-full px-4 py-3 flex items-center gap-2 hover:bg-red-900/20 transition-colors text-left"
+          >
             <span className="text-lg">🚨</span>
             <span className="text-red-400 font-semibold text-sm">Anomalies Detected ({anomalies.length})</span>
             <span className="text-zinc-500 text-xs ml-1">— review and resolve these issues</span>
-          </div>
-          <div className="divide-y divide-red-700/10">
-            {anomalies.map((a, i) => {
-              const meta = ANOMALY_META[a.type]
-              return (
-                <div key={i} className={`px-4 py-3 flex flex-col sm:flex-row sm:items-start gap-2 border-l-4 ${meta.color}`}>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-base">{meta.icon}</span>
-                    <span className="text-xs font-bold uppercase tracking-wide">{a.label}</span>
+            <span className="ml-auto text-zinc-500 text-xs font-medium">{showAnomalies ? '▲ Hide' : '▼ Show'}</span>
+          </button>
+          {showAnomalies && (
+            <div className="border-t border-red-700/20 divide-y divide-red-700/10">
+              {anomalies.map((a, i) => {
+                const meta = ANOMALY_META[a.type]
+                return (
+                  <div key={i} className={`px-4 py-3 flex flex-col sm:flex-row sm:items-start gap-2 border-l-4 ${meta.color}`}>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-base">{meta.icon}</span>
+                      <span className="text-xs font-bold uppercase tracking-wide">{a.label}</span>
+                    </div>
+                    <div className="flex-1 text-xs text-zinc-400">{a.detail}</div>
+                    <button
+                      onClick={() => {
+                        const row = rows.find(r => r.application_id === a.ids[0])
+                        if (row) openDetail(row)
+                      }}
+                      className="text-xs text-yellow-400 hover:text-yellow-300 border border-yellow-700/30 px-2 py-1 rounded-lg shrink-0 transition-colors"
+                    >
+                      View →
+                    </button>
                   </div>
-                  <div className="flex-1 text-xs text-zinc-400">{a.detail}</div>
-                  <button
-                    onClick={() => {
-                      // Click first affected ID to open its detail
-                      const row = rows.find(r => r.application_id === a.ids[0])
-                      if (row) openDetail(row)
-                    }}
-                    className="text-xs text-yellow-400 hover:text-yellow-300 border border-yellow-700/30 px-2 py-1 rounded-lg shrink-0 transition-colors"
-                  >
-                    View →
-                  </button>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
       {anomalies.length === 0 && !loading && (
@@ -1449,22 +1590,11 @@ function RegistrationsTab() {
               <button onClick={() => setSelected(null)} className="text-zinc-500 hover:text-white text-xl">✕</button>
             </div>
             <div className="p-5 space-y-5">
-              {/* Info */}
-              <div className="space-y-2 text-sm">
-                {[
-                  { l: 'Name', v: selected.full_name },
-                  { l: 'Mobile', v: selected.mobile },
-                  { l: 'Gender', v: selected.gender ? selected.gender.charAt(0).toUpperCase() + selected.gender.slice(1) : '—' },
-                  { l: 'Application ID', v: selected.application_id },
-                  { l: 'Pass', v: `${SEAT_TIERS[selected.seat_tier as keyof typeof SEAT_TIERS]?.badge} ${SEAT_TIERS[selected.seat_tier as keyof typeof SEAT_TIERS]?.label}` },
-                  { l: 'Amount Paid', v: `₹${selected.payments?.amount?.toLocaleString() ?? '–'}` },
-                ].map(({ l, v }) => (
-                  <div key={l} className="flex justify-between gap-4">
-                    <span className="text-zinc-500 shrink-0">{l}</span>
-                    <span className="text-white text-right font-medium break-all">{v}</span>
-                  </div>
-                ))}
-              </div>
+              {/* Editable Info */}
+              <EditRegistrationPanel
+                selected={selected}
+                onSaved={async () => { await fetchRows(); setSelected(null) }}
+              />
 
               {/* Payment verification */}
               {!selected.payments ? (
