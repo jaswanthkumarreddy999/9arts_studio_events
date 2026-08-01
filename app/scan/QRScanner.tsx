@@ -7,6 +7,9 @@ type ScanResult = {
   name?: string
   tier?: string
   reason?: string
+  applicationId?: string
+  ticketNo?: string | null
+  tableNumber?: string | null
 } | null
 
 interface ScanLog {
@@ -167,7 +170,6 @@ export default function QRScanner() {
   }, [])
 
   const tierLabel = (tier?: string) => tier === 'elite' ? '👑 Elite' : '⭐ Gold'
-
   const filteredLogs = historySearch
     ? logs.filter(l =>
         l.application_id.toLowerCase().includes(historySearch.toLowerCase()) ||
@@ -256,6 +258,32 @@ export default function QRScanner() {
               <div className="text-green-400 font-bold text-xl mb-1">VALID PASS</div>
               <div className="text-white text-lg font-semibold">{result.name}</div>
               <div className="text-zinc-400 text-sm mt-1">{tierLabel(result.tier)}</div>
+
+              {/* Seat info */}
+              {result.ticketNo || result.tableNumber ? (
+                <div className="mt-4 bg-black/30 rounded-xl px-4 py-3 text-left space-y-1">
+                  <div className="text-green-300 text-xs font-semibold uppercase tracking-wide mb-2">🪑 Seat Assignment</div>
+                  {result.tableNumber && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-zinc-400">Table / Row</span>
+                      <span className="text-white font-bold">{result.tableNumber}</span>
+                    </div>
+                  )}
+                  {result.ticketNo && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-zinc-400">Seat No</span>
+                      <span className="text-cyan-400 font-mono font-bold">{result.ticketNo}</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <SeatAssignInline
+                  applicationId={result.applicationId!}
+                  onAssigned={(seat, table) => {
+                    setResult(r => r ? { ...r, ticketNo: seat, tableNumber: table } : r)
+                  }}
+                />
+              )}
             </>
           ) : (
             <>
@@ -394,6 +422,72 @@ export default function QRScanner() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+
+// ─── Inline seat assign (shown when no seat assigned at scan time) ─────────────
+
+function SeatAssignInline({ applicationId, onAssigned }: {
+  applicationId: string
+  onAssigned: (seat: string, table: string) => void
+}) {
+  const [seat, setSeat] = useState('')
+  const [table, setTable] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  async function handleAssign() {
+    if (!seat.trim() && !table.trim()) return
+    setSaving(true)
+    const res = await fetch('/api/admin/seating/assign', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ applicationId, seatLabel: seat.trim() || null, tableLabel: table.trim() || null }),
+    })
+    setSaving(false)
+    if (res.ok) { setSaved(true); onAssigned(seat.trim(), table.trim()) }
+  }
+
+  if (saved) {
+    return (
+      <div className="mt-4 bg-green-900/20 border border-green-700/40 rounded-xl px-4 py-3">
+        <div className="text-green-400 text-sm font-semibold">✅ Seat assigned</div>
+        <div className="text-zinc-400 text-xs mt-0.5">{table} · Seat {seat}</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-4 bg-amber-900/20 border border-amber-700/40 rounded-xl px-4 py-3 text-left space-y-3">
+      <div className="text-amber-400 text-xs font-semibold uppercase tracking-wide">⚠️ No seat assigned — assign now</div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="block text-xs text-zinc-500 mb-1">Table / Row</label>
+          <input
+            value={table} onChange={e => setTable(e.target.value)}
+            placeholder="e.g. Table 3"
+            className="w-full bg-black/40 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-500"
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-zinc-500 mb-1">Seat No</label>
+          <input
+            value={seat} onChange={e => setSeat(e.target.value)}
+            placeholder="e.g. T3-2"
+            className="w-full bg-black/40 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-500"
+          />
+        </div>
+      </div>
+      <button onClick={handleAssign} disabled={saving || (!seat.trim() && !table.trim())}
+        className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-2 rounded-lg text-sm disabled:opacity-50 transition-colors">
+        {saving ? 'Saving…' : '💾 Assign Seat'}
+      </button>
+      <button onClick={() => setSaved(true)}
+        className="w-full text-zinc-500 hover:text-zinc-300 text-xs py-1 transition-colors">
+        Skip for now
+      </button>
     </div>
   )
 }

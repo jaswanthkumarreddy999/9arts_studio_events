@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   // Step 2: Check pass exists and is approved
   const { data: pass } = await supabaseAdmin
     .from('passes')
-    .select('full_name, seat_tier')
+    .select('full_name, seat_tier, ticket_no, table_number')
     .eq('application_id', payload.appId)
     .maybeSingle()
 
@@ -58,5 +58,8 @@ export async function POST(req: NextRequest) {
     valid: true,
     name: pass.full_name,
     tier: pass.seat_tier,
+    applicationId: payload.appId,
+    ticketNo: pass.ticket_no ?? null,
+    tableNumber: pass.table_number ?? null,
   })
 }
