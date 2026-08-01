@@ -156,7 +156,7 @@ interface SeatingConfig {
 interface SeatRow {
   application_id: string; full_name: string; seat_tier: string
   ticket_no: string | null; table_number: string | null
-  mobile?: string
+  mobile?: string; gender?: string
 }
 
 function SeatingTab() {
@@ -191,7 +191,7 @@ function SeatingTab() {
       )
       type RawReg = {
         application_id: string; full_name: string; seat_tier: string
-        registration_status: string; mobile?: string
+        registration_status: string; mobile?: string; gender?: string
         payments: { status: string } | { status: string }[] | null
       }
       const allRows: SeatRow[] = (regData.registrations ?? [])
@@ -207,6 +207,7 @@ function SeatingTab() {
             full_name: r.full_name,
             seat_tier: r.seat_tier,
             mobile: r.mobile ?? '',
+            gender: r.gender ?? '',
             ticket_no: p?.ticket_no ?? null,
             table_number: p?.table_number ?? null,
           }
@@ -414,9 +415,10 @@ function SeatingTab() {
         <div className="space-y-6">
           {/* Legend */}
           <div className="flex items-center gap-4 text-xs text-zinc-500">
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-600 inline-block" /> Available</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-yellow-600 inline-block" /> Partial</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-600 inline-block" /> Full</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-blue-500 inline-block" /> Male</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-pink-500 inline-block" /> Female</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-purple-400 inline-block" /> Other</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-white/10 inline-block" /> Empty</span>
           </div>
 
           {/* ── SOFAS (VIP / Parents / Sponsors) ── */}
@@ -433,7 +435,6 @@ function SeatingTab() {
                 return (
                   <VenueCard key={sLabel} label={sLabel}
                     capacity={config.sofa_capacity} occupants={occupants}
-                    dotColor="bg-purple-500" ringColor="ring-purple-500"
                     isSelected={tableFilter === sLabel}
                     onSelect={() => setTableFilter(tableFilter === sLabel ? null : sLabel)}
                     onRemove={id => { clearSeat(id); fetchAll() }}
@@ -458,7 +459,6 @@ function SeatingTab() {
                 return (
                   <VenueCard key={tLabel} label={tLabel}
                     capacity={tableCapacity} occupants={occupants}
-                    dotColor="bg-amber-500" ringColor="ring-yellow-500"
                     isSelected={tableFilter === tLabel}
                     onSelect={() => setTableFilter(tableFilter === tLabel ? null : tLabel)}
                     onRemove={id => { clearSeat(id); fetchAll() }}
@@ -488,7 +488,6 @@ function SeatingTab() {
                     return (
                       <VenueCard key={rowLabel} label={rowLabel}
                         capacity={cap} occupants={occupants}
-                        dotColor="bg-yellow-500" ringColor="ring-yellow-500"
                         isSelected={tableFilter === rowLabel}
                         onSelect={() => setTableFilter(tableFilter === rowLabel ? null : rowLabel)}
                         onRemove={id => { clearSeat(id); fetchAll() }}
@@ -670,13 +669,12 @@ function SeatAssignRow({ row, selected, onSelect, onClear, onSave }: {
 // ─── VenueCard — table/sofa/row card with hover popover ──────────────────────
 
 function VenueCard({
-  label, capacity, occupants, dotColor, ringColor, isSelected,
+  label, capacity, occupants, ringColor, isSelected,
   onSelect, onRemove, onAddMember, unassigned,
 }: {
   label: string
   capacity: number
   occupants: SeatRow[]
-  dotColor: string
   ringColor: string
   isSelected: boolean
   onSelect: () => void
@@ -728,9 +726,14 @@ function VenueCard({
           <span className={`text-xs font-bold ${textColor}`}>{count}/{capacity}</span>
         </div>
         <div className="flex gap-1 flex-wrap">
-          {Array.from({ length: capacity }, (_, s) => (
-            <div key={s} className={`w-4 h-4 rounded-full ${s < count ? dotColor : 'bg-white/10'}`} />
-          ))}
+          {Array.from({ length: capacity }, (_, s) => {
+            const person = occupants[s]
+            const dotCls = !person ? 'bg-white/10'
+              : person.gender === 'male' ? 'bg-blue-500'
+              : person.gender === 'female' ? 'bg-pink-500'
+              : 'bg-purple-400'
+            return <div key={s} className={`w-4 h-4 rounded-full ${dotCls}`} title={person?.full_name} />
+          })}
         </div>
         {count > 0
           ? <div className="mt-1.5 text-zinc-400 text-xs truncate">{occupants[0].full_name}{count > 1 ? ` +${count - 1}` : ''}</div>
@@ -760,6 +763,9 @@ function VenueCard({
                   <div className="flex-1 min-w-0">
                     <div className="text-white text-xs font-semibold truncate">{r.full_name}</div>
                     <div className="flex items-center gap-1.5 mt-0.5">
+                      {r.gender && <span className={`text-xs ${r.gender === 'male' ? 'text-blue-400' : r.gender === 'female' ? 'text-pink-400' : 'text-purple-400'}`}>
+                        {r.gender === 'male' ? '♂' : r.gender === 'female' ? '♀' : '⚧'}
+                      </span>}
                       {r.mobile && <span className="text-zinc-500 text-xs">{r.mobile}</span>}
                       {r.ticket_no && <span className="text-cyan-400 text-xs font-mono">· {r.ticket_no}</span>}
                     </div>
@@ -803,7 +809,12 @@ function VenueCard({
                           className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-white/10 text-left transition-colors border-b border-white/5 last:border-0">
                           <div className="flex-1 min-w-0">
                             <div className="text-white text-xs font-medium truncate">{u.full_name}</div>
-                            <div className="text-zinc-500 text-xs truncate">{u.mobile || u.application_id}</div>
+                            <div className="flex items-center gap-1">
+                              {u.gender && <span className={`text-xs ${u.gender === 'male' ? 'text-blue-400' : u.gender === 'female' ? 'text-pink-400' : 'text-purple-400'}`}>
+                                {u.gender === 'male' ? '♂' : u.gender === 'female' ? '♀' : '⚧'}
+                              </span>}
+                              <span className="text-zinc-500 text-xs truncate">{u.mobile || u.application_id}</span>
+                            </div>
                           </div>
                           <span className={`text-xs shrink-0 ${u.seat_tier === 'elite' ? 'text-amber-400' : 'text-yellow-400'}`}>
                             {u.seat_tier === 'elite' ? '👑' : '⭐'}
