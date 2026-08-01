@@ -115,7 +115,7 @@ export default async function MyPassPage() {
 
               {/* QR code — right panel white box, above "SCAN TO VERIFY" */}
               <div className="absolute bg-white"
-                style={{ top: '21%', left: '72.5%', width: '15.5%', aspectRatio: '1/1', padding: '0.3%' }}>
+                style={{ top: '17%', left: '68%', width: '20%', aspectRatio: '1/1', padding: '0.5%' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={pass.qr_data_url} alt="QR" className="w-full h-full" />
               </div>
