@@ -259,6 +259,107 @@ function RegistrationsTab() {
     s === 'rejected' ? 'text-red-400 bg-red-900/20 border-red-700/30' :
     'text-yellow-400 bg-yellow-900/20 border-yellow-700/30'
 
+  // ── Anomaly detection (client-side, from existing rows data) ──────────────
+  interface Anomaly {
+    type: 'duplicate_mobile' | 'duplicate_name' | 'utr_shared_different_mobile' | 'approved_no_pass' | 'duplicate_utr_approved'
+    label: string
+    detail: string
+    ids: string[]
+  }
+
+  const anomalies: Anomaly[] = []
+  const nonDeleted = rows.filter(r => r.registration_status !== 'deleted')
+
+  // 1. Duplicate mobile numbers
+  const byMobile = new Map<string, RegRow[]>()
+  for (const r of nonDeleted) {
+    const m = r.mobile.replace(/\D/g, '').slice(-10)
+    if (!byMobile.has(m)) byMobile.set(m, [])
+    byMobile.get(m)!.push(r)
+  }
+  for (const [mobile, group] of byMobile) {
+    if (group.length > 1) {
+      anomalies.push({
+        type: 'duplicate_mobile',
+        label: 'Duplicate Mobile Number',
+        detail: `+91 ${mobile} — ${group.length} registrations: ${group.map(r => r.full_name).join(', ')}`,
+        ids: group.map(r => r.application_id),
+      })
+    }
+  }
+
+  // 2. Duplicate full names (case-insensitive)
+  const byName = new Map<string, RegRow[]>()
+  for (const r of nonDeleted) {
+    const key = r.full_name.trim().toLowerCase()
+    if (!byName.has(key)) byName.set(key, [])
+    byName.get(key)!.push(r)
+  }
+  for (const [, group] of byName) {
+    if (group.length > 1) {
+      anomalies.push({
+        type: 'duplicate_name',
+        label: 'Duplicate Name',
+        detail: `"${group[0].full_name}" — ${group.length} registrations with different IDs`,
+        ids: group.map(r => r.application_id),
+      })
+    }
+  }
+
+  // 3. Same UTR approved for registrations with different mobile numbers (suspicious cross-group approval)
+  const approvedByUtr = new Map<string, RegRow[]>()
+  for (const r of nonDeleted) {
+    const utr = r.payments?.utr_number?.trim()
+    if (utr && r.payments?.status === 'approved') {
+      if (!approvedByUtr.has(utr)) approvedByUtr.set(utr, [])
+      approvedByUtr.get(utr)!.push(r)
+    }
+  }
+  for (const [utr, group] of approvedByUtr) {
+    const uniqueMobiles = new Set(group.map(r => r.mobile.replace(/\D/g, '').slice(-10)))
+    if (uniqueMobiles.size > 1) {
+      anomalies.push({
+        type: 'utr_shared_different_mobile',
+        label: 'UTR Approved Across Different Mobiles',
+        detail: `UTR ${utr} approved for ${group.length} people with ${uniqueMobiles.size} different mobile numbers — possible fraud or wrong approval`,
+        ids: group.map(r => r.application_id),
+      })
+    }
+  }
+
+  // 4. Same UTR approved many times (> 5 — likely a mistake)
+  for (const [utr, group] of approvedByUtr) {
+    if (group.length > 5) {
+      anomalies.push({
+        type: 'duplicate_utr_approved',
+        label: 'UTR Over-Approved',
+        detail: `UTR ${utr} has been approved ${group.length} times — expected max ~5 for group bookings`,
+        ids: group.map(r => r.application_id),
+      })
+    }
+  }
+
+  // 5. Approved payment but registration still not active/done (status mismatch)
+  for (const r of nonDeleted) {
+    if (r.payments?.status === 'approved' && r.registration_status === 'payment_pending') {
+      anomalies.push({
+        type: 'approved_no_pass',
+        label: 'Approved Payment — Status Still Pending',
+        detail: `${r.full_name} (${r.application_id}) — payment approved but registration status is still "Payment Pending"`,
+        ids: [r.application_id],
+      })
+    }
+  }
+
+  const ANOMALY_META: Record<Anomaly['type'], { icon: string; color: string }> = {
+    duplicate_mobile:             { icon: '📱', color: 'border-orange-700/40 bg-orange-900/10 text-orange-300' },
+    duplicate_name:               { icon: '👤', color: 'border-yellow-700/40 bg-yellow-900/10 text-yellow-300' },
+    utr_shared_different_mobile:  { icon: '⚠️', color: 'border-red-700/40 bg-red-900/10 text-red-300' },
+    duplicate_utr_approved:       { icon: '🔴', color: 'border-red-700/40 bg-red-900/10 text-red-300' },
+    approved_no_pass:             { icon: '🟡', color: 'border-yellow-700/40 bg-yellow-900/10 text-yellow-300' },
+  }
+
+
   return (
     <>
       {/* Registration status stat cards */}
@@ -354,6 +455,47 @@ function RegistrationsTab() {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* ── Anomaly Panel ── */}
+      {anomalies.length > 0 && (
+        <div className="mb-4 border border-red-700/30 bg-red-900/10 rounded-2xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-red-700/20 flex items-center gap-2">
+            <span className="text-lg">🚨</span>
+            <span className="text-red-400 font-semibold text-sm">Anomalies Detected ({anomalies.length})</span>
+            <span className="text-zinc-500 text-xs ml-1">— review and resolve these issues</span>
+          </div>
+          <div className="divide-y divide-red-700/10">
+            {anomalies.map((a, i) => {
+              const meta = ANOMALY_META[a.type]
+              return (
+                <div key={i} className={`px-4 py-3 flex flex-col sm:flex-row sm:items-start gap-2 border-l-4 ${meta.color}`}>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-base">{meta.icon}</span>
+                    <span className="text-xs font-bold uppercase tracking-wide">{a.label}</span>
+                  </div>
+                  <div className="flex-1 text-xs text-zinc-400">{a.detail}</div>
+                  <button
+                    onClick={() => {
+                      // Click first affected ID to open its detail
+                      const row = rows.find(r => r.application_id === a.ids[0])
+                      if (row) openDetail(row)
+                    }}
+                    className="text-xs text-yellow-400 hover:text-yellow-300 border border-yellow-700/30 px-2 py-1 rounded-lg shrink-0 transition-colors"
+                  >
+                    View →
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+      {anomalies.length === 0 && !loading && (
+        <div className="mb-4 border border-green-700/20 bg-green-900/5 rounded-xl px-4 py-2.5 flex items-center gap-2">
+          <span className="text-green-400 text-sm">✅</span>
+          <span className="text-green-400 text-xs font-medium">No anomalies detected — all registrations look clean</span>
         </div>
       )}
 
