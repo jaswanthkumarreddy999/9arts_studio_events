@@ -134,15 +134,15 @@ export default async function MyPassPage() {
                 {pass.application_id}
               </div>
 
-              {/* Mobile — x:55 y:51 → left:55% top:49% */}
+              {/* Mobile — x:55 y:51.5 → left:55% top:48.5% */}
               <div className="absolute text-white font-semibold"
-                style={{ top: '49%', left: '55%', maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)', whiteSpace: 'nowrap' }}>
+                style={{ top: '48.5%', left: '55%', maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)', whiteSpace: 'nowrap' }}>
                 {reg?.mobile ?? '—'}
               </div>
 
-              {/* Gender — x:55 y:40.3 → left:55% top:59.7% */}
+              {/* Gender — x:55 y:40.8 → left:55% top:59.2% */}
               <div className="absolute text-white font-semibold"
-                style={{ top: '59.7%', left: '55%', maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)' }}>
+                style={{ top: '59.2%', left: '55%', maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)' }}>
                 {reg?.gender === 'male' ? 'Male' : reg?.gender === 'female' ? 'Female' : reg?.gender === 'other' ? 'Other' : '—'}
               </div>
 
@@ -161,9 +161,9 @@ export default async function MyPassPage() {
                 </div>
               )}
 
-              {/* Amount — white box top 86%, left 74.5% */}
+              {/* Amount — x:76 y:14 → left:76% top:86% */}
               <div className="absolute text-black font-black"
-                style={{ top: '86%', left: '74.5%', fontSize: 'clamp(7px,1.5vw,22px)' }}>
+                style={{ top: '86%', left: '76%', fontSize: 'clamp(7px,1.5vw,22px)' }}>
                 ₹{payment?.amount ?? tierInfo.price}
               </div>
             </div>
