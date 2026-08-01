@@ -308,14 +308,14 @@ function SeatingTab() {
     })
   }
 
-  function selectAll() {
-    setSelectedIds(new Set(filtered.map(r => r.application_id)))
-  }
-
   const filtered = seats
     .filter(s => filterTier === 'all' || s.seat_tier === filterTier)
     .filter(s => filterAssigned === 'all' || (filterAssigned === 'assigned' ? !!s.ticket_no : !s.ticket_no))
     .filter(s => !search || s.full_name.toLowerCase().includes(search.toLowerCase()) || s.application_id.toLowerCase().includes(search.toLowerCase()) || (s.ticket_no ?? '').toLowerCase().includes(search.toLowerCase()))
+
+  function selectAll() {
+    setSelectedIds(new Set(filtered.map(r => r.application_id)))
+  }
 
   const filteredForTable = tableFilter
     ? seats.filter(s => s.table_number === tableFilter)
