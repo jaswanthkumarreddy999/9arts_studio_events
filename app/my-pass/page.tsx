@@ -113,9 +113,9 @@ export default async function MyPassPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/ticket-template.png" alt="ticket" className="absolute inset-0 w-full h-full object-fill" />
 
-              {/* QR code — fits inside the white rounded rectangle on the right */}
+              {/* QR code — inside the white rounded rectangle (right panel, below data rows) */}
               <div className="absolute bg-white"
-                style={{ top: '20%', left: '64.5%', width: '19%', aspectRatio: '1/1', padding: '0.4%' }}>
+                style={{ top: '30%', left: '66%', width: '18%', aspectRatio: '1/1', padding: '0.4%' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={pass.qr_data_url} alt="QR" className="w-full h-full" />
               </div>
