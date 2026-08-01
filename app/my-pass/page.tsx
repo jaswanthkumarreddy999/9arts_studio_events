@@ -113,53 +113,55 @@ export default async function MyPassPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/ticket-template.png" alt="ticket" className="absolute inset-0 w-full h-full object-fill" />
 
-              {/* QR code — pixel-perfect inside white box: top 32%, left 75%, width 16% */}
-              <div className="absolute"
-                style={{ top: '32%', left: '75%', width: '16%', aspectRatio: '1/1' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={pass.qr_data_url} alt="QR" className="w-full h-full" />
+              {/* QR code — centered inside white box: top 32%, left 75%, width 16% */}
+              <div className="absolute flex items-center justify-center"
+                style={{ top: '32%', left: '75%', width: '16%', height: '32%' }}>
+                <div className="bg-white p-[2%] w-[90%] h-[90%] flex items-center justify-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={pass.qr_data_url} alt="QR" className="w-full h-full object-contain" />
+                </div>
               </div>
 
-              {/* Name — row 1, y=29% */}
-              <div className="absolute text-white font-bold"
-                style={{ top: '27%', left: '57%', maxWidth: '16%', fontSize: 'clamp(6px,1.15vw,17px)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {/* Name — row 1, allow 2 lines */}
+              <div className="absolute text-white font-bold leading-tight"
+                style={{ top: '26%', left: '57%', maxWidth: '16%', fontSize: 'clamp(5px,0.9vw,13px)', wordBreak: 'break-word', lineHeight: 1.3 }}>
                 {pass.full_name}
               </div>
 
-              {/* Application ID — row 2, y=39% */}
-              <div className="absolute text-yellow-300 font-mono font-bold"
-                style={{ top: '37%', left: '57%', maxWidth: '16%', fontSize: 'clamp(5px,0.9vw,13px)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {/* Application ID — row 2, allow 2 lines */}
+              <div className="absolute text-yellow-300 font-mono font-bold leading-tight"
+                style={{ top: '35%', left: '57%', maxWidth: '16%', fontSize: 'clamp(4px,0.75vw,11px)', wordBreak: 'break-all', lineHeight: 1.3 }}>
                 {pass.application_id}
               </div>
 
-              {/* Mobile — row 3, y=50% */}
+              {/* Mobile — row 3 */}
               <div className="absolute text-white font-semibold"
-                style={{ top: '48%', left: '57%', maxWidth: '16%', fontSize: 'clamp(6px,1.15vw,17px)', whiteSpace: 'nowrap' }}>
+                style={{ top: '48%', left: '57%', maxWidth: '16%', fontSize: 'clamp(5px,0.95vw,14px)', whiteSpace: 'nowrap' }}>
                 {reg?.mobile ?? '—'}
               </div>
 
-              {/* Gender — row 4, y=58% */}
+              {/* Gender — row 4 */}
               <div className="absolute text-white font-semibold"
-                style={{ top: '56%', left: '57%', maxWidth: '16%', fontSize: 'clamp(6px,1.15vw,17px)' }}>
+                style={{ top: '56%', left: '57%', maxWidth: '16%', fontSize: 'clamp(5px,0.95vw,14px)' }}>
                 {reg?.gender === 'male' ? 'Male' : reg?.gender === 'female' ? 'Female' : reg?.gender === 'other' ? 'Other' : '—'}
               </div>
 
-              {/* Pass — row 5, y=67% */}
+              {/* Pass — row 5 */}
               <div className="absolute text-yellow-400 font-bold"
-                style={{ top: '65%', left: '57%', maxWidth: '16%', fontSize: 'clamp(6px,1.15vw,17px)' }}>
+                style={{ top: '65%', left: '57%', maxWidth: '16%', fontSize: 'clamp(5px,0.95vw,14px)' }}>
                 {tierInfo.label}
               </div>
 
-              {/* Ticket No + Table No — below pass row */}
+              {/* Ticket No + Table No */}
               {(pass.ticket_no || pass.table_number) && (
-                <div className="absolute flex gap-2"
-                  style={{ top: '72%', left: '57%', fontSize: 'clamp(5px,0.9vw,13px)' }}>
+                <div className="absolute flex gap-1"
+                  style={{ top: '72%', left: '57%', fontSize: 'clamp(4px,0.8vw,11px)' }}>
                   {pass.ticket_no && <span className="text-green-300 font-mono font-bold">#{String(pass.ticket_no)}</span>}
                   {pass.table_number && <span className="text-blue-300 font-bold">Table {String(pass.table_number)}</span>}
                 </div>
               )}
 
-              {/* Amount — white box at top:86%, left:75% */}
+              {/* Amount */}
               <div className="absolute text-black font-black"
                 style={{ top: '86%', left: '75.5%', fontSize: 'clamp(7px,1.5vw,22px)' }}>
                 ₹{payment?.amount ?? tierInfo.price}
