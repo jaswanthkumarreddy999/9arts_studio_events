@@ -187,11 +187,21 @@ function SeatingTab() {
       const passMap = new Map<string, { ticket_no: string | null; table_number: string | null }>(
         (passData.data ?? []).map((p: { application_id: string; ticket_no: string | null; table_number: string | null }) => [p.application_id, p])
       )
+      type RawReg = {
+        application_id: string; full_name: string; seat_tier: string
+        registration_status: string
+        payments: { status: string } | { status: string }[] | null
+      }
       const rows: SeatRow[] = (regData.registrations ?? [])
-        .filter((r: { payments: { status: string } | null; registration_status: string }) =>
-          r.payments?.status === 'approved' && r.registration_status !== 'deleted'
+        .map((r: RawReg) => {
+          // Normalize payments array → single object (same as RegistrationsTab)
+          const payment = Array.isArray(r.payments) ? (r.payments[0] ?? null) : r.payments
+          return { ...r, payments: payment }
+        })
+        .filter((r: RawReg & { payments: { status: string } | null }) =>
+          r.registration_status !== 'deleted'
         )
-        .map((r: { application_id: string; full_name: string; seat_tier: string }) => {
+        .map((r: RawReg) => {
           const p = passMap.get(r.application_id)
           return {
             application_id: r.application_id,
@@ -354,7 +364,7 @@ function SeatingTab() {
         {loading ? (
           <div className="text-center py-8 text-zinc-500">Loading…</div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-8 text-zinc-500">No approved registrations found</div>
+          <div className="text-center py-8 text-zinc-500">No registrations found</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
