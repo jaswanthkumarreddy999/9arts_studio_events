@@ -35,7 +35,7 @@ export default async function MyPassPage() {
   return (
     <div className="min-h-screen px-4 py-12"
       style={{ background: 'radial-gradient(ellipse at center, #1a0a2e 0%, #0a0a0f 100%)' }}>
-      <div className="max-w-md mx-auto">
+      <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <Link href="/" className="flex items-center gap-2">
@@ -107,45 +107,71 @@ export default async function MyPassPage() {
         {/* QR Pass */}
         {pass?.qr_data_url ? (
           <>
-            <div className={`rounded-2xl p-6 border-2 ${tier === 'elite' ? 'border-amber-500 bg-amber-900/10' : 'border-yellow-600 bg-yellow-900/10'}`}>
-              {/* Pass header */}
-              <div className="text-center mb-6">
-                <div className="text-3xl mb-1">{tierInfo.badge}</div>
-                <div className="text-xl font-bold text-white">Miss Nellore 2026</div>
-                <div className={`text-sm font-semibold mt-1 ${tier === 'elite' ? 'text-amber-400' : 'text-yellow-400'}`}>
-                  {tierInfo.label} — {tierInfo.subtitle}
+            {/* Branded ticket — template background with data overlaid */}
+            <div className="relative w-full overflow-hidden rounded-2xl border-2 border-yellow-700/40 shadow-2xl" style={{ aspectRatio: '1536/1024' }}>
+              {/* Background template */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/ticket-template.png" alt="ticket" className="absolute inset-0 w-full h-full object-fill" />
+
+              {/* ── Data overlays — positions as % of template size ── */}
+
+              {/* QR code — top-right white box */}
+              <div className="absolute bg-white p-[0.4%] rounded-md"
+                style={{ top: '21%', left: '71.5%', width: '16%', aspectRatio: '1/1' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={pass.qr_data_url} alt="QR" className="w-full h-full object-fill" />
+              </div>
+
+              {/* Name */}
+              <div className="absolute text-white font-bold truncate"
+                style={{ top: '38%', left: '54%', width: '17%', fontSize: 'clamp(8px,1.4vw,20px)' }}>
+                {pass.full_name}
+              </div>
+
+              {/* Application ID */}
+              <div className="absolute text-yellow-300 font-mono font-bold truncate"
+                style={{ top: '45%', left: '54%', width: '17%', fontSize: 'clamp(7px,1.1vw,16px)' }}>
+                {pass.application_id}
+              </div>
+
+              {/* Mobile */}
+              <div className="absolute text-white font-semibold"
+                style={{ top: '52%', left: '54%', width: '17%', fontSize: 'clamp(8px,1.4vw,20px)' }}>
+                {reg?.mobile ?? '—'}
+              </div>
+
+              {/* Gender */}
+              <div className="absolute text-white font-semibold"
+                style={{ top: '59%', left: '54%', width: '17%', fontSize: 'clamp(8px,1.4vw,20px)' }}>
+                {reg?.gender === 'male' ? 'Male' : reg?.gender === 'female' ? 'Female' : reg?.gender === 'other' ? 'Other' : '—'}
+              </div>
+
+              {/* Pass type */}
+              <div className="absolute text-yellow-400 font-bold"
+                style={{ top: '66%', left: '54%', width: '17%', fontSize: 'clamp(8px,1.4vw,20px)' }}>
+                {tierInfo.label} Pass
+              </div>
+
+              {/* Ticket No */}
+              {pass.ticket_no && (
+                <div className="absolute text-green-300 font-mono font-bold"
+                  style={{ top: '73%', left: '54%', fontSize: 'clamp(7px,1.2vw,17px)' }}>
+                  # {String(pass.ticket_no)}
                 </div>
-              </div>
+              )}
 
-              {/* QR Code */}
-              <div className="flex justify-center mb-6">
-                <div className="bg-white p-3 rounded-xl">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={pass.qr_data_url} alt="QR Code" className="w-48 h-48" />
+              {/* Table No */}
+              {pass.table_number && (
+                <div className="absolute text-blue-300 font-bold"
+                  style={{ top: '73%', left: '63%', fontSize: 'clamp(7px,1.2vw,17px)' }}>
+                  Table {String(pass.table_number)}
                 </div>
-              </div>
+              )}
 
-              {/* Pass details */}
-              <div className="space-y-2 text-sm">
-                {[
-                  { label: 'Name', value: pass.full_name },
-                  { label: 'Application ID', value: pass.application_id },
-                  ...(pass.ticket_no ? [{ label: 'Ticket No', value: String(pass.ticket_no) }] : []),
-                  ...(pass.table_number ? [{ label: 'Table No', value: String(pass.table_number) }] : []),
-                  { label: 'Pass', value: `${tierInfo.badge} ${tierInfo.label}` },
-                  { label: 'Mobile', value: reg?.mobile ?? '—' },
-                  { label: 'Event', value: 'August 2, 2026' },
-                  { label: 'Venue', value: 'DGP Kalyana Mandapam, Nellore' },
-                ].map((row) => (
-                  <div key={row.label} className="flex justify-between items-start gap-4">
-                    <span className="text-zinc-500">{row.label}</span>
-                    <span className="text-white font-medium text-right">{row.value}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-white/10 text-center text-zinc-500 text-xs">
-                Present this QR at the event entrance • One-time use
+              {/* Amount — bottom-right white box */}
+              <div className="absolute text-black font-black"
+                style={{ top: '85.5%', left: '73%', fontSize: 'clamp(8px,1.5vw,22px)' }}>
+                {payment?.amount ? `₹${payment.amount}` : `₹${tierInfo.price}`}
               </div>
             </div>
 
