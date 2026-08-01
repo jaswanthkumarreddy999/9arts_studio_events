@@ -128,9 +128,9 @@ export default async function MyPassPage() {
                 {pass.full_name}
               </div>
 
-              {/* Application ID — x:45 y:62.5 → left:45% top:37.5% */}
+              {/* Application ID — x:45 y:62 → left:45% top:38% */}
               <div className="absolute text-yellow-300 font-mono font-bold leading-tight"
-                style={{ top: '37.5%', left: '45%', maxWidth: '34%', fontSize: 'clamp(4px,0.75vw,11px)', wordBreak: 'break-all', lineHeight: 1.25 }}>
+                style={{ top: '38%', left: '45%', maxWidth: '34%', fontSize: 'clamp(4px,0.75vw,11px)', wordBreak: 'break-all', lineHeight: 1.25 }}>
                 {pass.application_id}
               </div>
 
