@@ -156,7 +156,7 @@ interface SeatingConfig {
 interface SeatRow {
   application_id: string; full_name: string; seat_tier: string
   ticket_no: string | null; table_number: string | null
-  mobile?: string; gender?: string
+  mobile?: string; gender?: string; payment_status?: string
 }
 
 function SeatingTab() {
@@ -173,6 +173,7 @@ function SeatingTab() {
   const [search, setSearch] = useState('')
   const [filterTier, setFilterTier] = useState<'all' | 'elite' | 'gold'>('all')
   const [filterAssigned, setFilterAssigned] = useState<'all' | 'assigned' | 'unassigned'>('all')
+  const [filterPayment, setFilterPayment] = useState<'all' | 'approved' | 'pending'>('approved')
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
@@ -202,12 +203,14 @@ function SeatingTab() {
         .filter((r: RawReg) => r.registration_status !== 'deleted')
         .map((r: RawReg) => {
           const p = passMap.get(r.application_id)
+          const payment = Array.isArray(r.payments) ? (r.payments[0] ?? null) : r.payments
           return {
             application_id: r.application_id,
             full_name: r.full_name,
             seat_tier: r.seat_tier,
             mobile: r.mobile ?? '',
             gender: r.gender ?? '',
+            payment_status: (payment as { status?: string } | null)?.status ?? 'none',
             ticket_no: p?.ticket_no ?? null,
             table_number: p?.table_number ?? null,
           }
@@ -281,8 +284,9 @@ function SeatingTab() {
   const totalSofaSeats = config.sofa_count * config.sofa_capacity
   const totalTableSeats = config.round_table_count * config.round_table_capacity
   const totalCapacity = totalSofaSeats + totalTableSeats + config.chair_count
-  const eliteCount = seats.filter(s => s.seat_tier === 'elite').length
-  const goldCount = seats.filter(s => s.seat_tier === 'gold').length
+  const approvedSeats = seats.filter(s => s.payment_status === 'approved')
+  const eliteCount = approvedSeats.filter(s => s.seat_tier === 'elite').length
+  const goldCount = approvedSeats.filter(s => s.seat_tier === 'gold').length
   const assignedCount = seats.filter(s => s.ticket_no).length
 
   async function bulkClear() {
@@ -309,6 +313,7 @@ function SeatingTab() {
   }
 
   const filtered = seats
+    .filter(s => filterPayment === 'all' || s.payment_status === filterPayment)
     .filter(s => filterTier === 'all' || s.seat_tier === filterTier)
     .filter(s => filterAssigned === 'all' || (filterAssigned === 'assigned' ? !!s.ticket_no : !s.ticket_no))
     .filter(s => !search || s.full_name.toLowerCase().includes(search.toLowerCase()) || s.application_id.toLowerCase().includes(search.toLowerCase()) || (s.ticket_no ?? '').toLowerCase().includes(search.toLowerCase()))
@@ -546,6 +551,13 @@ function SeatingTab() {
               </span>
             </div>
             <div className="flex gap-2 flex-wrap ml-auto">
+              {/* Payment filter — default approved */}
+              {(['all', 'approved', 'pending'] as const).map(p => (
+                <button key={p} onClick={() => setFilterPayment(p)}
+                  className={`text-xs px-2.5 py-1 rounded-full border transition-all capitalize ${filterPayment === p ? 'border-green-500 text-green-400 bg-green-900/20' : 'border-white/10 text-zinc-400'}`}>
+                  {p === 'all' ? 'All payments' : p === 'approved' ? '✅ Approved' : '⏳ Pending'}
+                </button>
+              ))}
               {(['all', 'elite', 'gold'] as const).map(t => (
                 <button key={t} onClick={() => setFilterTier(t)}
                   className={`text-xs px-2.5 py-1 rounded-full border transition-all ${filterTier === t ? 'border-yellow-500 text-yellow-400 bg-yellow-900/20' : 'border-white/10 text-zinc-400'}`}>
