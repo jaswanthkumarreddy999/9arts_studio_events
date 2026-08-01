@@ -8,6 +8,7 @@ export const runtime = 'edge'
 
 export async function GET(req: NextRequest) {
   try {
+    // Edge-compatible session read
     const cookieHeader = req.headers.get('cookie') ?? ''
     const match = cookieHeader.match(/mn_session=([^;]+)/)
     const token = match?.[1]
@@ -26,72 +27,134 @@ export async function GET(req: NextRequest) {
       return new Response('Pass not ready', { status: 404 })
     }
 
+    const { data: reg } = await supabaseAdmin
+      .from('registrations')
+      .select('mobile, gender')
+      .eq('application_id', session.sub)
+      .maybeSingle()
+
+    const { data: payment } = await supabaseAdmin
+      .from('payments')
+      .select('amount')
+      .eq('application_id', session.sub)
+      .maybeSingle()
+
     const tier = pass.seat_tier as keyof typeof SEAT_TIERS
     const tierInfo = SEAT_TIERS[tier]
-    const isElite = tier === 'elite'
 
-    const bgColor     = isElite ? '#1c0a00' : '#100e00'
-    const borderColor = isElite ? '#d97706' : '#ca8a04'
-    const accentColor = isElite ? '#fbbf24' : '#facc15'
-    const badgeEmoji  = isElite ? '👑' : '⭐'
-
-    // Convert data URL → ArrayBuffer (satori doesn't support data: URLs)
+    // Convert QR data URL → ArrayBuffer for satori
     const base64 = pass.qr_data_url.replace(/^data:image\/\w+;base64,/, '')
     const binaryStr = atob(base64)
     const qrBytes = new Uint8Array(binaryStr.length)
     for (let i = 0; i < binaryStr.length; i++) qrBytes[i] = binaryStr.charCodeAt(i)
     const qrBuffer: ArrayBuffer = qrBytes.buffer
 
-    const rows: [string, string][] = [
-      ['Name',           pass.full_name],
-      ['Application ID', pass.application_id],
-      ['Event Date',     'August 2, 2026'],
-      ['Venue',          'DGP Kalyana Mandapam, Nellore'],
-      ['Pass Type',      `${tierInfo.label} — ${tierInfo.subtitle}`],
-    ]
+    // Fetch template from public folder via absolute URL
+    const host = req.headers.get('host') ?? 'localhost:3000'
+    const proto = host.includes('localhost') ? 'http' : 'https'
+    const templateUrl = `${proto}://${host}/ticket-template.png`
+
+    const genderLabel =
+      reg?.gender === 'male' ? 'Male' :
+      reg?.gender === 'female' ? 'Female' :
+      reg?.gender === 'other' ? 'Other' : '—'
+
+    const amountLabel = payment?.amount ? `₹${payment.amount}` : `₹${tierInfo.price}`
+
+    // Canvas size matches the template aspect ratio (landscape ticket ~1050×650)
+    const W = 1050
+    const H = 650
 
     const image = new ImageResponse(
       (
-        // Root — satori requires display:flex on every multi-child element
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '600px', height: '900px', background: bgColor, border: `4px solid ${borderColor}`, borderRadius: '28px', padding: '40px 36px', fontFamily: 'system-ui, sans-serif' }}>
+        <div style={{ display: 'flex', width: `${W}px`, height: `${H}px`, position: 'relative' }}>
 
-          {/* Header */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px' }}>
-            <div style={{ display: 'flex', fontSize: 48, marginBottom: 8 }}>{badgeEmoji}</div>
-            <div style={{ display: 'flex', color: '#ffffff', fontSize: 28, fontWeight: 700 }}>Miss Nellore 2026</div>
-            <div style={{ display: 'flex', color: accentColor, fontSize: 13, fontWeight: 600, marginTop: 6, letterSpacing: 3, textTransform: 'uppercase' }}>{tierInfo.label} — {tierInfo.subtitle}</div>
+          {/* Background template image */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={templateUrl}
+            width={W}
+            height={H}
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+            alt="ticket"
+          />
+
+          {/* ── Overlay data fields ── */}
+          {/* Positioned to match the template layout */}
+
+          {/* Name */}
+          <div style={{
+            display: 'flex', position: 'absolute',
+            top: 248, left: 530,
+            color: '#ffffff', fontSize: 22, fontWeight: 700,
+            fontFamily: 'sans-serif', letterSpacing: 0.5,
+          }}>
+            {pass.full_name}
           </div>
 
-          {/* Divider */}
-          <div style={{ display: 'flex', width: '100%', height: 1, background: `${borderColor}55`, marginBottom: '24px' }} />
-
-          {/* QR Code */}
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
-            <div style={{ display: 'flex', background: '#ffffff', padding: 14, borderRadius: 16 }}>
-              {/* @ts-expect-error satori accepts ArrayBuffer for img src */}
-              <img src={qrBuffer} width={200} height={200} alt="QR" />
-            </div>
+          {/* Application ID */}
+          <div style={{
+            display: 'flex', position: 'absolute',
+            top: 305, left: 530,
+            color: '#facc15', fontSize: 18, fontWeight: 700,
+            fontFamily: 'monospace', letterSpacing: 1,
+          }}>
+            {pass.application_id}
           </div>
 
-          {/* Details box */}
-          <div style={{ display: 'flex', flexDirection: 'column', width: '100%', background: '#ffffff0a', borderRadius: 16, padding: '18px 20px', border: `1px solid ${borderColor}44` }}>
-            {rows.map(([label, value], i) => (
-              <div key={i} style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: i < rows.length - 1 ? 12 : 0 }}>
-                <div style={{ display: 'flex', color: '#9ca3af', fontSize: 13 }}>{label}</div>
-                <div style={{ display: 'flex', color: '#ffffff', fontSize: 13, fontWeight: 600 }}>{value}</div>
-              </div>
-            ))}
+          {/* Mobile */}
+          <div style={{
+            display: 'flex', position: 'absolute',
+            top: 362, left: 530,
+            color: '#ffffff', fontSize: 20, fontWeight: 600,
+            fontFamily: 'sans-serif',
+          }}>
+            {reg?.mobile ?? '—'}
           </div>
 
-          {/* Footer */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 'auto', paddingTop: 20 }}>
-            <div style={{ display: 'flex', color: borderColor, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Present this pass at the entrance</div>
-            <div style={{ display: 'flex', color: '#4b5563', fontSize: 11 }}>One-time use · Non-transferable</div>
+          {/* Gender */}
+          <div style={{
+            display: 'flex', position: 'absolute',
+            top: 418, left: 530,
+            color: '#ffffff', fontSize: 20, fontWeight: 600,
+            fontFamily: 'sans-serif',
+          }}>
+            {genderLabel}
+          </div>
+
+          {/* Pass type */}
+          <div style={{
+            display: 'flex', position: 'absolute',
+            top: 472, left: 530,
+            color: '#fbbf24', fontSize: 20, fontWeight: 700,
+            fontFamily: 'sans-serif',
+          }}>
+            {tierInfo.badge} {tierInfo.label}
+          </div>
+
+          {/* Amount */}
+          <div style={{
+            display: 'flex', position: 'absolute',
+            top: 578, left: 830,
+            color: '#000000', fontSize: 22, fontWeight: 800,
+            fontFamily: 'sans-serif',
+          }}>
+            {amountLabel}
+          </div>
+
+          {/* QR Code — positioned over the white QR box in the template */}
+          <div style={{
+            display: 'flex', position: 'absolute',
+            top: 238, left: 790,
+            background: '#ffffff', padding: 6, borderRadius: 8,
+          }}>
+            {/* @ts-expect-error satori accepts ArrayBuffer */}
+            <img src={qrBuffer} width={150} height={150} alt="QR" />
           </div>
 
         </div>
       ),
-      { width: 600, height: 900 }
+      { width: W, height: H }
     )
 
     const imageBuffer = await image.arrayBuffer()
