@@ -669,13 +669,13 @@ function SeatAssignRow({ row, selected, onSelect, onClear, onSave }: {
 // ─── VenueCard — table/sofa/row card with hover popover ──────────────────────
 
 function VenueCard({
-  label, capacity, occupants, ringColor, isSelected,
+  label, capacity, occupants, ringColor = 'ring-yellow-500', isSelected,
   onSelect, onRemove, onAddMember, unassigned,
 }: {
   label: string
   capacity: number
   occupants: SeatRow[]
-  ringColor: string
+  ringColor?: string
   isSelected: boolean
   onSelect: () => void
   onRemove: (id: string) => void
