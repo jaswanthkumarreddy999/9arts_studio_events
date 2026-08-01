@@ -82,7 +82,7 @@ export default function AdminDashboard({ adminName }: { adminName: string }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/scan" className="text-sm text-yellow-400 hover:text-yellow-300 transition-colors hidden sm:block">📷 Scanner</Link>
+            <Link href="/scan" className="text-sm text-yellow-400 hover:text-yellow-300 transition-colors">📷 Scanner</Link>
             <button onClick={handleLogout} className="text-zinc-400 hover:text-red-400 text-sm transition-colors">Logout</button>
           </div>
         </div>
@@ -429,7 +429,7 @@ function RegistrationsTab() {
                   <th className="text-left px-4 py-3 cursor-pointer hover:text-zinc-300 select-none" onClick={() => toggleSort('pay_status')}>
                     Payment {sortField === 'pay_status' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
                   </th>
-                  <th className="text-left px-4 py-3 hidden lg:table-cell cursor-pointer hover:text-zinc-300 select-none" onClick={() => toggleSort('utr')}>
+                  <th className="text-left px-4 py-3 cursor-pointer hover:text-zinc-300 select-none" onClick={() => toggleSort('utr')}>
                     UTR {sortField === 'utr' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
                   </th>
                   <th className="text-left px-4 py-3 hidden sm:table-cell cursor-pointer hover:text-zinc-300 select-none" onClick={() => toggleSort('date')}>
@@ -467,7 +467,7 @@ function RegistrationsTab() {
                           {row.payments?.status ?? 'none'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 hidden lg:table-cell">
+                      <td className="px-4 py-3">
                         {row.payments?.utr_number
                           ? <span className="text-xs font-mono text-cyan-400 bg-cyan-900/20 border border-cyan-700/30 px-2 py-1 rounded-lg">{row.payments.utr_number}</span>
                           : <span className="text-zinc-600 text-xs">—</span>
