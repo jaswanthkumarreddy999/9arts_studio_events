@@ -113,7 +113,7 @@ export default async function MyPassPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/ticket-template.png" alt="ticket" className="absolute inset-0 w-full h-full object-fill" />
 
-              {/* QR — measured: top 32%, left 73.2%, width 23.4%, height 33% */}
+              {/* QR — top 32%, left 73.2%, width 23.4%, height 33% */}
               <div className="absolute flex items-center justify-center"
                 style={{ top: '32%', left: '73.2%', width: '23.4%', height: '33%' }}>
                 <div className="w-[86%] h-[86%] flex items-center justify-center bg-white p-[2%]">
@@ -122,46 +122,46 @@ export default async function MyPassPage() {
                 </div>
               </div>
 
-              {/* Name — label y=26.7%, value aligned same row */}
+              {/* Name — BELOW the Name label (label bottom=30.2%) */}
               <div className="absolute text-white font-bold leading-tight"
-                style={{ top: '24.5%', left: '47%', maxWidth: '25%', fontSize: 'clamp(5px,0.85vw,13px)', wordBreak: 'break-word', lineHeight: 1.3 }}>
+                style={{ top: '30.7%', left: '28.6%', maxWidth: '43%', fontSize: 'clamp(5px,0.9vw,13px)', wordBreak: 'break-word', lineHeight: 1.25 }}>
                 {pass.full_name}
               </div>
 
-              {/* Application ID — label y=34.5% */}
+              {/* Application ID — BELOW the Application ID label (label bottom=39%) */}
               <div className="absolute text-yellow-300 font-mono font-bold leading-tight"
-                style={{ top: '32.5%', left: '47%', maxWidth: '25%', fontSize: 'clamp(4px,0.7vw,10px)', wordBreak: 'break-all', lineHeight: 1.3 }}>
+                style={{ top: '39.5%', left: '28.6%', maxWidth: '43%', fontSize: 'clamp(4px,0.75vw,11px)', wordBreak: 'break-all', lineHeight: 1.25 }}>
                 {pass.application_id}
               </div>
 
-              {/* Mobile — label y=47.2% */}
+              {/* Mobile — RIGHT of Mobile label (label right=48.8%, label top=42%) */}
               <div className="absolute text-white font-semibold"
-                style={{ top: '45.5%', left: '47%', maxWidth: '25%', fontSize: 'clamp(5px,0.85vw,13px)', whiteSpace: 'nowrap' }}>
+                style={{ top: '42%', left: '49.4%', maxWidth: '22%', fontSize: 'clamp(5px,0.9vw,13px)', whiteSpace: 'nowrap' }}>
                 {reg?.mobile ?? '—'}
               </div>
 
-              {/* Gender — label y=57% */}
+              {/* Gender — RIGHT of Gender label (label right=45.5%, label top=52.7%) */}
               <div className="absolute text-white font-semibold"
-                style={{ top: '55%', left: '47%', maxWidth: '25%', fontSize: 'clamp(5px,0.85vw,13px)' }}>
+                style={{ top: '52.7%', left: '46.2%', maxWidth: '25%', fontSize: 'clamp(5px,0.9vw,13px)' }}>
                 {reg?.gender === 'male' ? 'Male' : reg?.gender === 'female' ? 'Female' : reg?.gender === 'other' ? 'Other' : '—'}
               </div>
 
-              {/* Pass — label y=66.6% */}
+              {/* Pass — RIGHT of Pass label (label right=37%, label top=62.5%) */}
               <div className="absolute text-yellow-400 font-bold"
-                style={{ top: '64.5%', left: '47%', maxWidth: '25%', fontSize: 'clamp(5px,0.85vw,13px)' }}>
+                style={{ top: '62.5%', left: '37.6%', maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)' }}>
                 {tierInfo.label}
               </div>
 
               {/* Ticket No + Table No */}
               {(pass.ticket_no || pass.table_number) && (
                 <div className="absolute flex gap-1"
-                  style={{ top: '71%', left: '47%', fontSize: 'clamp(4px,0.75vw,10px)' }}>
+                  style={{ top: '70%', left: '28.6%', fontSize: 'clamp(4px,0.75vw,11px)' }}>
                   {pass.ticket_no && <span className="text-green-300 font-mono font-bold">#{String(pass.ticket_no)}</span>}
                   {pass.table_number && <span className="text-blue-300 font-bold">Table {String(pass.table_number)}</span>}
                 </div>
               )}
 
-              {/* Amount — measured: top 86%, left 74.2% */}
+              {/* Amount — white box top 86%, left 74.5% */}
               <div className="absolute text-black font-black"
                 style={{ top: '86%', left: '74.5%', fontSize: 'clamp(7px,1.5vw,22px)' }}>
                 ₹{payment?.amount ?? tierInfo.price}
