@@ -161,6 +161,14 @@ interface SeatRow {
   mobile?: string; gender?: string; payment_status?: string
 }
 
+interface SofaGuest {
+  id: string
+  name: string
+  remark?: string | null
+  sofa_label: string
+  seat_label: string
+}
+
 function SeatingTab() {
   const [config, setConfig] = useState<SeatingConfig>({
     sofa_count: 20, sofa_capacity: 2,
@@ -170,6 +178,7 @@ function SeatingTab() {
   })
   const [seats, setSeats] = useState<SeatRow[]>([])
   const [allRegs, setAllRegs] = useState<SeatRow[]>([])
+  const [sofaGuests, setSofaGuests] = useState<SofaGuest[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [autoAssigning, setAutoAssigning] = useState(false)
@@ -180,12 +189,14 @@ function SeatingTab() {
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
-    const [cfgRes, regRes, passRes] = await Promise.all([
+    const [cfgRes, regRes, passRes, guestRes] = await Promise.all([
       fetch('/api/admin/seating/config'),
       fetch('/api/admin/registrations'),
       fetch('/api/admin/passes-all'),
+      fetch('/api/admin/sofa-guests'),
     ])
     if (cfgRes.ok) { const d = await cfgRes.json(); if (d.config) setConfig(d.config) }
+    if (guestRes.ok) { const d = await guestRes.json(); setSofaGuests(d.guests ?? []) }
 
     if (regRes.ok && passRes.ok) {
       const regData = await regRes.json()
@@ -462,12 +473,15 @@ function SeatingTab() {
               {Array.from({ length: config.sofa_count }, (_, i) => {
                 const sLabel = `Sofa ${i + 1}`
                 const occupants = tableOccupancy.get(sLabel) ?? []
+                const guests = sofaGuests.filter(g => g.sofa_label === sLabel)
                 return (
                   <VenueCard key={sLabel} label={sLabel}
                     capacity={capFor(sLabel, config.sofa_capacity)} occupants={occupants}
+                    isSofa guests={guests}
                     isSelected={tableFilter === sLabel}
                     onSelect={() => setTableFilter(tableFilter === sLabel ? null : sLabel)}
                     onRemove={id => { clearSeat(id); fetchAll() }}
+                    onGuestRemove={() => fetchAll()}
                     onAddMember={() => fetchAll()}
                     unassigned={allRegs.filter(s => !s.ticket_no)} />
                 )
@@ -889,26 +903,34 @@ function CapacityOverridePanel({ config, onUpdate, onSave, saving }: {
 
 function VenueCard({
   label, capacity, occupants, ringColor = 'ring-yellow-500', isSelected,
-  onSelect, onRemove, onAddMember, unassigned,
+  isSofa = false, guests = [],
+  onSelect, onRemove, onGuestRemove, onAddMember, unassigned,
 }: {
   label: string
   capacity: number
   occupants: SeatRow[]
   ringColor?: string
   isSelected: boolean
+  isSofa?: boolean
+  guests?: SofaGuest[]
   onSelect: () => void
   onRemove: (id: string) => void
+  onGuestRemove?: () => void
   onAddMember: (label: string, seat: string) => void
   unassigned: SeatRow[]
 }) {
   const [hovered, setHovered] = useState(false)
   const [addingMember, setAddingMember] = useState(false)
+  const [addingGuest, setAddingGuest] = useState(false)
+  const [guestName, setGuestName] = useState('')
+  const [guestRemark, setGuestRemark] = useState('')
+  const [savingGuest, setSavingGuest] = useState(false)
   const [search, setSearch] = useState('')
   const [seatNo, setSeatNo] = useState('')
   const [saving, setSaving] = useState(false)
   const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const count = occupants.length
+  const count = occupants.length + guests.length
   const pct = capacity > 0 ? count / capacity : 0
   const borderColor = pct === 0 ? 'border-green-700/40 bg-green-900/10'
     : pct < 1 ? 'border-yellow-700/40 bg-yellow-900/10'
@@ -919,6 +941,27 @@ function VenueCard({
     !search || u.full_name.toLowerCase().includes(search.toLowerCase()) ||
     u.application_id.toLowerCase().includes(search.toLowerCase())
   )
+
+  async function addGuest() {
+    if (!guestName.trim()) return
+    setSavingGuest(true)
+    const nextSeat = `${label.replace(/\s+/g, '')}-${count + 1}`
+    await fetch('/api/admin/sofa-guests', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: guestName.trim(), remark: guestRemark.trim() || null, sofaLabel: label, seatLabel: nextSeat }),
+    })
+    setSavingGuest(false)
+    setGuestName(''); setGuestRemark(''); setAddingGuest(false)
+    onAddMember(label, nextSeat)
+  }
+
+  async function removeGuest(id: string) {
+    await fetch('/api/admin/sofa-guests', {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
+    onGuestRemove?.()
+  }
 
   async function assignMember(applicationId: string) {
     setSaving(true)
@@ -947,15 +990,20 @@ function VenueCard({
         <div className="flex gap-1 flex-wrap">
           {Array.from({ length: capacity }, (_, s) => {
             const person = occupants[s]
-            const dotCls = !person ? 'bg-white/10'
-              : person.gender === 'male' ? 'bg-blue-500'
-              : person.gender === 'female' ? 'bg-pink-500'
-              : 'bg-purple-400'
-            return <div key={s} className={`w-4 h-4 rounded-full ${dotCls}`} title={person?.full_name} />
+            const guest = !person ? guests[s - occupants.length] : undefined
+            const dotCls = person
+              ? (person.gender === 'male' ? 'bg-blue-500' : person.gender === 'female' ? 'bg-pink-500' : 'bg-purple-400')
+              : guest ? 'bg-orange-400'
+              : 'bg-white/10'
+            const title = person?.full_name ?? (guest ? `${guest.name}${guest.remark ? ` — ${guest.remark}` : ''}` : undefined)
+            return <div key={s} className={`w-4 h-4 rounded-full ${dotCls}`} title={title} />
           })}
         </div>
         {count > 0
-          ? <div className="mt-1.5 text-zinc-400 text-xs truncate">{occupants[0].full_name}{count > 1 ? ` +${count - 1}` : ''}</div>
+          ? <div className="mt-1.5 text-zinc-400 text-xs truncate">
+              {occupants[0]?.full_name ?? guests[0]?.name}
+              {count > 1 ? ` +${count - 1}` : ''}
+            </div>
           : <div className="mt-1.5 text-green-600 text-xs">Available</div>}
       </button>
 
@@ -974,43 +1022,75 @@ function VenueCard({
 
           {/* Occupants list */}
           <div className="max-h-52 overflow-y-auto divide-y divide-white/5">
-            {occupants.length === 0
+            {occupants.length === 0 && guests.length === 0
               ? <div className="px-4 py-4 text-zinc-500 text-xs text-center">No one seated here yet</div>
-              : occupants.map((r, idx) => (
-                <div key={r.application_id} className="flex items-center gap-2 px-4 py-2.5 hover:bg-white/5">
-                  <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-xs text-zinc-400 shrink-0">{idx + 1}</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-white text-xs font-semibold truncate">{r.full_name}</div>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      {r.gender && <span className={`text-xs ${r.gender === 'male' ? 'text-blue-400' : r.gender === 'female' ? 'text-pink-400' : 'text-purple-400'}`}>
-                        {r.gender === 'male' ? '♂' : r.gender === 'female' ? '♀' : '⚧'}
-                      </span>}
-                      {r.mobile && <span className="text-zinc-500 text-xs">{r.mobile}</span>}
-                      {r.ticket_no && <span className="text-cyan-400 text-xs font-mono">· {r.ticket_no}</span>}
+              : <>
+                {occupants.map((r, idx) => (
+                  <div key={r.application_id} className="flex items-center gap-2 px-4 py-2.5 hover:bg-white/5">
+                    <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-xs text-zinc-400 shrink-0">{idx + 1}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white text-xs font-semibold truncate">{r.full_name}</div>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        {r.gender && <span className={`text-xs ${r.gender === 'male' ? 'text-blue-400' : r.gender === 'female' ? 'text-pink-400' : 'text-purple-400'}`}>
+                          {r.gender === 'male' ? '♂' : r.gender === 'female' ? '♀' : '⚧'}
+                        </span>}
+                        {r.mobile && <span className="text-zinc-500 text-xs">{r.mobile}</span>}
+                        {r.ticket_no && <span className="text-cyan-400 text-xs font-mono">· {r.ticket_no}</span>}
+                      </div>
                     </div>
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full shrink-0 ${r.seat_tier === 'elite' ? 'text-amber-400 bg-amber-900/30' : 'text-yellow-400 bg-yellow-900/30'}`}>
+                      {r.seat_tier === 'elite' ? '👑' : '⭐'}
+                    </span>
+                    <button onClick={() => onRemove(r.application_id)}
+                      className="text-red-400 hover:text-red-300 text-xs w-6 h-6 rounded border border-red-700/30 hover:bg-red-900/20 flex items-center justify-center transition-colors shrink-0">
+                      ✕
+                    </button>
                   </div>
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full shrink-0 ${r.seat_tier === 'elite' ? 'text-amber-400 bg-amber-900/30' : 'text-yellow-400 bg-yellow-900/30'}`}>
-                    {r.seat_tier === 'elite' ? '👑' : '⭐'}
-                  </span>
-                  <button onClick={() => onRemove(r.application_id)}
-                    className="text-red-400 hover:text-red-300 text-xs w-6 h-6 rounded border border-red-700/30 hover:bg-red-900/20 flex items-center justify-center transition-colors shrink-0">
-                    ✕
-                  </button>
-                </div>
-              ))
+                ))}
+                {guests.map((g, idx) => (
+                  <div key={g.id} className="flex items-center gap-2 px-4 py-2.5 hover:bg-white/5 bg-orange-900/5">
+                    <div className="w-5 h-5 rounded-full bg-orange-900/40 flex items-center justify-center text-xs text-orange-400 shrink-0">{occupants.length + idx + 1}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-orange-300 text-xs font-semibold truncate">{g.name}</span>
+                        <span className="text-orange-600 text-xs bg-orange-900/30 px-1.5 py-0.5 rounded-full shrink-0">Guest</span>
+                      </div>
+                      {g.remark && <div className="text-zinc-500 text-xs mt-0.5 truncate italic">{g.remark}</div>}
+                      <div className="text-zinc-600 text-xs font-mono mt-0.5">{g.seat_label}</div>
+                    </div>
+                    <button onClick={() => removeGuest(g.id)}
+                      className="text-red-400 hover:text-red-300 text-xs w-6 h-6 rounded border border-red-700/30 hover:bg-red-900/20 flex items-center justify-center transition-colors shrink-0">
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </>
             }
           </div>
 
-          {/* Add member */}
+          {/* Add member / guest */}
           {count < capacity && (
-            <div className="border-t border-white/10 px-4 py-3 bg-black/20">
-              {!addingMember ? (
-                <button onClick={() => setAddingMember(true)}
-                  className="w-full text-xs text-green-400 border border-green-700/40 bg-green-900/10 hover:bg-green-900/20 py-2.5 rounded-xl font-semibold transition-colors">
-                  ＋ Add Member to {label} ({capacity - count} {capacity - count === 1 ? 'seat' : 'seats'} left)
-                </button>
-              ) : (
+            <div className="border-t border-white/10 px-4 py-3 bg-black/20 space-y-2">
+              {/* Buttons to pick mode */}
+              {!addingMember && !addingGuest && (
+                <div className={`grid gap-2 ${isSofa ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                  <button onClick={() => setAddingMember(true)}
+                    className="text-xs text-green-400 border border-green-700/40 bg-green-900/10 hover:bg-green-900/20 py-2.5 rounded-xl font-semibold transition-colors">
+                    ＋ Registered ({capacity - count} left)
+                  </button>
+                  {isSofa && (
+                    <button onClick={() => setAddingGuest(true)}
+                      className="text-xs text-orange-400 border border-orange-700/40 bg-orange-900/10 hover:bg-orange-900/20 py-2.5 rounded-xl font-semibold transition-colors">
+                      ＋ Guest / VIP
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Add registered member */}
+              {addingMember && (
                 <div className="space-y-2">
+                  <div className="text-xs text-zinc-400 font-semibold">Add registered attendee</div>
                   <div className="flex gap-2">
                     <input value={search} onChange={e => setSearch(e.target.value)}
                       placeholder="Search by name or ID…" autoFocus
@@ -1050,11 +1130,38 @@ function VenueCard({
                   </button>
                 </div>
               )}
+
+              {/* Add walk-in guest */}
+              {addingGuest && (
+                <div className="space-y-2">
+                  <div className="text-xs text-orange-400 font-semibold">Add Guest / VIP (no registration)</div>
+                  <input
+                    value={guestName} onChange={e => setGuestName(e.target.value)}
+                    placeholder="Guest name *" autoFocus
+                    className="w-full bg-zinc-800 border border-white/10 text-white placeholder-zinc-500 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-orange-500"
+                  />
+                  <input
+                    value={guestRemark} onChange={e => setGuestRemark(e.target.value)}
+                    placeholder="Remark — e.g. Parent of Contestant 3, Gold Sponsor (optional)"
+                    className="w-full bg-zinc-800 border border-white/10 text-white placeholder-zinc-500 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-orange-500"
+                  />
+                  <div className="flex gap-2">
+                    <button onClick={addGuest} disabled={savingGuest || !guestName.trim()}
+                      className="flex-1 bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold py-2 rounded-lg disabled:opacity-50 transition-colors">
+                      {savingGuest ? 'Saving…' : '✅ Add Guest'}
+                    </button>
+                    <button onClick={() => { setAddingGuest(false); setGuestName(''); setGuestRemark('') }}
+                      className="text-zinc-500 hover:text-zinc-300 text-xs px-3 py-2 transition-colors">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {count >= capacity && (
             <div className="px-4 py-2.5 border-t border-white/10 text-center text-red-400 text-xs font-semibold bg-red-900/10">
-              🔴 Table Full
+              🔴 Full
             </div>
           )}
         </div>
