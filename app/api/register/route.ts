@@ -82,7 +82,11 @@ export async function POST(req: NextRequest) {
         return Response.json({ error: `Failed to register ${t.full_name}. Please try again.` }, { status: 500 })
       }
 
-      await supabaseAdmin.from('payments').insert({ application_id, amount, status: 'pending' })
+      const { error: payError } = await supabaseAdmin.from('payments').insert({ application_id, amount, status: 'pending' })
+      if (payError) {
+        console.error('Group payment insert error:', payError)
+        return Response.json({ error: `Failed to create payment record for ${t.full_name}. Please try again.` }, { status: 500 })
+      }
       results.push({ application_id, full_name: t.full_name, amount, seat_tier: t.seat_tier })
     }
 
@@ -124,6 +128,10 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: 'Registration failed. Please try again.' }, { status: 500 })
   }
 
-  await supabaseAdmin.from('payments').insert({ application_id, amount, status: 'pending' })
+  const { error: payError } = await supabaseAdmin.from('payments').insert({ application_id, amount, status: 'pending' })
+  if (payError) {
+    console.error('Payment insert error:', payError)
+    return Response.json({ error: 'Failed to create payment record. Please try again.' }, { status: 500 })
+  }
   return Response.json({ application_id, amount }, { status: 201 })
 }

@@ -50,7 +50,20 @@ export async function POST(req: NextRequest) {
 
   // Update all payment records
   for (const id of applicationIds) {
-    await supabaseAdmin.from('payments').update(updates).eq('application_id', id)
+    const { error, data: updated } = await supabaseAdmin
+      .from('payments')
+      .update(updates)
+      .eq('application_id', id)
+      .select('application_id')
+
+    if (error) {
+      console.error('Payment update error for', id, error)
+      return Response.json({ error: `Failed to save payment details: ${error.message}` }, { status: 500 })
+    }
+    if (!updated || updated.length === 0) {
+      console.error('Payment record not found for', id)
+      return Response.json({ error: `Payment record not found for ${id}. Please contact support.` }, { status: 404 })
+    }
   }
 
   return Response.json({ success: true })
