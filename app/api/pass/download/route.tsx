@@ -107,19 +107,26 @@ export async function GET(req: NextRequest) {
             {tierInfo.label} Pass
           </div>
 
-          {/* Ticket No */}
-          {pass.ticket_no && (
-            <div style={{ display: 'flex', position: 'absolute', top: 738, left: valueX, color: '#86efac', fontSize: 26, fontWeight: 700, fontFamily: 'monospace' }}>
-              # {String(pass.ticket_no)}
-            </div>
-          )}
-
-          {/* Table No */}
-          {pass.table_number && (
-            <div style={{ display: 'flex', position: 'absolute', top: 738, left: valueX + 200, color: '#93c5fd', fontSize: 26, fontWeight: 700, fontFamily: 'sans-serif' }}>
-              Table {String(pass.table_number)}
-            </div>
-          )}
+          {/* Seat label — below QR, above SCAN TO VERIFY (~y 660-720px range) */}
+          {(pass.ticket_no || pass.table_number) && (() => {
+            const ticket = pass.ticket_no ?? ''
+            const table = (pass.table_number ?? '').toUpperCase()
+            const seatWord = ticket.startsWith('C') ? 'CHAIR' : 'SEAT'
+            const seatIcon = ticket.startsWith('S') ? '🛋️' : ticket.startsWith('C') ? '💺' : '🪑'
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'absolute', top: 660, left: 1092, width: 252, textAlign: 'center' }}>
+                <div style={{ display: 'flex', color: '#fcd34d', fontSize: 18, fontWeight: 900, fontFamily: 'sans-serif', letterSpacing: 2, textTransform: 'uppercase' }}>
+                  {table}
+                </div>
+                <div style={{ display: 'flex', color: '#ffffff', fontSize: 20, fontWeight: 800, fontFamily: 'sans-serif', letterSpacing: 1 }}>
+                  {seatWord} {ticket}
+                </div>
+                <div style={{ display: 'flex', color: '#9ca3af', fontSize: 14, fontFamily: 'sans-serif' }}>
+                  {seatIcon}
+                </div>
+              </div>
+            )
+          })()}
 
           {/* Amount — over the white amount box */}
           <div style={{ display: 'flex', position: 'absolute', top: 880, left: 1130, color: '#000000', fontSize: 30, fontWeight: 900, fontFamily: 'sans-serif' }}>
