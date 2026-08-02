@@ -14,7 +14,6 @@ export async function GET() {
   const { data } = await supabaseAdmin
     .from('seating_config')
     .select('*')
-    .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
 
@@ -44,6 +43,7 @@ export async function POST(req: NextRequest) {
     chair_row_count: chair_row_count ?? 25,
     chairs_per_row: chairs_per_row ?? 10,
     capacity_overrides: capacity_overrides ?? {},
+    updated_at: new Date().toISOString(),
   }
 
   if (existing) {
