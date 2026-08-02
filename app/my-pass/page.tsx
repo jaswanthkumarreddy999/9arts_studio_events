@@ -152,24 +152,26 @@ export default async function MyPassPage() {
                 {tierInfo.label}
               </div>
 
-              {/* Seat label — below QR, above SCAN TO VERIFY */}
+              {/* Seat label — in white space below QR, above SCAN TO VERIFY */}
               {(pass.ticket_no || pass.table_number) && (() => {
                 const ticket = pass.ticket_no ?? ''
                 const table = pass.table_number ?? ''
+                // ticket is T1-1, S2-1, C15 etc — extract seat number after the dash
+                const seatNum = ticket.includes('-') ? ticket.split('-').slice(1).join('-') : ticket.replace(/^[A-Z]+/, '')
                 const seatWord = ticket.startsWith('C') ? 'CHAIR' : 'SEAT'
                 const seatIcon = ticket.startsWith('S') ? '🛋️' : ticket.startsWith('C') ? '💺' : '🪑'
                 return (
                   <div className="absolute flex flex-col items-center justify-center text-center"
-                    style={{ top: '63.5%', left: '70.2%', width: '23.4%' }}>
-                    <div className="text-yellow-300 font-black tracking-widest uppercase leading-tight"
-                      style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9)', fontSize: 'clamp(4px,0.8vw,11px)' }}>
+                    style={{ top: '62%', left: '70.2%', width: '23.4%' }}>
+                    <div className="font-black tracking-widest uppercase"
+                      style={{ color: '#fcd34d', textShadow: '0 1px 4px rgba(0,0,0,1)', fontSize: 'clamp(5px,0.9vw,13px)', lineHeight: 1.3 }}>
                       {table.toUpperCase()}
                     </div>
-                    <div className="text-white font-bold tracking-wider uppercase"
-                      style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9)', fontSize: 'clamp(4px,0.85vw,12px)' }}>
-                      {seatWord} {ticket}
+                    <div className="font-bold tracking-wider uppercase"
+                      style={{ color: '#ffffff', textShadow: '0 1px 4px rgba(0,0,0,1)', fontSize: 'clamp(5px,1vw,14px)', lineHeight: 1.3 }}>
+                      {seatWord} {seatNum}
                     </div>
-                    <div style={{ fontSize: 'clamp(6px,0.9vw,13px)' }}>
+                    <div style={{ fontSize: 'clamp(7px,1vw,14px)', lineHeight: 1.2 }}>
                       {seatIcon}
                     </div>
                   </div>
