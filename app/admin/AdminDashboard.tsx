@@ -228,11 +228,20 @@ function SeatingTab() {
 
   async function saveConfig(overrideConfig?: Partial<SeatingConfig>) {
     setSaving(true)
-    await fetch('/api/admin/seating/config', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...config, ...overrideConfig }),
-    })
-    setSaving(false)
+    try {
+      const res = await fetch('/api/admin/seating/config', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...config, ...overrideConfig }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        alert(`❌ Failed to save: ${data.error ?? 'Unknown error'}\n\nMake sure the seating_config table exists in Supabase (run migration 008).`)
+      }
+    } catch (e) {
+      alert(`❌ Network error saving config: ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function autoAssign() {
