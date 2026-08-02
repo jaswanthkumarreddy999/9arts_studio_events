@@ -151,7 +151,7 @@ function TierUpgradePanel({ applicationId, currentTier, onSaved }: {
 interface SeatingConfig {
   sofa_count: number; sofa_capacity: number
   round_table_count: number; round_table_capacity: number
-  chair_count: number; chairs_per_row: number
+  chair_row_count: number; chairs_per_row: number
   capacity_overrides: Record<string, number>
 }
 
@@ -165,7 +165,7 @@ function SeatingTab() {
   const [config, setConfig] = useState<SeatingConfig>({
     sofa_count: 20, sofa_capacity: 2,
     round_table_count: 20, round_table_capacity: 6,
-    chair_count: 250, chairs_per_row: 10,
+    chair_row_count: 25, chairs_per_row: 10,
     capacity_overrides: {},
   })
   const [seats, setSeats] = useState<SeatRow[]>([])
@@ -226,11 +226,11 @@ function SeatingTab() {
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
-  async function saveConfig() {
+  async function saveConfig(overrideConfig?: Partial<SeatingConfig>) {
     setSaving(true)
     await fetch('/api/admin/seating/config', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(config),
+      body: JSON.stringify({ ...config, ...overrideConfig }),
     })
     setSaving(false)
   }
@@ -286,7 +286,12 @@ function SeatingTab() {
 
   const totalSofaSeats = config.sofa_count * config.sofa_capacity
   const totalTableSeats = config.round_table_count * config.round_table_capacity
-  const totalCapacity = totalSofaSeats + totalTableSeats + config.chair_count
+  // Total chair seats = sum of all row capacities (overrides + defaults)
+  const totalChairSeats = Array.from({ length: config.chair_row_count }, (_, i) => {
+    const lbl = `Row ${i + 1}`
+    return config.capacity_overrides?.[lbl] ?? config.chairs_per_row
+  }).reduce((a, b) => a + b, 0)
+  const totalCapacity = totalSofaSeats + totalTableSeats + totalChairSeats
   const approvedSeats = seats.filter(s => s.payment_status === 'approved')
   const eliteCount = approvedSeats.filter(s => s.seat_tier === 'elite').length
   const goldCount = approvedSeats.filter(s => s.seat_tier === 'gold').length
@@ -343,7 +348,7 @@ function SeatingTab() {
       <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
         <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
           <span className="text-white font-semibold text-sm">🏟️ Venue Configuration</span>
-          <button onClick={saveConfig} disabled={saving}
+          <button onClick={() => saveConfig()} disabled={saving}
             className="text-xs bg-yellow-500 hover:bg-yellow-400 text-black font-bold px-4 py-1.5 rounded-lg disabled:opacity-50 transition-colors">
             {saving ? 'Saving…' : '💾 Save Config'}
           </button>
@@ -354,8 +359,8 @@ function SeatingTab() {
             { label: 'Per Sofa', field: 'sofa_capacity', desc: 'Seats per sofa' },
             { label: 'Round Tables', field: 'round_table_count', desc: 'Elite section' },
             { label: 'Per Table', field: 'round_table_capacity', desc: 'Seats per table' },
-            { label: 'Chairs', field: 'chair_count', desc: 'Gold section' },
-            { label: 'Per Row', field: 'chairs_per_row', desc: 'Chairs per row' },
+            { label: 'Chair Rows', field: 'chair_row_count', desc: 'Number of rows' },
+            { label: 'Default Per Row', field: 'chairs_per_row', desc: 'Seats per row (default)' },
           ] as { label: string; field: Exclude<keyof SeatingConfig, 'capacity_overrides'>; desc: string }[]).map(({ label, field, desc }) => (
             <div key={field}>
               <label className="block text-xs text-zinc-400 mb-1">{label}</label>
@@ -370,7 +375,7 @@ function SeatingTab() {
           {[
             { label: 'Sofa seats', value: totalSofaSeats, color: 'text-purple-400' },
             { label: 'Table seats', value: totalTableSeats, color: 'text-amber-400' },
-            { label: 'Chair seats', value: config.chair_count, color: 'text-yellow-400' },
+            { label: 'Chair seats', value: totalChairSeats, color: 'text-yellow-400' },
             { label: 'Total capacity', value: totalCapacity, color: 'text-green-400' },
             { label: 'Assigned', value: `${assignedCount}/${seats.length}`, color: 'text-cyan-400' },
           ].map(({ label, value, color }) => (
@@ -383,7 +388,7 @@ function SeatingTab() {
       </div>
 
       {/* Individual capacity overrides */}
-      <CapacityOverridePanel config={config} onUpdate={overrides => setConfig(c => ({ ...c, capacity_overrides: overrides }))} onSave={saveConfig} saving={saving} />
+      <CapacityOverridePanel config={config} onUpdate={overrides => setConfig(c => ({ ...c, capacity_overrides: overrides }))} onSave={overrides => saveConfig({ capacity_overrides: overrides })} saving={saving} />
 
       {/* Tier overview */}
       <div className="grid grid-cols-2 gap-4">
@@ -396,8 +401,8 @@ function SeatingTab() {
         <div className="bg-yellow-900/10 border border-yellow-700/30 rounded-2xl p-4">
           <div className="text-yellow-400 font-semibold text-sm mb-1">⭐ Gold Registrations</div>
           <div className="text-3xl font-bold text-white">{goldCount}</div>
-          <div className="text-zinc-500 text-xs mt-1">Chairs capacity: {config.chair_count}</div>
-          {goldCount > config.chair_count && <div className="text-red-400 text-xs mt-1">⚠️ Overflow: {goldCount - config.chair_count}</div>}
+          <div className="text-zinc-500 text-xs mt-1">Chairs capacity: {totalChairSeats}</div>
+          {goldCount > totalChairSeats && <div className="text-red-400 text-xs mt-1">⚠️ Overflow: {goldCount - totalChairSeats}</div>}
         </div>
       </div>
 
@@ -494,16 +499,16 @@ function SeatingTab() {
             </div>
             {(() => {
               const rowSize = config.chairs_per_row || 10
-              const rowCount = Math.ceil(config.chair_count / rowSize)
+              const rowCount = config.chair_row_count
               return (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                   {Array.from({ length: rowCount }, (_, r) => {
                     const rowLabel = `Row ${r + 1}`
                     const occupants = tableOccupancy.get(rowLabel) ?? []
-                    const cap = Math.min(rowSize, config.chair_count - r * rowSize)
+                    const cap = capFor(rowLabel, config.chairs_per_row || 10)
                     return (
                       <VenueCard key={rowLabel} label={rowLabel}
-                        capacity={capFor(rowLabel, cap)} occupants={occupants}
+                        capacity={cap} occupants={occupants}
                         isSelected={tableFilter === rowLabel}
                         onSelect={() => setTableFilter(tableFilter === rowLabel ? null : rowLabel)}
                         onRemove={id => { clearSeat(id); fetchAll() }}
@@ -628,7 +633,7 @@ function SeatAssignRow({ row, selected, onSelect, onClear, onSave }: {
   const [seatType, setSeatType] = useState<'sofa' | 'table' | 'chair'>('table')
   const [seat, setSeat] = useState(row.ticket_no ?? '')
   const [table, setTable] = useState(row.table_number ?? '')
-  const [config, setConfig] = useState({ sofa_count: 20, sofa_capacity: 2, round_table_count: 20, round_table_capacity: 6, chair_count: 250, chairs_per_row: 10 })
+  const [config, setConfig] = useState({ sofa_count: 20, sofa_capacity: 2, round_table_count: 20, round_table_capacity: 6, chair_row_count: 25, chairs_per_row: 10 })
   const [cfgLoaded, setCfgLoaded] = useState(false)
 
   useEffect(() => {
@@ -657,7 +662,7 @@ function SeatAssignRow({ row, selected, onSelect, onClear, onSave }: {
         for (let p = 1; p <= config.round_table_capacity; p++)
           opts.push({ label: `T${t}-${p}`, table: `Table ${t}` })
     } else {
-      for (let c = 1; c <= config.chair_count; c++)
+      for (let c = 1; c <= config.chair_row_count * (config.chairs_per_row || 10); c++)
         opts.push({ label: `C${c}`, table: `Row ${Math.ceil(c / (config.chairs_per_row || 10))}` })
     }
     return opts
@@ -724,9 +729,9 @@ function SeatAssignRow({ row, selected, onSelect, onClear, onSave }: {
                 })}
               </optgroup>
             ))}
-            {seatType === 'chair' && Array.from({ length: Math.ceil(config.chair_count / (config.chairs_per_row || 10)) }, (_, r) => (
+            {seatType === 'chair' && Array.from({ length: config.chair_row_count }, (_, r) => (
               <optgroup key={r} label={`Row ${r + 1}`}>
-                {Array.from({ length: Math.min(config.chairs_per_row || 10, config.chair_count - r * (config.chairs_per_row || 10)) }, (_, s) => {
+                {Array.from({ length: config.chairs_per_row || 10 }, (_, s) => {
                   const num = r * (config.chairs_per_row || 10) + s + 1
                   const lbl = `C${num}`
                   return <option key={lbl} value={lbl}>{lbl}</option>
@@ -771,7 +776,7 @@ function SeatAssignRow({ row, selected, onSelect, onClear, onSave }: {
 function CapacityOverridePanel({ config, onUpdate, onSave, saving }: {
   config: SeatingConfig
   onUpdate: (overrides: Record<string, number>) => void
-  onSave: () => void
+  onSave: (overrides: Record<string, number>) => void
   saving: boolean
 }) {
   const [open, setOpen] = useState(false)
@@ -791,7 +796,7 @@ function CapacityOverridePanel({ config, onUpdate, onSave, saving }: {
   const sections = {
     sofas: { label: '🛋️ Sofas', count: config.sofa_count, defaultCap: config.sofa_capacity, prefix: 'Sofa' },
     tables: { label: '🪑 Tables', count: config.round_table_count, defaultCap: config.round_table_capacity, prefix: 'Table' },
-    rows: { label: '💺 Chair Rows', count: Math.ceil(config.chair_count / (config.chairs_per_row || 10)), defaultCap: config.chairs_per_row || 10, prefix: 'Row' },
+    rows: { label: '💺 Chair Rows', count: config.chair_row_count, defaultCap: config.chairs_per_row || 10, prefix: 'Row' },
   }
 
   const overrideCount = Object.keys(config.capacity_overrides ?? {}).length
@@ -853,7 +858,7 @@ function CapacityOverridePanel({ config, onUpdate, onSave, saving }: {
           </div>
 
           <div className="flex gap-3 items-center">
-            <button onClick={onSave} disabled={saving}
+            <button onClick={() => onSave(config.capacity_overrides ?? {})} disabled={saving}
               className="text-xs bg-yellow-500 hover:bg-yellow-400 text-black font-bold px-4 py-2 rounded-lg disabled:opacity-50 transition-colors">
               {saving ? 'Saving…' : '💾 Save Overrides'}
             </button>
@@ -1192,7 +1197,7 @@ function TicketAssignPanel({ applicationId, onSaved }: { applicationId: string; 
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [seatType, setSeatType] = useState<'sofa' | 'table' | 'chair'>('table')
-  const [config, setConfig] = useState({ sofa_count: 20, sofa_capacity: 2, round_table_count: 20, round_table_capacity: 6, chair_count: 250, chairs_per_row: 10 })
+  const [config, setConfig] = useState({ sofa_count: 20, sofa_capacity: 2, round_table_count: 20, round_table_capacity: 6, chair_row_count: 25, chairs_per_row: 10 })
 
   useEffect(() => {
     fetch('/api/admin/seating/config').then(r => r.ok ? r.json() : null).then(d => { if (d?.config) setConfig(d.config) }).catch(() => {})
@@ -1212,7 +1217,7 @@ function TicketAssignPanel({ applicationId, onSaved }: { applicationId: string; 
       for (let p = 1; p <= config.round_table_capacity; p++)
         tableOptions.push({ label: `T${t}-${p}`, table: `Table ${t}` })
   } else {
-    for (let c = 1; c <= config.chair_count; c++)
+    for (let c = 1; c <= config.chair_row_count * (config.chairs_per_row || 10); c++)
       tableOptions.push({ label: `C${c}`, table: `Row ${Math.ceil(c / (config.chairs_per_row || 10))}` })
   }
 
@@ -1272,9 +1277,9 @@ function TicketAssignPanel({ applicationId, onSaved }: { applicationId: string; 
               })}
             </optgroup>
           ))}
-          {seatType === 'chair' && Array.from({ length: Math.ceil(config.chair_count / (config.chairs_per_row || 10)) }, (_, r) => (
+          {seatType === 'chair' && Array.from({ length: config.chair_row_count }, (_, r) => (
             <optgroup key={r} label={`Row ${r + 1}`}>
-              {Array.from({ length: Math.min(config.chairs_per_row || 10, config.chair_count - r * (config.chairs_per_row || 10)) }, (_, s) => {
+              {Array.from({ length: config.chairs_per_row || 10 }, (_, s) => {
                 const num = r * (config.chairs_per_row || 10) + s + 1
                 const lbl = `C${num}`
                 return <option key={lbl} value={lbl}>{lbl}</option>

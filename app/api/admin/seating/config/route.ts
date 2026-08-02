@@ -22,7 +22,7 @@ export async function GET() {
     config: data ?? {
       sofa_count: 20, sofa_capacity: 2,
       round_table_count: 20, round_table_capacity: 6,
-      chair_count: 250, chairs_per_row: 10,
+      chair_row_count: 25, chairs_per_row: 10,
       capacity_overrides: {},
     }
   })
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json()
   const { sofa_count, sofa_capacity, round_table_count, round_table_capacity,
-          chair_count, chairs_per_row, capacity_overrides } = body
+          chair_row_count, chairs_per_row, capacity_overrides } = body
 
   const { data: existing } = await supabaseAdmin
     .from('seating_config').select('id').limit(1).maybeSingle()
@@ -41,7 +41,8 @@ export async function POST(req: NextRequest) {
   const payload = {
     sofa_count, sofa_capacity,
     round_table_count, round_table_capacity,
-    chair_count, chairs_per_row: chairs_per_row ?? 10,
+    chair_row_count: chair_row_count ?? 25,
+    chairs_per_row: chairs_per_row ?? 10,
     capacity_overrides: capacity_overrides ?? {},
   }
 
