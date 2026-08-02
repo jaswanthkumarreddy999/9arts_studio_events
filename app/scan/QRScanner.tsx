@@ -14,6 +14,14 @@ type ScanResult = {
   gender?: string | null
 } | null
 
+interface LookupRow {
+  application_id: string
+  full_name: string
+  mobile: string
+  gender: string
+  seat_tier: string
+}
+
 interface ScanLog {
   id: string
   application_id: string
@@ -43,6 +51,16 @@ export default function QRScanner() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const scanningRef = useRef(false)
+
+  // Mode: camera scanner vs manual search
+  const [mode, setMode] = useState<'camera' | 'manual'>('camera')
+
+  // Manual search state
+  const [manualQuery, setManualQuery] = useState('')
+  const [manualSearching, setManualSearching] = useState(false)
+  const [manualResults, setManualResults] = useState<LookupRow[]>([])
+  const [manualError, setManualError] = useState('')
+  const [checkingIn, setCheckingIn] = useState<string | null>(null)
 
   // History state
   const [logs, setLogs] = useState<ScanLog[]>([])
@@ -166,6 +184,59 @@ export default function QRScanner() {
 
   function resetScan() { setResult(null); startCamera() }
 
+  async function handleManualSearch(e: React.FormEvent) {
+    e.preventDefault()
+    if (!manualQuery.trim()) return
+    setManualError('')
+    setManualResults([])
+    setManualSearching(true)
+    try {
+      const res = await fetch('/api/scan/lookup', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: manualQuery.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setManualError(data.reason ?? 'No results found')
+      } else if (data.multiple) {
+        setManualResults(data.results)
+      } else {
+        setManualResults([data.result])
+      }
+    } catch {
+      setManualError('Network error. Please try again.')
+    } finally {
+      setManualSearching(false)
+    }
+  }
+
+  async function handleManualCheckIn(appId: string) {
+    setCheckingIn(appId)
+    setResult(null)
+    try {
+      const res = await fetch('/api/scan/manual', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationId: appId }),
+      })
+      const data = await res.json()
+      setResult(data)
+      setManualResults([])
+      setManualQuery('')
+      if (data.valid) fetchHistory()
+    } catch {
+      setResult({ valid: false, reason: 'Network error. Please try again.' })
+    } finally {
+      setCheckingIn(null)
+    }
+  }
+
+  function resetManual() {
+    setResult(null)
+    setManualQuery('')
+    setManualResults([])
+    setManualError('')
+  }
+
   useEffect(() => {
     return () => { scanningRef.current = false; stopCamera() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -251,7 +322,23 @@ export default function QRScanner() {
         )}
       </div>
 
-      {/* Result */}
+      {/* ── Mode toggle ── */}
+      <div className="flex bg-white/5 border border-white/10 rounded-2xl p-1 mb-5">
+        <button
+          onClick={() => { setMode('camera'); setResult(null); setManualResults([]); setManualError('') }}
+          className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${mode === 'camera' ? 'bg-yellow-500 text-black' : 'text-zinc-400 hover:text-white'}`}
+        >
+          📷 QR Scanner
+        </button>
+        <button
+          onClick={() => { setMode('manual'); stopCamera(); setResult(null) }}
+          className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${mode === 'manual' ? 'bg-yellow-500 text-black' : 'text-zinc-400 hover:text-white'}`}
+        >
+          🔍 Manual Search
+        </button>
+      </div>
+
+      {/* ── Shared result card ── */}
       {result && (
         <div className={`rounded-2xl p-6 mb-6 text-center border-2 ${result.valid ? 'border-green-500 bg-green-900/20' : 'border-red-500 bg-red-900/20'}`}>
           <div className="text-5xl mb-3">{result.valid ? '✅' : '❌'}</div>
@@ -317,59 +404,146 @@ export default function QRScanner() {
               <div className="text-zinc-300 text-sm">{result.reason}</div>
             </>
           )}
-          <button onClick={resetScan} className="mt-4 bg-white/10 hover:bg-white/20 text-white text-sm px-6 py-2 rounded-full transition-colors">
-            Scan Next →
+          <button
+            onClick={mode === 'camera' ? resetScan : resetManual}
+            className="mt-4 bg-white/10 hover:bg-white/20 text-white text-sm px-6 py-2 rounded-full transition-colors"
+          >
+            {mode === 'camera' ? 'Scan Next →' : 'Search Again →'}
           </button>
         </div>
       )}
 
-      {/* Camera */}
-      {!result && (
-        <div className="relative bg-black rounded-2xl overflow-hidden border border-white/10 aspect-square mb-4">
-          <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
-          {scanning && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-48 h-48 border-2 border-yellow-400/60 rounded-xl relative">
-                <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-yellow-400 rounded-tl-lg" />
-                <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-yellow-400 rounded-tr-lg" />
-                <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-yellow-400 rounded-bl-lg" />
-                <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-yellow-400 rounded-br-lg" />
-                <div className="absolute inset-x-0 top-0 h-0.5 bg-yellow-400/80 animate-[scan_2s_linear_infinite]" />
+      {/* ── Camera mode ── */}
+      {mode === 'camera' && !result && (
+        <>
+          <div className="relative bg-black rounded-2xl overflow-hidden border border-white/10 aspect-square mb-4">
+            <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
+            {scanning && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-48 h-48 border-2 border-yellow-400/60 rounded-xl relative">
+                  <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-yellow-400 rounded-tl-lg" />
+                  <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-yellow-400 rounded-tr-lg" />
+                  <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-yellow-400 rounded-bl-lg" />
+                  <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-yellow-400 rounded-br-lg" />
+                  <div className="absolute inset-x-0 top-0 h-0.5 bg-yellow-400/80 animate-[scan_2s_linear_infinite]" />
+                </div>
+              </div>
+            )}
+            {!scanning && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                <div className="text-center">
+                  <div className="text-4xl mb-2">📷</div>
+                  <div className="text-zinc-400 text-sm">Camera not active</div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {error && (
+            <div className="bg-red-900/20 border border-red-700/50 text-red-400 rounded-xl px-4 py-3 text-sm mb-4">{error}</div>
+          )}
+
+          <div className="mb-4">
+            {!scanning ? (
+              <button onClick={startCamera} className="w-full bg-gradient-to-r from-yellow-600 to-yellow-400 text-black font-bold py-4 rounded-xl hover:from-yellow-500 hover:to-yellow-300 transition-all">
+                📷 Start Scanning
+              </button>
+            ) : (
+              <button onClick={stopCamera} className="w-full bg-red-700 hover:bg-red-600 text-white font-semibold py-4 rounded-xl transition-colors">
+                Stop Camera
+              </button>
+            )}
+          </div>
+
+          <p className="text-zinc-600 text-xs text-center mb-8">
+            Point camera at attendee&apos;s QR code. Scanning is automatic.
+          </p>
+        </>
+      )}
+
+      {/* ── Manual search mode ── */}
+      {mode === 'manual' && !result && (
+        <div className="mb-8">
+          <form onSubmit={handleManualSearch} className="space-y-3 mb-4">
+            <div className="relative">
+              <input
+                type="text"
+                value={manualQuery}
+                onChange={e => { setManualQuery(e.target.value); setManualError(''); setManualResults([]) }}
+                placeholder="Name, mobile number, or Application ID…"
+                className="w-full bg-white/5 border border-white/10 text-white placeholder-zinc-500 rounded-xl px-4 py-3.5 pr-12 text-sm focus:outline-none focus:border-yellow-500 transition-colors"
+                autoFocus
+              />
+              {manualQuery && (
+                <button type="button" onClick={() => { setManualQuery(''); setManualResults([]); setManualError('') }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors text-lg leading-none">
+                  ✕
+                </button>
+              )}
+            </div>
+            <button
+              type="submit"
+              disabled={manualSearching || !manualQuery.trim()}
+              className="w-full bg-gradient-to-r from-yellow-600 to-yellow-400 text-black font-bold py-3.5 rounded-xl disabled:opacity-60 hover:from-yellow-500 hover:to-yellow-300 transition-all"
+            >
+              {manualSearching ? 'Searching…' : '🔍 Search'}
+            </button>
+          </form>
+
+          {manualError && (
+            <div className="bg-red-900/20 border border-red-700/50 text-red-400 rounded-xl px-4 py-3 text-sm">
+              {manualError}
+            </div>
+          )}
+
+          {manualResults.length > 0 && (
+            <div className="space-y-2">
+              <div className="text-zinc-500 text-xs uppercase tracking-wide px-1 mb-1">
+                {manualResults.length === 1 ? '1 result — confirm to check in' : `${manualResults.length} results — select one`}
+              </div>
+              {manualResults.map(r => (
+                <div key={r.application_id} className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-white font-semibold text-sm">{r.full_name}</div>
+                    <div className="text-zinc-400 text-xs mt-0.5 font-mono">{r.application_id}</div>
+                    <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                      <span className="text-zinc-500 text-xs">{r.mobile}</span>
+                      <span className="text-yellow-500 text-xs">{tierLabel(r.seat_tier)}</span>
+                      <span className={`text-xs ${r.gender === 'male' ? 'text-blue-300' : r.gender === 'female' ? 'text-pink-300' : 'text-purple-300'}`}>
+                        {r.gender === 'male' ? '♂ Male' : r.gender === 'female' ? '♀ Female' : '⚧ Other'}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleManualCheckIn(r.application_id)}
+                    disabled={checkingIn === r.application_id}
+                    className="shrink-0 bg-green-600 hover:bg-green-500 text-white font-bold text-sm px-4 py-2.5 rounded-xl disabled:opacity-60 transition-colors"
+                  >
+                    {checkingIn === r.application_id ? '…' : '✅ Check In'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!manualQuery && manualResults.length === 0 && !manualError && (
+            <div className="text-center py-8">
+              <div className="text-4xl mb-3">🔍</div>
+              <div className="text-zinc-500 text-sm">Search by any of these</div>
+              <div className="mt-3 space-y-1.5">
+                {['Application ID  (e.g. MN-ABC123)', 'Mobile number  (e.g. 9876543210)', 'Full name  (e.g. Priya Reddy)'].map(hint => (
+                  <div key={hint} className="text-zinc-600 text-xs bg-white/5 rounded-lg px-3 py-2 text-left">{hint}</div>
+                ))}
               </div>
             </div>
           )}
-          {!scanning && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-              <div className="text-center">
-                <div className="text-4xl mb-2">📷</div>
-                <div className="text-zinc-400 text-sm">Camera not active</div>
-              </div>
-            </div>
-          )}
+
+          <p className="text-zinc-600 text-xs text-center mt-4">
+            Use this when the QR scanner is not working or the attendee lost their pass.
+          </p>
         </div>
       )}
 
-      {error && (
-        <div className="bg-red-900/20 border border-red-700/50 text-red-400 rounded-xl px-4 py-3 text-sm mb-4">{error}</div>
-      )}
-
-      {!result && (
-        <div className="grid grid-cols-2 gap-3 mb-8">
-          {!scanning ? (
-            <button onClick={startCamera} className="col-span-2 bg-gradient-to-r from-yellow-600 to-yellow-400 text-black font-bold py-4 rounded-xl hover:from-yellow-500 hover:to-yellow-300 transition-all">
-              📷 Start Scanning
-            </button>
-          ) : (
-            <button onClick={stopCamera} className="col-span-2 bg-red-700 hover:bg-red-600 text-white font-semibold py-4 rounded-xl transition-colors">
-              Stop Camera
-            </button>
-          )}
-        </div>
-      )}
-
-      <p className="text-zinc-600 text-xs text-center mb-8">
-        Point camera at attendee&apos;s QR code. Scanning is automatic.
-      </p>
 
       {/* ── SCAN HISTORY ── */}
       <div className="border border-white/10 rounded-2xl overflow-hidden">
