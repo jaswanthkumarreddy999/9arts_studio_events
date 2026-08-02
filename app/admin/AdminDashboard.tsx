@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { SEAT_TIERS } from '@/lib/types'
 import Link from 'next/link'
+import RegistrationForm from '@/components/RegistrationForm'
 
 type PaymentStatus = 'pending' | 'approved' | 'rejected'
 type RegStatus = 'active' | 'done' | 'payment_pending' | 'review' | 'deleted'
-type AdminTab = 'registrations' | 'contestants' | 'sponsors' | 'seating' | 'scanhistory' | 'votes'
+type AdminTab = 'registrations' | 'contestants' | 'sponsors' | 'seating' | 'scanhistory' | 'votes' | 'register'
 const VOTE_CATEGORIES = ['kid', 'teen', 'miss', 'misses'] as const
 type VoteCategory = typeof VOTE_CATEGORIES[number]
 
@@ -87,10 +88,10 @@ export default function AdminDashboard({ adminName }: { adminName: string }) {
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-4 flex gap-1">
-          {(['registrations', 'contestants', 'sponsors', 'seating', 'scanhistory', 'votes'] as const).map((tab) => (
+          {(['registrations', 'contestants', 'sponsors', 'seating', 'scanhistory', 'votes', 'register'] as const).map((tab) => (
             <button key={tab} onClick={() => setActiveTab(tab)}
               className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-all ${activeTab === tab ? 'border-yellow-500 text-yellow-400' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}>
-              {tab === 'registrations' ? '🎟️ Registrations' : tab === 'contestants' ? '👸 Contestants' : tab === 'sponsors' ? '🤝 Sponsors' : tab === 'seating' ? '🪑 Seating' : tab === 'scanhistory' ? '📋 Scan History' : '🗳️ Votes'}
+              {tab === 'registrations' ? '🎟️ Registrations' : tab === 'contestants' ? '👸 Contestants' : tab === 'sponsors' ? '🤝 Sponsors' : tab === 'seating' ? '🪑 Seating' : tab === 'scanhistory' ? '📋 Scan History' : tab === 'votes' ? '🗳️ Votes' : '➕ Register'}
             </button>
           ))}
         </div>
@@ -102,6 +103,7 @@ export default function AdminDashboard({ adminName }: { adminName: string }) {
         {activeTab === 'seating' && <SeatingTab />}
         {activeTab === 'scanhistory' && <ScanHistoryTab />}
         {activeTab === 'votes' && <VotesTab />}
+        {activeTab === 'register' && <AdminRegisterTab />}
       </div>
     </div>
   )
@@ -1420,6 +1422,20 @@ function TicketAssignPanel({ applicationId, onSaved }: { applicationId: string; 
         className="w-full py-2 rounded-xl text-sm font-semibold bg-cyan-900/30 border border-cyan-700/40 text-cyan-300 hover:bg-cyan-900/50 disabled:opacity-50 transition-colors">
         {saving ? 'Saving…' : saved ? '✅ Saved' : '💾 Save Seat Assignment'}
       </button>
+    </div>
+  )
+}
+
+// ─── ADMIN REGISTER TAB ──────────────────────────────────────────────────────
+
+function AdminRegisterTab() {
+  return (
+    <div className="max-w-2xl mx-auto">
+      <div className="mb-6">
+        <h2 className="text-white font-bold text-xl mb-1">➕ Register Attendee</h2>
+        <p className="text-zinc-500 text-sm">Register someone on their behalf. All tiers are available here regardless of public portal status.</p>
+      </div>
+      <RegistrationForm showAllTiers />
     </div>
   )
 }

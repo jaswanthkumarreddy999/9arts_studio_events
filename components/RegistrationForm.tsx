@@ -120,7 +120,7 @@ function Field({ label, error, children }: { label: string; error?: string; chil
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function RegistrationForm() {
+export default function RegistrationForm({ showAllTiers = false }: { showAllTiers?: boolean }) {
   const [state, dispatch] = useReducer(reducer, initialState)
   const [mode, setMode] = useState<BookingMode>('individual')
   const [tickets, setTickets] = useState<TicketRow[]>([
@@ -281,7 +281,7 @@ export default function RegistrationForm() {
       {/* ── INDIVIDUAL ── */}
       {mode === 'individual' && (
         <form onSubmit={handleDetailsSubmit} className="space-y-5">
-          <PassSelector seatTier={state.form.seat_tier} seatData={live}
+          <PassSelector seatTier={state.form.seat_tier} seatData={live} showAllTiers={showAllTiers}
             onChange={v => dispatch({ type: 'SET_FIELD', field: 'seat_tier', value: v })} />
           <Field label="Full Name *" error={state.errors.full_name}>
             <input type="text" value={state.form.full_name}
@@ -333,6 +333,7 @@ export default function RegistrationForm() {
           submitting={state.submitting}
           submitError={state.submitError}
           seatData={live}
+          showAllTiers={showAllTiers}
           onSubmit={handleGroupSubmit}
         />
       )}
@@ -342,14 +343,15 @@ export default function RegistrationForm() {
 
 // ─── PassSelector ─────────────────────────────────────────────────────────────
 
-function PassSelector({ seatTier, seatData, onChange }: {
+function PassSelector({ seatTier, seatData, showAllTiers = false, onChange }: {
   seatTier: SeatTier
   seatData: Record<string, { total: number; remaining: number; sold: number }>
+  showAllTiers?: boolean
   onChange: (v: string) => void
 }) {
-  // Only show tiers that are open for booking
+  // Only show tiers that are open for booking (bypass when showAllTiers=true, e.g. admin)
   const openTiers = (Object.entries(SEAT_TIERS) as [SeatTier, typeof SEAT_TIERS[SeatTier]][])
-    .filter(([, t]) => !t.closed)
+    .filter(([, t]) => showAllTiers || !t.closed)
 
   return (
     <div>
@@ -405,13 +407,14 @@ function GenderSelect({ value, onChange }: { value: string; onChange: (v: string
   )
 }
 
-function GroupForm({ tickets, setTickets, errors, submitting, submitError, seatData, onSubmit }: {
+function GroupForm({ tickets, setTickets, errors, submitting, submitError, seatData, showAllTiers = false, onSubmit }: {
   tickets: TicketRow[]
   setTickets: (t: TicketRow[]) => void
   errors: string[]
   submitting: boolean
   submitError: string
   seatData: Record<string, { total: number; remaining: number; sold: number }>
+  showAllTiers?: boolean
   onSubmit: (e: React.FormEvent) => void
 }) {
   function update(i: number, field: keyof TicketRow, value: string) {
@@ -462,7 +465,7 @@ function GroupForm({ tickets, setTickets, errors, submitting, submitError, seatD
             <select value={t.seat_tier} onChange={e => update(i, 'seat_tier', e.target.value as SeatTier)}
               className="w-full bg-zinc-900 border border-white/10 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-yellow-500 appearance-none"
               style={{ colorScheme: 'dark' }}>
-              {Object.entries(SEAT_TIERS).filter(([, v]) => !v.closed).map(([k, v]) => {
+              {Object.entries(SEAT_TIERS).filter(([, v]) => showAllTiers || !v.closed).map(([k, v]) => {
                 const rem = seatData[k]?.remaining ?? v.totalSeats
                 return <option key={k} value={k} disabled={rem <= 0} className="bg-zinc-900 text-white">
                   {v.badge} {v.label} — ₹{v.price}{rem <= 0 ? ' (sold out)' : ''}
