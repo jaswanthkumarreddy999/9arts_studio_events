@@ -161,7 +161,7 @@ export default async function MyPassPage() {
                 const seatIcon = ticket.startsWith('S') ? '🛋️ ' : ticket.startsWith('C') ? '💺 ' : '🪑 '
                 return (
                   <div className="absolute flex items-center justify-center text-center whitespace-nowrap"
-                    style={{ top: '62%', left: '70.2%', width: '23.4%' }}>
+                    style={{ top: '61.5%', left: '69.7%', width: '23.4%' }}>
                     <span style={{ color: '#ffffff', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', textShadow: '0 1px 4px rgba(0,0,0,1)', fontSize: 'clamp(5px,1vw,14px)' }}>
                       {seatIcon}{table.toUpperCase()} · {seatWord} {seatNum}
                     </span>
