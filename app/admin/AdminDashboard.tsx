@@ -152,6 +152,7 @@ interface SeatingConfig {
   sofa_count: number; sofa_capacity: number
   round_table_count: number; round_table_capacity: number
   chair_count: number; chairs_per_row: number
+  capacity_overrides: Record<string, number>
 }
 
 interface SeatRow {
@@ -165,6 +166,7 @@ function SeatingTab() {
     sofa_count: 20, sofa_capacity: 2,
     round_table_count: 20, round_table_capacity: 6,
     chair_count: 250, chairs_per_row: 10,
+    capacity_overrides: {},
   })
   const [seats, setSeats] = useState<SeatRow[]>([])
   const [allRegs, setAllRegs] = useState<SeatRow[]>([])
@@ -330,6 +332,11 @@ function SeatingTab() {
   // Elite table capacity for occupancy colour
   const tableCapacity = config.round_table_capacity
 
+  // Helper: get effective capacity for a named unit (checks overrides first)
+  function capFor(label: string, defaultCap: number): number {
+    return config.capacity_overrides?.[label] ?? defaultCap
+  }
+
   return (
     <div className="space-y-6">
       {/* Venue Config */}
@@ -374,6 +381,9 @@ function SeatingTab() {
           ))}
         </div>
       </div>
+
+      {/* Individual capacity overrides */}
+      <CapacityOverridePanel config={config} onUpdate={overrides => setConfig(c => ({ ...c, capacity_overrides: overrides }))} onSave={saveConfig} saving={saving} />
 
       {/* Tier overview */}
       <div className="grid grid-cols-2 gap-4">
@@ -440,7 +450,7 @@ function SeatingTab() {
                 const occupants = tableOccupancy.get(sLabel) ?? []
                 return (
                   <VenueCard key={sLabel} label={sLabel}
-                    capacity={config.sofa_capacity} occupants={occupants}
+                    capacity={capFor(sLabel, config.sofa_capacity)} occupants={occupants}
                     isSelected={tableFilter === sLabel}
                     onSelect={() => setTableFilter(tableFilter === sLabel ? null : sLabel)}
                     onRemove={id => { clearSeat(id); fetchAll() }}
@@ -464,7 +474,7 @@ function SeatingTab() {
                 const occupants = tableOccupancy.get(tLabel) ?? []
                 return (
                   <VenueCard key={tLabel} label={tLabel}
-                    capacity={tableCapacity} occupants={occupants}
+                    capacity={capFor(tLabel, tableCapacity)} occupants={occupants}
                     isSelected={tableFilter === tLabel}
                     onSelect={() => setTableFilter(tableFilter === tLabel ? null : tLabel)}
                     onRemove={id => { clearSeat(id); fetchAll() }}
@@ -493,7 +503,7 @@ function SeatingTab() {
                     const cap = Math.min(rowSize, config.chair_count - r * rowSize)
                     return (
                       <VenueCard key={rowLabel} label={rowLabel}
-                        capacity={cap} occupants={occupants}
+                        capacity={capFor(rowLabel, cap)} occupants={occupants}
                         isSelected={tableFilter === rowLabel}
                         onSelect={() => setTableFilter(tableFilter === rowLabel ? null : rowLabel)}
                         onRemove={id => { clearSeat(id); fetchAll() }}
@@ -753,6 +763,111 @@ function SeatAssignRow({ row, selected, onSelect, onClear, onSave }: {
         </div>
       </td>
     </tr>
+  )
+}
+
+// ─── CapacityOverridePanel ────────────────────────────────────────────────────
+
+function CapacityOverridePanel({ config, onUpdate, onSave, saving }: {
+  config: SeatingConfig
+  onUpdate: (overrides: Record<string, number>) => void
+  onSave: () => void
+  saving: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const [activeSection, setActiveSection] = useState<'sofas' | 'tables' | 'rows'>('tables')
+
+  function setOverride(label: string, val: string) {
+    const num = parseInt(val)
+    const next = { ...config.capacity_overrides }
+    if (!val || isNaN(num) || num < 0) {
+      delete next[label]
+    } else {
+      next[label] = num
+    }
+    onUpdate(next)
+  }
+
+  const sections = {
+    sofas: { label: '🛋️ Sofas', count: config.sofa_count, defaultCap: config.sofa_capacity, prefix: 'Sofa' },
+    tables: { label: '🪑 Tables', count: config.round_table_count, defaultCap: config.round_table_capacity, prefix: 'Table' },
+    rows: { label: '💺 Chair Rows', count: Math.ceil(config.chair_count / (config.chairs_per_row || 10)), defaultCap: config.chairs_per_row || 10, prefix: 'Row' },
+  }
+
+  const overrideCount = Object.keys(config.capacity_overrides ?? {}).length
+
+  return (
+    <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+      <button onClick={() => setOpen(o => !o)}
+        className="w-full px-5 py-3 flex items-center justify-between hover:bg-white/5 transition-colors text-left">
+        <div className="flex items-center gap-2">
+          <span className="text-white text-sm font-semibold">⚙️ Individual Capacity Overrides</span>
+          {overrideCount > 0 && (
+            <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full font-semibold">{overrideCount} override{overrideCount !== 1 ? 's' : ''}</span>
+          )}
+        </div>
+        <span className="text-zinc-500 text-xs">{open ? '▲ Hide' : '▼ Show'}</span>
+      </button>
+
+      {open && (
+        <div className="border-t border-white/10 p-5 space-y-4">
+          <p className="text-zinc-500 text-xs">Leave blank to use the default capacity. Enter a number to override for that specific unit.</p>
+
+          {/* Section tabs */}
+          <div className="flex gap-2">
+            {(Object.entries(sections) as [keyof typeof sections, typeof sections[keyof typeof sections]][]).map(([key, s]) => (
+              <button key={key} onClick={() => setActiveSection(key)}
+                className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${activeSection === key ? 'border-yellow-500 text-yellow-400 bg-yellow-900/20' : 'border-white/10 text-zinc-400'}`}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Grid of inputs */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
+            {Array.from({ length: sections[activeSection].count }, (_, i) => {
+              const lbl = `${sections[activeSection].prefix} ${i + 1}`
+              const override = config.capacity_overrides?.[lbl]
+              const def = sections[activeSection].defaultCap
+              return (
+                <div key={lbl} className={`rounded-xl border px-3 py-2 ${override !== undefined ? 'border-yellow-700/40 bg-yellow-900/10' : 'border-white/10 bg-white/3'}`}>
+                  <div className="text-zinc-400 text-xs mb-1 font-medium">{lbl}</div>
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="number" min={0} max={20}
+                      value={override !== undefined ? override : ''}
+                      onChange={e => setOverride(lbl, e.target.value)}
+                      placeholder={String(def)}
+                      className="w-full bg-transparent text-white text-sm focus:outline-none placeholder-zinc-600"
+                    />
+                    {override !== undefined && (
+                      <button onClick={() => setOverride(lbl, '')} className="text-zinc-600 hover:text-red-400 text-xs shrink-0">✕</button>
+                    )}
+                  </div>
+                  {override !== undefined && (
+                    <div className="text-zinc-600 text-xs mt-0.5">default: {def}</div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="flex gap-3 items-center">
+            <button onClick={onSave} disabled={saving}
+              className="text-xs bg-yellow-500 hover:bg-yellow-400 text-black font-bold px-4 py-2 rounded-lg disabled:opacity-50 transition-colors">
+              {saving ? 'Saving…' : '💾 Save Overrides'}
+            </button>
+            {overrideCount > 0 && (
+              <button onClick={() => onUpdate({})}
+                className="text-xs text-red-400 hover:text-red-300 border border-red-700/30 px-3 py-2 rounded-lg transition-colors">
+                🗑️ Clear All Overrides
+              </button>
+            )}
+            <span className="text-zinc-600 text-xs">{overrideCount} unit{overrideCount !== 1 ? 's' : ''} overridden</span>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
