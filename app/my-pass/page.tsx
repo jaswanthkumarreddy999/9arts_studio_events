@@ -156,23 +156,21 @@ export default async function MyPassPage() {
               {(pass.ticket_no || pass.table_number) && (() => {
                 const ticket = pass.ticket_no ?? ''
                 const table = pass.table_number ?? ''
-                // Format: "TABLE 3 · SEAT T3-2" or "SOFA 2 · SEAT S2-1" or "ROW 2 · CHAIR C15"
-                const seatType = ticket.startsWith('S') ? 'SOFA' : ticket.startsWith('C') ? 'ROW' : 'TABLE'
                 const seatWord = ticket.startsWith('C') ? 'CHAIR' : 'SEAT'
-                const location = table.toUpperCase()
+                const seatIcon = ticket.startsWith('S') ? '🛋️' : ticket.startsWith('C') ? '💺' : '🪑'
                 return (
                   <div className="absolute flex flex-col items-center justify-center text-center"
-                    style={{ top: '64%', left: '70.2%', width: '23.4%', fontSize: 'clamp(4px,0.7vw,10px)' }}>
+                    style={{ top: '65.5%', left: '70.2%', width: '23.4%' }}>
                     <div className="text-yellow-300 font-black tracking-widest uppercase leading-tight"
-                      style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8)', fontSize: 'clamp(4px,0.75vw,11px)' }}>
-                      {location}
+                      style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9)', fontSize: 'clamp(4px,0.8vw,11px)' }}>
+                      {table.toUpperCase()}
                     </div>
                     <div className="text-white font-bold tracking-wider uppercase"
-                      style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8)', fontSize: 'clamp(4px,0.8vw,12px)' }}>
+                      style={{ textShadow: '0 1px 3px rgba(0,0,0,0.9)', fontSize: 'clamp(4px,0.85vw,12px)' }}>
                       {seatWord} {ticket}
                     </div>
-                    <div className="text-zinc-400 font-semibold" style={{ fontSize: 'clamp(3px,0.55vw,8px)' }}>
-                      {seatType === 'SOFA' ? '🛋️ VIP Sofa' : seatType === 'ROW' ? '💺 Chair' : '🪑 Round Table'}
+                    <div style={{ fontSize: 'clamp(6px,0.9vw,13px)' }}>
+                      {seatIcon}
                     </div>
                   </div>
                 )
