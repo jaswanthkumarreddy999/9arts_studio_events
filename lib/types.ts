@@ -8,6 +8,7 @@ export const SEAT_TIERS = {
     color: 'amber',
     description: 'Best view, front rows, exclusive experience',
     totalSeats: 120,
+    closed: true, // Bookings closed — not available on public portal
   },
   gold: {
     label: 'Gold Pass',
@@ -18,6 +19,7 @@ export const SEAT_TIERS = {
     color: 'yellow',
     description: 'Great view, comfortable seating',
     totalSeats: 250,
+    closed: false,
   },
 } as const
 

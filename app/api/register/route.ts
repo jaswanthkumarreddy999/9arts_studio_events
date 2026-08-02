@@ -26,6 +26,11 @@ async function checkSeatAvailability(seat_tier: string, count = 1): Promise<bool
   return (approvedCount ?? 0) + count <= totalSeats
 }
 
+function isTierClosed(seat_tier: string): boolean {
+  const tier = SEAT_TIERS[seat_tier as keyof typeof SEAT_TIERS]
+  return !tier || tier.closed === true
+}
+
 export async function POST(req: NextRequest) {
   let body: unknown
   try { body = await req.json() } catch {
@@ -62,6 +67,9 @@ export async function POST(req: NextRequest) {
     const tierCounts: Record<string, number> = {}
     for (const t of tickets) tierCounts[t.seat_tier] = (tierCounts[t.seat_tier] ?? 0) + 1
     for (const [tier, count] of Object.entries(tierCounts)) {
+      if (isTierClosed(tier)) {
+        return Response.json({ error: `${SEAT_TIERS[tier as keyof typeof SEAT_TIERS].label} bookings are currently closed.` }, { status: 403 })
+      }
       if (!(await checkSeatAvailability(tier, count))) {
         return Response.json({ error: `${SEAT_TIERS[tier as keyof typeof SEAT_TIERS].label} seats are sold out.` }, { status: 409 })
       }
@@ -101,6 +109,11 @@ export async function POST(req: NextRequest) {
   }
 
   const data = parsed.data
+
+  // Block closed tiers
+  if (isTierClosed(data.seat_tier)) {
+    return Response.json({ error: `${SEAT_TIERS[data.seat_tier].label} bookings are currently closed.` }, { status: 403 })
+  }
 
   // Duplicate check: same name + same mobile
   const existing = await findDuplicate(data.full_name, data.mobile)

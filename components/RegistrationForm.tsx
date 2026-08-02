@@ -347,11 +347,15 @@ function PassSelector({ seatTier, seatData, onChange }: {
   seatData: Record<string, { total: number; remaining: number; sold: number }>
   onChange: (v: string) => void
 }) {
+  // Only show tiers that are open for booking
+  const openTiers = (Object.entries(SEAT_TIERS) as [SeatTier, typeof SEAT_TIERS[SeatTier]][])
+    .filter(([, t]) => !t.closed)
+
   return (
     <div>
       <label className="block text-sm font-medium text-zinc-300 mb-3">Select Your Pass</label>
-      <div className="grid grid-cols-2 gap-3">
-        {(Object.entries(SEAT_TIERS) as [SeatTier, typeof SEAT_TIERS[SeatTier]][]).map(([key, t]) => {
+      <div className={`grid gap-3 ${openTiers.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+        {openTiers.map(([key, t]) => {
           const discount = Math.round((1 - t.price / t.originalPrice) * 100)
           const live = seatData[key]
           const remaining = live?.remaining ?? t.totalSeats
@@ -458,7 +462,7 @@ function GroupForm({ tickets, setTickets, errors, submitting, submitError, seatD
             <select value={t.seat_tier} onChange={e => update(i, 'seat_tier', e.target.value as SeatTier)}
               className="w-full bg-zinc-900 border border-white/10 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-yellow-500 appearance-none"
               style={{ colorScheme: 'dark' }}>
-              {Object.entries(SEAT_TIERS).map(([k, v]) => {
+              {Object.entries(SEAT_TIERS).filter(([, v]) => !v.closed).map(([k, v]) => {
                 const rem = seatData[k]?.remaining ?? v.totalSeats
                 return <option key={k} value={k} disabled={rem <= 0} className="bg-zinc-900 text-white">
                   {v.badge} {v.label} — ₹{v.price}{rem <= 0 ? ' (sold out)' : ''}
