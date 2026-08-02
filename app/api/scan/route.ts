@@ -32,6 +32,13 @@ export async function POST(req: NextRequest) {
     return Response.json({ valid: false, reason: 'Pass not found or payment not approved' }, { status: 403 })
   }
 
+  // Get registration details for mobile/gender
+  const { data: reg } = await supabaseAdmin
+    .from('registrations')
+    .select('mobile, gender')
+    .eq('application_id', payload.appId)
+    .maybeSingle()
+
   // Step 3: Check for duplicate scan
   const { data: existing } = await supabaseAdmin
     .from('scan_logs')
@@ -61,5 +68,7 @@ export async function POST(req: NextRequest) {
     applicationId: payload.appId,
     ticketNo: pass.ticket_no ?? null,
     tableNumber: pass.table_number ?? null,
+    mobile: reg?.mobile ?? null,
+    gender: reg?.gender ?? null,
   })
 }

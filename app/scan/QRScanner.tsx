@@ -10,6 +10,8 @@ type ScanResult = {
   applicationId?: string
   ticketNo?: string | null
   tableNumber?: string | null
+  mobile?: string | null
+  gender?: string | null
 } | null
 
 interface ScanLog {
@@ -259,19 +261,43 @@ export default function QRScanner() {
               <div className="text-white text-lg font-semibold">{result.name}</div>
               <div className="text-zinc-400 text-sm mt-1">{tierLabel(result.tier)}</div>
 
-              {/* Seat info */}
+              {/* Details */}
+              <div className="mt-3 bg-black/30 rounded-xl px-4 py-3 text-left space-y-1.5">
+                {result.applicationId && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-zinc-500">App ID</span>
+                    <span className="text-zinc-300 font-mono">{result.applicationId}</span>
+                  </div>
+                )}
+                {result.mobile && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-zinc-500">Mobile</span>
+                    <span className="text-white font-semibold">{result.mobile}</span>
+                  </div>
+                )}
+                {result.gender && (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-zinc-500">Gender</span>
+                    <span className={`font-semibold ${result.gender === 'male' ? 'text-blue-300' : result.gender === 'female' ? 'text-pink-300' : 'text-purple-300'}`}>
+                      {result.gender === 'male' ? '♂ Male' : result.gender === 'female' ? '♀ Female' : '⚧ Other'}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Seat info or assign */}
               {result.ticketNo || result.tableNumber ? (
-                <div className="mt-4 bg-black/30 rounded-xl px-4 py-3 text-left space-y-1">
+                <div className="mt-3 bg-green-900/20 border border-green-700/30 rounded-xl px-4 py-3 text-left">
                   <div className="text-green-300 text-xs font-semibold uppercase tracking-wide mb-2">🪑 Seat Assignment</div>
                   {result.tableNumber && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-zinc-400">Table / Row</span>
+                      <span className="text-zinc-400">Location</span>
                       <span className="text-white font-bold">{result.tableNumber}</span>
                     </div>
                   )}
                   {result.ticketNo && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-zinc-400">Seat No</span>
+                    <div className="flex justify-between text-sm mt-1">
+                      <span className="text-zinc-400">Seat</span>
                       <span className="text-cyan-400 font-mono font-bold">{result.ticketNo}</span>
                     </div>
                   )}
@@ -433,55 +459,111 @@ function SeatAssignInline({ applicationId, onAssigned }: {
   applicationId: string
   onAssigned: (seat: string, table: string) => void
 }) {
+  const [seatType, setSeatType] = useState<'sofa' | 'table' | 'chair'>('table')
   const [seat, setSeat] = useState('')
-  const [table, setTable] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [config, setConfig] = useState({ sofa_count: 20, sofa_capacity: 2, round_table_count: 20, round_table_capacity: 6, chair_count: 250, chairs_per_row: 10 })
+  const [tableLabel, setTableLabel] = useState('')
+
+  useEffect(() => {
+    fetch('/api/admin/seating/config').then(r => r.ok ? r.json() : null).then(d => { if (d?.config) setConfig(d.config) }).catch(() => {})
+  }, [])
+
+  function handleSeatChange(val: string) {
+    setSeat(val)
+    // Derive table label from selection
+    if (seatType === 'table') {
+      const match = val.match(/^T(\d+)-/)
+      setTableLabel(match ? `Table ${match[1]}` : '')
+    } else if (seatType === 'sofa') {
+      const match = val.match(/^S(\d+)-/)
+      setTableLabel(match ? `Sofa ${match[1]}` : '')
+    } else {
+      const num = parseInt(val.replace('C', ''))
+      setTableLabel(isNaN(num) ? '' : `Row ${Math.ceil(num / (config.chairs_per_row || 10))}`)
+    }
+  }
 
   async function handleAssign() {
-    if (!seat.trim() && !table.trim()) return
+    if (!seat) return
     setSaving(true)
     const res = await fetch('/api/admin/seating/assign', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ applicationId, seatLabel: seat.trim() || null, tableLabel: table.trim() || null }),
+      body: JSON.stringify({ applicationId, seatLabel: seat, tableLabel }),
     })
     setSaving(false)
-    if (res.ok) { setSaved(true); onAssigned(seat.trim(), table.trim()) }
+    if (res.ok) { setSaved(true); onAssigned(seat, tableLabel) }
   }
 
   if (saved) {
     return (
-      <div className="mt-4 bg-green-900/20 border border-green-700/40 rounded-xl px-4 py-3">
+      <div className="mt-3 bg-green-900/20 border border-green-700/40 rounded-xl px-4 py-3">
         <div className="text-green-400 text-sm font-semibold">✅ Seat assigned</div>
-        <div className="text-zinc-400 text-xs mt-0.5">{table} · Seat {seat}</div>
+        <div className="text-zinc-400 text-xs mt-0.5">{tableLabel} · Seat {seat}</div>
       </div>
     )
   }
 
   return (
-    <div className="mt-4 bg-amber-900/20 border border-amber-700/40 rounded-xl px-4 py-3 text-left space-y-3">
+    <div className="mt-3 bg-amber-900/20 border border-amber-700/40 rounded-xl px-4 py-3 text-left space-y-3">
       <div className="text-amber-400 text-xs font-semibold uppercase tracking-wide">⚠️ No seat assigned — assign now</div>
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="block text-xs text-zinc-500 mb-1">Table / Row</label>
-          <input
-            value={table} onChange={e => setTable(e.target.value)}
-            placeholder="e.g. Table 3"
-            className="w-full bg-black/40 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-500"
-          />
-        </div>
-        <div>
-          <label className="block text-xs text-zinc-500 mb-1">Seat No</label>
-          <input
-            value={seat} onChange={e => setSeat(e.target.value)}
-            placeholder="e.g. T3-2"
-            className="w-full bg-black/40 border border-white/10 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-yellow-500"
-          />
-        </div>
+
+      {/* Type selector */}
+      <div className="grid grid-cols-3 gap-2">
+        {([['sofa', '🛋️ Sofa'], ['table', '🪑 Table'], ['chair', '💺 Chair']] as const).map(([type, label]) => (
+          <button key={type} type="button" onClick={() => { setSeatType(type); setSeat(''); setTableLabel('') }}
+            className={`py-2 rounded-xl text-xs font-semibold border transition-all ${seatType === type ? 'border-yellow-500 bg-yellow-900/20 text-yellow-300' : 'border-white/10 text-zinc-400'}`}>
+            {label}
+          </button>
+        ))}
       </div>
-      <button onClick={handleAssign} disabled={saving || (!seat.trim() && !table.trim())}
-        className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-2 rounded-lg text-sm disabled:opacity-50 transition-colors">
+
+      {/* Seat dropdown */}
+      <div>
+        <label className="block text-xs text-zinc-500 mb-1">Select Seat</label>
+        <select value={seat} onChange={e => handleSeatChange(e.target.value)}
+          className="w-full bg-zinc-900 border border-white/10 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-yellow-500 appearance-none"
+          style={{ colorScheme: 'dark' }}>
+          <option value="">— Choose a seat —</option>
+          {seatType === 'table' && Array.from({ length: config.round_table_count }, (_, i) => (
+            <optgroup key={i} label={`Table ${i + 1}`}>
+              {Array.from({ length: config.round_table_capacity }, (_, s) => {
+                const lbl = `T${i + 1}-${s + 1}`
+                return <option key={lbl} value={lbl}>{lbl}</option>
+              })}
+            </optgroup>
+          ))}
+          {seatType === 'sofa' && Array.from({ length: config.sofa_count }, (_, i) => (
+            <optgroup key={i} label={`Sofa ${i + 1}`}>
+              {Array.from({ length: config.sofa_capacity }, (_, s) => {
+                const lbl = `S${i + 1}-${s + 1}`
+                return <option key={lbl} value={lbl}>{lbl}</option>
+              })}
+            </optgroup>
+          ))}
+          {seatType === 'chair' && Array.from({ length: Math.ceil(config.chair_count / (config.chairs_per_row || 10)) }, (_, r) => (
+            <optgroup key={r} label={`Row ${r + 1}`}>
+              {Array.from({ length: Math.min(config.chairs_per_row || 10, config.chair_count - r * (config.chairs_per_row || 10)) }, (_, s) => {
+                const num = r * (config.chairs_per_row || 10) + s + 1
+                const lbl = `C${num}`
+                return <option key={lbl} value={lbl}>{lbl}</option>
+              })}
+            </optgroup>
+          ))}
+        </select>
+      </div>
+
+      {/* Preview */}
+      {seat && tableLabel && (
+        <div className="bg-black/30 rounded-lg px-3 py-2 text-xs text-zinc-400">
+          📍 {tableLabel.toUpperCase()} · SEAT {seat}
+        </div>
+      )}
+
+      <button onClick={handleAssign} disabled={saving || !seat}
+        className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-2.5 rounded-xl text-sm disabled:opacity-50 transition-colors">
         {saving ? 'Saving…' : '💾 Assign Seat'}
       </button>
       <button onClick={() => setSaved(true)}
