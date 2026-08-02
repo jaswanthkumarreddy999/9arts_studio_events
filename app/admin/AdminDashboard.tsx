@@ -356,7 +356,7 @@ function SeatingTab() {
             { label: 'Per Table', field: 'round_table_capacity', desc: 'Seats per table' },
             { label: 'Chairs', field: 'chair_count', desc: 'Gold section' },
             { label: 'Per Row', field: 'chairs_per_row', desc: 'Chairs per row' },
-          ] as { label: string; field: keyof SeatingConfig; desc: string }[]).map(({ label, field, desc }) => (
+          ] as { label: string; field: Exclude<keyof SeatingConfig, 'capacity_overrides'>; desc: string }[]).map(({ label, field, desc }) => (
             <div key={field}>
               <label className="block text-xs text-zinc-400 mb-1">{label}</label>
               <input type="number" min={0} value={config[field]}
