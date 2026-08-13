@@ -1,36 +1,33 @@
 import { supabaseAdmin } from '@/lib/supabase'
-import { SEAT_TIERS } from '@/lib/types'
+import { type EventSettings, DEFAULT_EVENT_SETTINGS } from '@/lib/types'
+import { buildTierMap } from '@/lib/eventSettings'
 
-export default async function AboutSection() {
-  // Fetch live seat counts directly from DB (server component)
-  let eliteRemaining: number = SEAT_TIERS.elite.totalSeats
-  let goldRemaining: number = SEAT_TIERS.gold.totalSeats
+export default async function AboutSection({ settings: s = DEFAULT_EVENT_SETTINGS }: { settings?: EventSettings }) {
+  const tierMap = buildTierMap(s)
 
+  // Count approved seats per tier dynamically
+  let totalRemaining = 0
   try {
     const { data: approvals } = await supabaseAdmin
       .from('payments')
       .select('registrations!inner(seat_tier)')
       .eq('status', 'approved')
 
-    const taken: Record<string, number> = { elite: 0, gold: 0 }
+    const taken: Record<string, number> = {}
+    for (const key of Object.keys(tierMap)) taken[key] = 0
+
     for (const row of approvals ?? []) {
       const reg = row.registrations as { seat_tier: string } | { seat_tier: string }[]
       const tier = Array.isArray(reg) ? reg[0]?.seat_tier : reg?.seat_tier
       if (tier && tier in taken) taken[tier]++
     }
-    eliteRemaining = Math.max(0, SEAT_TIERS.elite.totalSeats - (taken.elite ?? 0))
-    goldRemaining = Math.max(0, SEAT_TIERS.gold.totalSeats - (taken.gold ?? 0))
-  } catch { /* use defaults */ }
 
-  const totalRemaining = eliteRemaining + goldRemaining
-  const highlights = [
-    { icon: '🏆', title: 'Grand Prize', desc: 'Crown, trophy & exciting prizes for the winner' },
-    { icon: '💃', title: 'Dance Performance', desc: 'Dancers perform and display their unique talents' },
-    { icon: '👗', title: 'Fashion Walk', desc: 'Elegant ramp walk in traditional and western attire' },
-    { icon: '🎤', title: 'Q&A Round', desc: 'Thoughtful questions to highlight personality and intelligence' },
-    { icon: '📸', title: 'Photo Shoot', desc: 'Professional photography for all contestants' },
-    { icon: '🌟', title: 'Felicitation', desc: 'Special felicitation for all Guest and Sponsors' },
-  ]
+    let total = 0
+    for (const [key, info] of Object.entries(tierMap)) {
+      total += Math.max(0, info.totalSeats - (taken[key] ?? 0))
+    }
+    totalRemaining = total
+  } catch { /* use 0 */ }
 
   return (
     <section
@@ -42,15 +39,13 @@ export default async function AboutSection() {
         {/* Header */}
         <div className="text-center mb-16">
           <span className="inline-block text-yellow-500 text-sm font-semibold uppercase tracking-widest mb-3">
-            About The Event
+            {s.about_subtitle}
           </span>
           <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">
-            A Event of{' '}
-            <span className="shimmer">Elegance & Grace</span>
+            <span className="shimmer">{s.about_title}</span>
           </h2>
           <p className="text-zinc-400 text-lg max-w-2xl mx-auto leading-relaxed">
-            Miss Nellore 2026 is more than a beauty pageant — it&apos;s a platform for talented
-            young women of Nellore to shine, inspire, and make their mark.
+            {s.about_description}
           </p>
         </div>
 
@@ -59,20 +54,14 @@ export default async function AboutSection() {
           {/* Left: Text */}
           <div>
             <h3 className="text-2xl font-bold text-white mb-4">
-              Celebrating Beauty, Talent & Confidence
+              Celebrating the Best of {s.event_name}
             </h3>
             <p className="text-zinc-400 leading-relaxed mb-6">
-              This year&apos;s edition promises to be grander than ever. With contestants from
-              across Nellore district competing in multiple rounds, the evening will be filled
-              with glamour, entertainment, and inspiration.
-            </p>
-            <p className="text-zinc-400 leading-relaxed mb-8">
-              The event brings together families, friends, and supporters for an unforgettable
-              evening celebrating the remarkable women of our community.
+              {s.hero_description}
             </p>
             <div className="flex gap-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-yellow-400">31+</div>
+                <div className="text-3xl font-bold text-yellow-400">{s.stat_contestants_label}</div>
                 <div className="text-sm text-zinc-500 mt-1">Contestants</div>
               </div>
               <div className="text-center">
@@ -80,7 +69,7 @@ export default async function AboutSection() {
                 <div className="text-sm text-zinc-500 mt-1">Seats Left</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-yellow-400">1st</div>
+                <div className="text-3xl font-bold text-yellow-400">{s.stat_edition_label}</div>
                 <div className="text-sm text-zinc-500 mt-1">Edition</div>
               </div>
             </div>
@@ -92,13 +81,13 @@ export default async function AboutSection() {
               Event Details
             </h4>
             {[
-              { label: 'Date', value: 'August 2, 2026', icon: '📅', href: null },
-              { label: 'Day', value: 'Sunday', icon: '🗓️', href: null },
-              { label: 'Venue', value: 'DGP kalyana mandapam, Nellore', icon: '📍', href: 'https://maps.app.goo.gl/wnjAFBDbuUUtRiLq8' },
-              { label: 'Location', value: 'Nellore, Andhra Pradesh', icon: '🗺️', href: null },
-              { label: 'Time', value: '2:00 PM onwards', icon: '⏰', href: null },
-              { label: 'Dress Code', value: 'Formal / Traditional / Professional', icon: '👔', href: null },
-            ].map((item) => (
+              { label: 'Date',      value: s.event_date,    icon: '📅', href: null },
+              { label: 'Day',       value: s.event_day,     icon: '🗓️', href: null },
+              { label: 'Time',      value: s.event_time,    icon: '⏰', href: null },
+              { label: 'Venue',     value: s.venue_name,    icon: '📍', href: s.venue_maps_url || null },
+              { label: 'Location',  value: s.venue_address, icon: '🗺️', href: null },
+              { label: 'Organizer', value: s.organizer_name,icon: '🎭', href: null },
+            ].filter(item => item.value && item.value !== 'TBA' && item.value !== 'Venue TBA').map((item) => (
               <div key={item.label} className="flex items-start gap-3 py-3 border-b border-white/5 last:border-0">
                 <span className="text-lg">{item.icon}</span>
                 <div>
@@ -118,18 +107,18 @@ export default async function AboutSection() {
         </div>
 
         {/* Highlights grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {highlights.map((h) => (
-            <div
-              key={h.title}
-              className="bg-white/5 border border-white/10 hover:border-yellow-700/50 rounded-xl p-5 transition-all hover:bg-white/8"
-            >
-              <div className="text-3xl mb-3">{h.icon}</div>
-              <h4 className="font-semibold text-white mb-1">{h.title}</h4>
-              <p className="text-zinc-500 text-sm leading-relaxed">{h.desc}</p>
-            </div>
-          ))}
-        </div>
+        {s.about_highlights.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {s.about_highlights.map((h) => (
+              <div key={h.title}
+                className="bg-white/5 border border-white/10 hover:border-yellow-700/50 rounded-xl p-5 transition-all hover:bg-white/8">
+                <div className="text-3xl mb-3">{h.icon}</div>
+                <h4 className="font-semibold text-white mb-1">{h.title}</h4>
+                <p className="text-zinc-500 text-sm leading-relaxed">{h.desc}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </section>
   )

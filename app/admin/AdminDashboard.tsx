@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { SEAT_TIERS } from '@/lib/types'
+import { SEAT_TIERS, type EventSettings, DEFAULT_EVENT_SETTINGS } from '@/lib/types'
 import Link from 'next/link'
 import RegistrationForm from '@/components/RegistrationForm'
+import EventSettingsTab from './EventSettingsTab'
 
 type PaymentStatus = 'pending' | 'approved' | 'rejected'
 type RegStatus = 'active' | 'done' | 'payment_pending' | 'review' | 'deleted'
-type AdminTab = 'registrations' | 'contestants' | 'sponsors' | 'seating' | 'scanhistory' | 'votes' | 'register'
+type AdminTab = 'registrations' | 'contestants' | 'sponsors' | 'seating' | 'scanhistory' | 'votes' | 'register' | 'settings'
 const VOTE_CATEGORIES = ['kid', 'teen', 'miss', 'misses'] as const
 type VoteCategory = typeof VOTE_CATEGORIES[number]
 
@@ -65,10 +66,30 @@ interface CategoryResult {
 export default function AdminDashboard({ adminName }: { adminName: string }) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<AdminTab>('registrations')
+  const [eventSettings, setEventSettings] = useState<EventSettings>(DEFAULT_EVENT_SETTINGS)
+
+  // Load event branding for the header
+  useEffect(() => {
+    fetch('/api/event-settings')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.settings) setEventSettings({ ...DEFAULT_EVENT_SETTINGS, ...d.settings }) })
+      .catch(() => {})
+  }, [activeTab]) // re-fetch when switching back to other tabs after saving settings
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' })
     router.push('/admin/login')
+  }
+
+  const TAB_META: Record<AdminTab, { label: string; icon: string }> = {
+    registrations: { label: 'Registrations', icon: '🎟️' },
+    contestants:   { label: 'Contestants',   icon: '👸' },
+    sponsors:      { label: 'Sponsors',      icon: '🤝' },
+    seating:       { label: 'Seating',       icon: '🪑' },
+    scanhistory:   { label: 'Scan History',  icon: '📋' },
+    votes:         { label: 'Votes',         icon: '🗳️' },
+    register:      { label: 'Register',      icon: '➕' },
+    settings:      { label: 'Settings',      icon: '⚙️' },
   }
 
   return (
@@ -76,9 +97,9 @@ export default function AdminDashboard({ adminName }: { adminName: string }) {
       <header className="bg-black/60 border-b border-white/10 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-xl">👑</span>
+            <span className="text-xl">{eventSettings.event_icon}</span>
             <div>
-              <div className="font-bold text-white text-sm">Miss Nellore 2026 — Admin</div>
+              <div className="font-bold text-white text-sm">{eventSettings.event_name} — Admin</div>
               <div className="text-zinc-500 text-xs">Welcome, {adminName}</div>
             </div>
           </div>
@@ -87,11 +108,11 @@ export default function AdminDashboard({ adminName }: { adminName: string }) {
             <button onClick={handleLogout} className="text-zinc-400 hover:text-red-400 text-sm transition-colors">Logout</button>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto px-4 flex gap-1">
-          {(['registrations', 'contestants', 'sponsors', 'seating', 'scanhistory', 'votes', 'register'] as const).map((tab) => (
+        <div className="max-w-7xl mx-auto px-4 flex gap-1 overflow-x-auto">
+          {(Object.keys(TAB_META) as AdminTab[]).map((tab) => (
             <button key={tab} onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-all ${activeTab === tab ? 'border-yellow-500 text-yellow-400' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}>
-              {tab === 'registrations' ? '🎟️ Registrations' : tab === 'contestants' ? '👸 Contestants' : tab === 'sponsors' ? '🤝 Sponsors' : tab === 'seating' ? '🪑 Seating' : tab === 'scanhistory' ? '📋 Scan History' : tab === 'votes' ? '🗳️ Votes' : '➕ Register'}
+              className={`px-3 py-2.5 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${activeTab === tab ? 'border-yellow-500 text-yellow-400' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}>
+              {TAB_META[tab].icon} {TAB_META[tab].label}
             </button>
           ))}
         </div>
@@ -102,8 +123,9 @@ export default function AdminDashboard({ adminName }: { adminName: string }) {
         {activeTab === 'sponsors' && <SponsorsTab />}
         {activeTab === 'seating' && <SeatingTab />}
         {activeTab === 'scanhistory' && <ScanHistoryTab />}
-        {activeTab === 'votes' && <VotesTab />}
+        {activeTab === 'votes' && <VotesTab eventSettings={eventSettings} />}
         {activeTab === 'register' && <AdminRegisterTab />}
+        {activeTab === 'settings' && <EventSettingsTab />}
       </div>
     </div>
   )
@@ -2175,7 +2197,8 @@ function RegistrationsTab() {
 
 // ─── CONTESTANTS TAB ──────────────────────────────────────────────────────────
 
-const CONTESTANT_CATEGORIES: { value: VoteCategory; label: string; icon: string }[] = [
+// Static fallback — replaced at runtime with event_settings.vote_categories
+const DEFAULT_CONTESTANT_CATEGORIES = [
   { value: 'kid',    label: 'Little', icon: '🧒' },
   { value: 'teen',   label: 'Teen',   icon: '👧' },
   { value: 'miss',   label: 'Miss',   icon: '👩' },
@@ -2194,7 +2217,26 @@ function ContestantsTab() {
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
-  const [filterCat, setFilterCat] = useState<VoteCategory | 'all'>('all')
+  const [filterCat, setFilterCat] = useState<string>('all')
+  const [contestantCategories, setContestantCategories] = useState(DEFAULT_CONTESTANT_CATEGORIES)
+
+  // Load dynamic vote categories from event settings
+  useEffect(() => {
+    fetch('/api/event-settings')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.settings?.vote_categories?.length) {
+          setContestantCategories(
+            d.settings.vote_categories.map((c: { key: string; label: string; icon: string }) => ({
+              value: c.key,
+              label: c.label,
+              icon: c.icon,
+            }))
+          )
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const fetchContestants = useCallback(async () => {
     setLoading(true)
@@ -2270,7 +2312,7 @@ function ContestantsTab() {
           <button onClick={() => setFilterCat('all')} className={`text-xs px-3 py-1.5 rounded-full border transition-all ${filterCat === 'all' ? 'border-yellow-500 text-yellow-400 bg-yellow-900/20' : 'border-white/10 text-zinc-400'}`}>
             All ({contestants.length})
           </button>
-          {CONTESTANT_CATEGORIES.map(cat => (
+          {contestantCategories.map(cat => (
             <button key={cat.value} onClick={() => setFilterCat(cat.value)}
               className={`text-xs px-3 py-1.5 rounded-full border transition-all ${filterCat === cat.value ? 'border-yellow-500 text-yellow-400 bg-yellow-900/20' : 'border-white/10 text-zinc-400'}`}>
               {cat.icon} {cat.label} ({contestants.filter(c => c.contestant_category === cat.value).length})
@@ -2289,7 +2331,7 @@ function ContestantsTab() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {displayed.map((c) => {
-            const catMeta = CONTESTANT_CATEGORIES.find(x => x.value === c.contestant_category)
+            const catMeta = contestantCategories.find(x => x.value === c.contestant_category)
             return (
               <div key={c.id} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden flex flex-col">
                 <div className="aspect-[3/2] bg-gradient-to-br from-purple-900/40 to-yellow-900/20 relative overflow-hidden">
@@ -2340,8 +2382,8 @@ function ContestantsTab() {
               <div>
                 <label className="block text-xs text-zinc-400 mb-2">Vote Category * (determines which poll they appear in)</label>
                 <div className="grid grid-cols-4 gap-2">
-                  {CONTESTANT_CATEGORIES.map(cat => (
-                    <button key={cat.value} type="button" onClick={() => setForm(f => ({ ...f, contestant_category: cat.value }))}
+                  {contestantCategories.map(cat => (
+                    <button key={cat.value} type="button" onClick={() => setForm(f => ({ ...f, contestant_category: cat.value as VoteCategory }))}
                       className={`py-2 rounded-xl text-xs font-semibold border transition-all ${form.contestant_category === cat.value ? 'border-yellow-500 bg-yellow-900/20 text-yellow-400' : 'border-white/10 text-zinc-400 hover:border-white/30'}`}>
                       {cat.icon} {cat.label}
                     </button>
@@ -2819,11 +2861,21 @@ function ScanHistoryTab() {
 
 // ─── VOTES TAB ────────────────────────────────────────────────────────────────
 
-function VotesTab() {
+function VotesTab({ eventSettings }: { eventSettings: EventSettings }) {
   const [byCategory, setByCategory] = useState<Record<string, CategoryResult[]>>({})
   const [totalVotes, setTotalVotes] = useState(0)
   const [loading, setLoading] = useState(true)
   const [resetting, setResetting] = useState<string | null>(null)
+
+  // Use dynamic vote categories from settings, fall back to static list
+  const voteCategories = eventSettings.vote_categories.length > 0
+    ? eventSettings.vote_categories
+    : [
+        { key: 'kid', label: 'Little', icon: '🧒' },
+        { key: 'teen', label: 'Teen', icon: '👧' },
+        { key: 'miss', label: 'Miss', icon: '👩' },
+        { key: 'misses', label: 'Misses', icon: '👑' },
+      ]
 
   const fetchVotes = useCallback(async () => {
     setLoading(true)
@@ -2835,8 +2887,8 @@ function VotesTab() {
   useEffect(() => { fetchVotes() }, [fetchVotes])
 
   async function handleReset(category?: string) {
-    const label = category ? `all ${category} votes` : 'ALL votes across every category'
-    if (!confirm(`Reset ${label}? This cannot be undone.`)) return
+    const lbl = category ? `all ${category} votes` : 'ALL votes across every category'
+    if (!confirm(`Reset ${lbl}? This cannot be undone.`)) return
     setResetting(category ?? 'all')
     await fetch('/api/admin/votes', {
       method: 'DELETE',
@@ -2867,22 +2919,21 @@ function VotesTab() {
         <div className="text-center py-12 text-zinc-500">Loading...</div>
       ) : (
         <div className="space-y-8">
-          {VOTE_CATEGORIES.map(cat => {
-            const catMeta = CONTESTANT_CATEGORIES.find(x => x.value === cat)!
-            const results = byCategory[cat] ?? []
+          {voteCategories.map(cat => {
+            const results = byCategory[cat.key] ?? []
             const catTotal = results.reduce((s, r) => s + (r.displayCount ?? r.count), 0)
             const maxCount = Math.max(...results.map(r => r.displayCount ?? r.count), 1)
 
             return (
-              <div key={cat} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+              <div key={cat.key} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
                 <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
                   <div>
-                    <h3 className="text-white font-semibold">{catMeta.icon} {catMeta.label} Category</h3>
+                    <h3 className="text-white font-semibold">{cat.icon} {cat.label} Category</h3>
                     <div className="text-zinc-500 text-xs mt-0.5">{catTotal} vote{catTotal !== 1 ? 's' : ''} cast</div>
                   </div>
-                  <button onClick={() => handleReset(cat)} disabled={resetting !== null || results.length === 0}
+                  <button onClick={() => handleReset(cat.key)} disabled={resetting !== null || results.length === 0}
                     className="text-xs text-red-400 hover:text-red-300 border border-red-700/30 px-3 py-1.5 rounded-lg disabled:opacity-40 transition-colors">
-                    {resetting === cat ? 'Resetting…' : '🗑️ Reset'}
+                    {resetting === cat.key ? 'Resetting…' : '🗑️ Reset'}
                   </button>
                 </div>
 

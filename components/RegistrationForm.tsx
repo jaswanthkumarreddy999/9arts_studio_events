@@ -130,9 +130,21 @@ export default function RegistrationForm({ showAllTiers = false }: { showAllTier
   const [ticketErrors, setTicketErrors] = useState<string[]>([])
   const UPI_ID = process.env.NEXT_PUBLIC_UPI_ID ?? '9346039342@ibl'
   const [seatData, setSeatData] = useState<Record<string, { total: number; remaining: number; sold: number }>>({})
+  const [dynamicTiers, setDynamicTiers] = useState<import('@/lib/types').PassTierConfig[]>([])
+  const [upiId, setUpiId] = useState(UPI_ID)
+  const [upiName, setUpiName] = useState('9 Arts Studio')
 
   useEffect(() => {
+    // Fetch seat availability
     fetch('/api/seats').then(r => r.json()).then(d => setSeatData(d.seats ?? {})).catch(() => {})
+    // Fetch dynamic event settings (tiers, UPI, etc.)
+    fetch('/api/event-settings').then(r => r.json()).then(d => {
+      if (d.settings) {
+        setDynamicTiers(d.settings.pass_tiers ?? [])
+        if (d.settings.upi_id) setUpiId(d.settings.upi_id)
+        if (d.settings.upi_name) setUpiName(d.settings.upi_name)
+      }
+    }).catch(() => {})
   }, [])
 
   // Individual submit
@@ -233,6 +245,7 @@ export default function RegistrationForm({ showAllTiers = false }: { showAllTier
       name={state.form.full_name}
       tier={state.form.seat_tier}
       groupResults={state.groupResults}
+      tiers={dynamicTiers}
     />
   }
 
@@ -249,7 +262,8 @@ export default function RegistrationForm({ showAllTiers = false }: { showAllTier
           applicationId={state.applicationId}
           amount={amount}
           tier={primaryTier}
-          upiId={UPI_ID}
+          upiId={upiId}
+          upiName={upiName}
           utrNumber={state.utrNumber}
           screenshotFile={state.screenshotFile}
           uploading={state.uploading}
@@ -258,6 +272,7 @@ export default function RegistrationForm({ showAllTiers = false }: { showAllTier
           onUtrChange={v => dispatch({ type: 'SET_UTR', value: v })}
           onFileChange={f => dispatch({ type: 'SET_SCREENSHOT', file: f })}
           onSubmit={handlePaymentSubmit}
+          tiers={dynamicTiers}
         />
       </div>
     )
@@ -282,6 +297,7 @@ export default function RegistrationForm({ showAllTiers = false }: { showAllTier
       {mode === 'individual' && (
         <form onSubmit={handleDetailsSubmit} className="space-y-5">
           <PassSelector seatTier={state.form.seat_tier} seatData={live} showAllTiers={showAllTiers}
+            dynamicTiers={dynamicTiers}
             onChange={v => dispatch({ type: 'SET_FIELD', field: 'seat_tier', value: v })} />
           <Field label="Full Name *" error={state.errors.full_name}>
             <input type="text" value={state.form.full_name}
@@ -334,6 +350,7 @@ export default function RegistrationForm({ showAllTiers = false }: { showAllTier
           submitError={state.submitError}
           seatData={live}
           showAllTiers={showAllTiers}
+          dynamicTiers={dynamicTiers}
           onSubmit={handleGroupSubmit}
         />
       )}
@@ -343,43 +360,58 @@ export default function RegistrationForm({ showAllTiers = false }: { showAllTier
 
 // ─── PassSelector ─────────────────────────────────────────────────────────────
 
-function PassSelector({ seatTier, seatData, showAllTiers = false, onChange }: {
+function PassSelector({ seatTier, seatData, showAllTiers = false, dynamicTiers = [], onChange }: {
   seatTier: SeatTier
   seatData: Record<string, { total: number; remaining: number; sold: number }>
   showAllTiers?: boolean
+  dynamicTiers?: import('@/lib/types').PassTierConfig[]
   onChange: (v: string) => void
 }) {
-  // Only show tiers that are open for booking (bypass when showAllTiers=true, e.g. admin)
-  const openTiers = (Object.entries(SEAT_TIERS) as [SeatTier, typeof SEAT_TIERS[SeatTier]][])
-    .filter(([, t]) => showAllTiers || !t.closed)
+  // Use dynamic tiers from event_settings if available, otherwise fall back to static SEAT_TIERS
+  const tierEntries = dynamicTiers.length > 0
+    ? dynamicTiers.filter(t => showAllTiers || !t.closed).map(t => ({
+        key: t.key,
+        label: t.label,
+        subtitle: t.subtitle,
+        badge: t.badge,
+        price: t.price,
+        originalPrice: t.originalPrice,
+        totalSeats: t.totalSeats,
+        closed: t.closed,
+      }))
+    : (Object.entries(SEAT_TIERS) as [SeatTier, typeof SEAT_TIERS[SeatTier]][])
+        .filter(([, t]) => showAllTiers || !t.closed)
+        .map(([key, t]) => ({ key, ...t }))
 
   return (
     <div>
       <label className="block text-sm font-medium text-zinc-300 mb-3">Select Your Pass</label>
-      <div className={`grid gap-3 ${openTiers.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-        {openTiers.map(([key, t]) => {
-          const discount = Math.round((1 - t.price / t.originalPrice) * 100)
-          const live = seatData[key]
+      <div className={`grid gap-3 ${tierEntries.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+        {tierEntries.map((t) => {
+          const discount = t.originalPrice > t.price ? Math.round((1 - t.price / t.originalPrice) * 100) : 0
+          const live = seatData[t.key]
           const remaining = live?.remaining ?? t.totalSeats
           const soldOut = remaining <= 0
           return (
-            <label key={key}
-              className={`relative cursor-pointer rounded-xl p-4 border-2 transition-all ${soldOut ? 'opacity-50 cursor-not-allowed border-white/10 bg-white/5' : seatTier === key ? 'border-yellow-500 bg-yellow-900/20' : 'border-white/10 bg-white/5 hover:border-yellow-700/50'}`}>
-              <input type="radio" name="seat_tier" value={key} checked={seatTier === key} disabled={soldOut}
-                onChange={() => !soldOut && onChange(key)} className="sr-only" />
-              {!soldOut && <div className="absolute -top-2.5 -right-2.5 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{discount}% OFF</div>}
+            <label key={t.key}
+              className={`relative cursor-pointer rounded-xl p-4 border-2 transition-all ${soldOut ? 'opacity-50 cursor-not-allowed border-white/10 bg-white/5' : seatTier === t.key ? 'border-yellow-500 bg-yellow-900/20' : 'border-white/10 bg-white/5 hover:border-yellow-700/50'}`}>
+              <input type="radio" name="seat_tier" value={t.key} checked={seatTier === t.key} disabled={soldOut}
+                onChange={() => !soldOut && onChange(t.key)} className="sr-only" />
+              {!soldOut && discount > 0 && <div className="absolute -top-2.5 -right-2.5 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{discount}% OFF</div>}
               {soldOut && <div className="absolute -top-2.5 -right-2.5 bg-zinc-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">SOLD OUT</div>}
               <div className="text-2xl mb-2">{t.badge}</div>
               <div className="font-bold text-white text-sm">{t.label}</div>
               <div className="text-xs text-zinc-400 mt-0.5">{t.subtitle}</div>
               <div className="mt-2 flex items-baseline gap-2">
                 <span className="text-yellow-400 font-bold text-lg">₹{t.price}</span>
-                <span className="text-zinc-500 text-xs line-through">₹{t.originalPrice}</span>
+                {t.originalPrice > t.price && (
+                  <span className="text-zinc-500 text-xs line-through">₹{t.originalPrice}</span>
+                )}
               </div>
               <div className={`text-xs mt-1.5 ${remaining <= 20 && remaining > 0 ? 'text-red-400' : 'text-zinc-600'}`}>
                 🎟️ {soldOut ? 'No seats left' : `${remaining} of ${t.totalSeats} left`}
               </div>
-              {seatTier === key && !soldOut && (
+              {seatTier === t.key && !soldOut && (
                 <div className="absolute top-2 left-2 w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center">
                   <svg className="w-3 h-3 text-black" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
                 </div>
@@ -407,7 +439,7 @@ function GenderSelect({ value, onChange }: { value: string; onChange: (v: string
   )
 }
 
-function GroupForm({ tickets, setTickets, errors, submitting, submitError, seatData, showAllTiers = false, onSubmit }: {
+function GroupForm({ tickets, setTickets, errors, submitting, submitError, seatData, showAllTiers = false, dynamicTiers = [], onSubmit }: {
   tickets: TicketRow[]
   setTickets: (t: TicketRow[]) => void
   errors: string[]
@@ -415,8 +447,15 @@ function GroupForm({ tickets, setTickets, errors, submitting, submitError, seatD
   submitError: string
   seatData: Record<string, { total: number; remaining: number; sold: number }>
   showAllTiers?: boolean
+  dynamicTiers?: import('@/lib/types').PassTierConfig[]
   onSubmit: (e: React.FormEvent) => void
 }) {
+  // Build tier entries from dynamic settings or fall back
+  const tierEntries = dynamicTiers.length > 0
+    ? dynamicTiers.filter(t => showAllTiers || !t.closed)
+    : (Object.entries(SEAT_TIERS) as [SeatTier, typeof SEAT_TIERS[SeatTier]][])
+        .filter(([, v]) => showAllTiers || !v.closed)
+        .map(([k, v]) => ({ key: k, ...v }))
   function update(i: number, field: keyof TicketRow, value: string) {
     const next = [...tickets]
     next[i] = { ...next[i], [field]: value }
@@ -438,7 +477,10 @@ function GroupForm({ tickets, setTickets, errors, submitting, submitError, seatD
     setTickets(tickets.filter((_, idx) => idx !== i))
   }
 
-  const total = tickets.reduce((s, t) => s + (SEAT_TIERS[t.seat_tier]?.price ?? 0), 0)
+  const total = tickets.reduce((s, t) => {
+    const entry = tierEntries.find(e => e.key === t.seat_tier)
+    return s + (entry?.price ?? 0)
+  }, 0)
   const inp = 'w-full bg-white/5 border border-white/10 text-white placeholder-zinc-500 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-yellow-500'
 
   return (
@@ -465,10 +507,10 @@ function GroupForm({ tickets, setTickets, errors, submitting, submitError, seatD
             <select value={t.seat_tier} onChange={e => update(i, 'seat_tier', e.target.value as SeatTier)}
               className="w-full bg-zinc-900 border border-white/10 text-white rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-yellow-500 appearance-none"
               style={{ colorScheme: 'dark' }}>
-              {Object.entries(SEAT_TIERS).filter(([, v]) => showAllTiers || !v.closed).map(([k, v]) => {
-                const rem = seatData[k]?.remaining ?? v.totalSeats
-                return <option key={k} value={k} disabled={rem <= 0} className="bg-zinc-900 text-white">
-                  {v.badge} {v.label} — ₹{v.price}{rem <= 0 ? ' (sold out)' : ''}
+              {tierEntries.map((entry) => {
+                const rem = seatData[entry.key]?.remaining ?? entry.totalSeats
+                return <option key={entry.key} value={entry.key} disabled={rem <= 0} className="bg-zinc-900 text-white">
+                  {entry.badge} {entry.label} — ₹{entry.price}{rem <= 0 ? ' (sold out)' : ''}
                 </option>
               })}
             </select>
@@ -523,14 +565,18 @@ function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) 
 
 // ─── PaymentStep ──────────────────────────────────────────────────────────────
 
-function PaymentStep({ isGroup, groupResults, applicationId, amount, tier, upiId, utrNumber, screenshotFile, uploading, submitting, submitError, onUtrChange, onFileChange, onSubmit }: {
+function PaymentStep({ isGroup, groupResults, applicationId, amount, tier, upiId, upiName = '9 Arts Studio', utrNumber, screenshotFile, uploading, submitting, submitError, onUtrChange, onFileChange, onSubmit, tiers = [] }: {
   isGroup: boolean; groupResults: GroupResult[]; applicationId: string
-  amount: number; tier: SeatTier; upiId: string; utrNumber: string
+  amount: number; tier: SeatTier; upiId: string; upiName?: string; utrNumber: string
   screenshotFile: File | null; uploading: boolean; submitting: boolean; submitError: string
   onUtrChange: (v: string) => void; onFileChange: (f: File | null) => void; onSubmit: (e: React.FormEvent) => void
+  tiers?: import('@/lib/types').PassTierConfig[]
 }) {
-  const t = SEAT_TIERS[tier]
-  const phone = '9346039342'
+  // Resolve tier info dynamically
+  const tierInfo = tiers.find(t => t.key === tier) ?? SEAT_TIERS[tier as keyof typeof SEAT_TIERS]
+  const tierBadge = tierInfo?.badge ?? '🎟️'
+  const tierLabel = tierInfo?.label ?? tier
+  const phone = upiId.replace(/@.*/, '').replace(/\D/g, '').slice(-10) || '9346039342'
 
   return (
     <form onSubmit={onSubmit} className="space-y-5">
@@ -545,7 +591,7 @@ function PaymentStep({ isGroup, groupResults, applicationId, amount, tier, upiId
                 <div className="text-white text-xs font-medium">{r.full_name}</div>
                 <div className="text-green-400 font-mono text-xs">{r.application_id}</div>
               </div>
-              <div className="text-zinc-400 text-xs">{SEAT_TIERS[r.seat_tier as SeatTier]?.badge} ₹{r.amount}</div>
+              <div className="text-zinc-400 text-xs">{(tiers.find(t => t.key === r.seat_tier) ?? SEAT_TIERS[r.seat_tier as SeatTier])?.badge} ₹{r.amount}</div>
             </div>
           ))}
           <div className="text-amber-400 text-xs mt-1 pt-2 border-t border-green-700/20">⚠️ Screenshot or note these IDs — needed to check your pass later</div>
@@ -574,16 +620,19 @@ function PaymentStep({ isGroup, groupResults, applicationId, amount, tier, upiId
             {isGroup ? (
               <div className="space-y-1.5">
                 <div className="text-zinc-500 text-xs mb-2">Paying for {groupResults.length} people</div>
-                {groupResults.map(r => (
-                  <div key={r.application_id} className="flex justify-between text-sm">
-                    <span className="text-zinc-400 truncate mr-2">{r.full_name} · {SEAT_TIERS[r.seat_tier as SeatTier]?.label}</span>
-                    <span className="text-white shrink-0">₹{r.amount}</span>
-                  </div>
-                ))}
+                {groupResults.map(r => {
+                  const rTier = tiers.find(t => t.key === r.seat_tier) ?? SEAT_TIERS[r.seat_tier as keyof typeof SEAT_TIERS]
+                  return (
+                    <div key={r.application_id} className="flex justify-between text-sm">
+                      <span className="text-zinc-400 truncate mr-2">{r.full_name} · {rTier?.label ?? r.seat_tier}</span>
+                      <span className="text-white shrink-0">₹{r.amount}</span>
+                    </div>
+                  )
+                })}
                 <div className="flex items-center justify-between pt-2 border-t border-yellow-700/20 mt-1">
                   <div>
                     <div className="text-zinc-400 text-xs">Pay to</div>
-                    <div className="text-white font-semibold text-sm">9 Arts Studio</div>
+                    <div className="text-white font-semibold text-sm">{upiName}</div>
                   </div>
                   <div className="text-yellow-400 font-bold text-2xl">₹{amount}</div>
                 </div>
@@ -591,8 +640,8 @@ function PaymentStep({ isGroup, groupResults, applicationId, amount, tier, upiId
             ) : (
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-zinc-400 text-xs mb-0.5">Pay to · {t.badge} {t.label}</div>
-                  <div className="text-white font-semibold text-sm">9 Arts Studio</div>
+                  <div className="text-zinc-400 text-xs mb-0.5">Pay to · {tierBadge} {tierLabel}</div>
+                  <div className="text-white font-semibold text-sm">{upiName}</div>
                 </div>
                 <div className="text-right">
                   <div className="text-zinc-400 text-xs mb-0.5">Amount</div>
@@ -790,10 +839,15 @@ function PaymentStep({ isGroup, groupResults, applicationId, amount, tier, upiId
 
 // ─── SuccessScreen ────────────────────────────────────────────────────────────
 
-function SuccessScreen({ applicationId, name, tier, groupResults }: {
+function SuccessScreen({ applicationId, name, tier, groupResults, tiers = [] }: {
   applicationId: string; name: string; tier: SeatTier; groupResults: GroupResult[]
+  tiers?: import('@/lib/types').PassTierConfig[]
 }) {
+  function getTierInfo(key: string) {
+    return tiers.find(t => t.key === key) ?? SEAT_TIERS[key as keyof typeof SEAT_TIERS]
+  }
   const isGroup = groupResults.length > 0
+  const tierInfo = getTierInfo(tier)
   return (
     <div className="text-center max-w-md mx-auto">
       <div className="text-6xl mb-6 float">🎉</div>
@@ -815,13 +869,13 @@ function SuccessScreen({ applicationId, name, tier, groupResults }: {
                 <div className="text-zinc-400 text-xs">{r.full_name}</div>
                 <div className="text-white font-mono text-sm font-bold">{r.application_id}</div>
               </div>
-              <span className="text-zinc-400 text-xs">{SEAT_TIERS[r.seat_tier as SeatTier]?.badge}</span>
+              <span className="text-zinc-400 text-xs">{getTierInfo(r.seat_tier)?.badge ?? '🎟️'}</span>
             </div>
           ))
         ) : (
           <>
             <div className="flex justify-between"><span className="text-zinc-400 text-sm">Application ID</span><span className="text-white font-mono font-bold text-sm">{applicationId}</span></div>
-            <div className="flex justify-between"><span className="text-zinc-400 text-sm">Pass</span><span className="text-white text-sm">{SEAT_TIERS[tier].badge} {SEAT_TIERS[tier].label}</span></div>
+            <div className="flex justify-between"><span className="text-zinc-400 text-sm">Pass</span><span className="text-white text-sm">{tierInfo?.badge ?? '🎟️'} {tierInfo?.label ?? tier}</span></div>
             <div className="flex justify-between"><span className="text-zinc-400 text-sm">Status</span><span className="text-yellow-400 text-sm">Payment Pending</span></div>
           </>
         )}

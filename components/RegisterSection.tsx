@@ -1,6 +1,7 @@
 import RegistrationForm from './RegistrationForm'
+import { type EventSettings, DEFAULT_EVENT_SETTINGS } from '@/lib/types'
 
-export default function RegisterSection() {
+export default function RegisterSection({ settings: s = DEFAULT_EVENT_SETTINGS }: { settings?: EventSettings }) {
   return (
     <section id="register" className="py-20 sm:py-28"
       style={{ background: 'linear-gradient(180deg, #0a0a0f 0%, #0d0a1a 100%)' }}>
@@ -17,26 +18,30 @@ export default function RegisterSection() {
           </p>
         </div>
 
-        {/* ── BOOKINGS CLOSED ── */}
-        <div className="max-w-2xl mx-auto text-center">
-          <div className="bg-white/5 border border-white/10 rounded-3xl px-8 py-14 space-y-6">
-            <div className="text-6xl">🔒</div>
-            <div>
-              <h3 className="text-2xl font-bold text-white mb-2">Registrations Closed</h3>
-              <p className="text-zinc-400 text-base leading-relaxed">
-                Online registrations are now closed. If you have already registered, you can check your pass below.
-              </p>
+        {s.registrations_open ? (
+          /* ── REGISTRATIONS OPEN ── */
+          <RegistrationForm />
+        ) : (
+          /* ── REGISTRATIONS CLOSED ── */
+          <div className="max-w-2xl mx-auto text-center">
+            <div className="bg-white/5 border border-white/10 rounded-3xl px-8 py-14 space-y-6">
+              <div className="text-6xl">🔒</div>
+              <div>
+                <h3 className="text-2xl font-bold text-white mb-2">Registrations Closed</h3>
+                <p className="text-zinc-400 text-base leading-relaxed">
+                  {s.registrations_closed_message}
+                </p>
+              </div>
+              <a href="/login"
+                className="inline-block bg-gradient-to-r from-yellow-600 to-yellow-400 text-black font-bold px-8 py-3.5 rounded-xl text-base hover:from-yellow-500 hover:to-yellow-300 transition-all">
+                Check My Pass →
+              </a>
             </div>
-            <a href="/login"
-              className="inline-block bg-gradient-to-r from-yellow-600 to-yellow-400 text-black font-bold px-8 py-3.5 rounded-xl text-base hover:from-yellow-500 hover:to-yellow-300 transition-all">
-              Check My Pass →
-            </a>
           </div>
-        </div>
+        )}
       </div>
     </section>
   )
 }
 
-// Keep RegistrationForm imported so the module resolves — used by admin
 export { RegistrationForm }
