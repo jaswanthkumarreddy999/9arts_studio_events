@@ -58,6 +58,93 @@ function Toggle({ value, onChange, label: text }: { value: boolean; onChange: (v
   )
 }
 
+// ─── PassTemplateEditor ──────────────────────────────────────────────────────
+function PassTemplateEditor({ currentUrl, onUploaded }: { currentUrl: string; onUploaded: (url: string) => void }) {
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState('')
+  const [preview, setPreview] = useState(currentUrl)
+
+  const displayUrl = preview || currentUrl
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setError('')
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/admin/pass-template-upload', { method: 'POST', body: fd })
+      const d = await res.json()
+      if (!res.ok) { setError(d.error ?? 'Upload failed'); return }
+      setPreview(d.publicUrl)
+      onUploaded(d.publicUrl)
+    } catch {
+      setError('Upload failed — network error')
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Current template preview */}
+      <div className="relative w-full rounded-xl overflow-hidden border border-white/10 bg-black/30" style={{ aspectRatio: '1536/1024' }}>
+        {displayUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={displayUrl} alt="Pass template preview" className="w-full h-full object-fill" />
+        ) : (
+          // Fall back to the static bundled template
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src="/ticket-template.png" alt="Default pass template" className="w-full h-full object-fill" />
+        )}
+        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+          <span className="text-white text-xs font-semibold bg-black/60 px-3 py-1.5 rounded-lg">Current template</span>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <label className={`inline-flex items-center gap-2 cursor-pointer px-4 py-2.5 rounded-xl border text-sm font-medium transition-all ${uploading ? 'opacity-50 cursor-not-allowed border-white/10 text-zinc-500' : 'border-yellow-700/40 text-yellow-400 hover:bg-yellow-900/20'}`}>
+          {uploading ? '⏳ Uploading…' : '🖼️ Upload New Template'}
+          <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" disabled={uploading} onChange={handleFile} />
+        </label>
+        <p className="text-zinc-500 text-xs">PNG, JPEG or WebP · max 10 MB · recommended size 1536 × 1024 px (3:2 landscape)</p>
+        <p className="text-zinc-600 text-xs">The template is the ticket background image. Dynamic data (name, QR, application ID, etc.) is overlaid on top at fixed positions — design your template so those fields land in the correct spots.</p>
+        {displayUrl && displayUrl !== '/ticket-template.png' && (
+          <button type="button" onClick={() => { setPreview(''); onUploaded('') }}
+            className="text-xs text-zinc-500 hover:text-red-400 transition-colors underline">
+            Revert to default template
+          </button>
+        )}
+        {error && <p className="text-red-400 text-xs">{error}</p>}
+      </div>
+
+      {/* Field position guide */}
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-2">
+        <div className="text-xs text-zinc-400 font-semibold uppercase tracking-wide mb-2">Data field positions (% from top-left)</div>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-zinc-500 font-mono">
+          {[
+            { label: 'Name',           pos: 'top 21.5%  left 52%' },
+            { label: 'Application ID', pos: 'top 38%    left 45%' },
+            { label: 'Mobile',         pos: 'top 48.5%  left 55%' },
+            { label: 'Gender',         pos: 'top 59.2%  left 55%' },
+            { label: 'Pass Type',      pos: 'top 69.5%  left 55%' },
+            { label: 'Amount',         pos: 'top 86%    left 77%' },
+            { label: 'QR Code',        pos: 'top 30%    left 70.2% · 23.4% × 33%' },
+          ].map(({ label, pos }) => (
+            <div key={label} className="flex items-baseline gap-2">
+              <span className="text-zinc-300 w-28 shrink-0">{label}</span>
+              <span>{pos}</span>
+            </div>
+          ))}
+        </div>
+        <p className="text-zinc-600 text-xs pt-1">Design your template so labels / placeholders align with these coordinates.</p>
+      </div>
+    </div>
+  )
+}
+
 // ─── PaymentQrUploader ───────────────────────────────────────────────────────
 function PaymentQrUploader({ currentUrl, onUploaded }: { currentUrl: string; onUploaded: (url: string) => void }) {
   const [uploading, setUploading] = useState(false)
@@ -727,6 +814,17 @@ export default function EventSettingsTab() {
       {/* ── PASS TIERS ───────────────────────────────────────────────────── */}
       <Section title="Pass Types & Pricing" icon="🎫">
         <PassTierEditor tiers={settings.pass_tiers} onChange={v => set('pass_tiers', v)} />
+      </Section>
+
+      {/* ── PASS TEMPLATE ────────────────────────────────────────────────── */}
+      <Section title="Pass / Ticket Template" icon="🎟️" defaultOpen={false}>
+        <p className="text-zinc-500 text-xs mb-4">
+          Upload a custom background image for the entry pass shown to attendees. Dynamic data (name, QR code, application ID, mobile, gender, pass type, amount) is overlaid at the fixed positions listed below.
+        </p>
+        <PassTemplateEditor
+          currentUrl={settings.pass_template_url ?? ''}
+          onUploaded={url => set('pass_template_url', url)}
+        />
       </Section>
 
       {/* ── HOMEPAGE SECTIONS VISIBILITY ─────────────────────────────────── */}

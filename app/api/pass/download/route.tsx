@@ -1,6 +1,7 @@
 import { verifyToken } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase'
 import { SEAT_TIERS } from '@/lib/types'
+import { getEventSettings } from '@/lib/eventSettings'
 import { ImageResponse } from 'next/og'
 import { NextRequest } from 'next/server'
 
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
     const session = await verifyToken(token)
     if (!session) return new Response('Unauthorized', { status: 401 })
 
-    const [{ data: pass }, { data: reg }, { data: payment }] = await Promise.all([
+    const [{ data: pass }, { data: reg }, { data: payment }, eventSettings] = await Promise.all([
       supabaseAdmin
         .from('passes')
         .select('application_id, full_name, seat_tier, qr_data_url, issued_at, ticket_no, table_number')
@@ -32,9 +33,8 @@ export async function GET(req: NextRequest) {
         .select('amount')
         .eq('application_id', session.sub)
         .maybeSingle(),
-    ])
-
-    if (!pass?.qr_data_url) {
+      getEventSettings(),
+    ])    if (!pass?.qr_data_url) {
       return new Response('Pass not ready', { status: 404 })
     }
 
@@ -57,7 +57,8 @@ export async function GET(req: NextRequest) {
 
     const host = req.headers.get('host') ?? 'localhost:3000'
     const proto = host.startsWith('localhost') ? 'http' : 'https'
-    const templateUrl = `${proto}://${host}/ticket-template.png`
+    // Use the admin-uploaded template if set, otherwise fall back to the bundled default
+    const templateUrl = eventSettings.pass_template_url || `${proto}://${host}/ticket-template.png`
 
     // Template is 1536×1024px (measured from actual file)
     // Data area is roughly x:700-1100, labels start around x:820

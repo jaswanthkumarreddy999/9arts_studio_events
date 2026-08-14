@@ -195,6 +195,9 @@ export interface EventSettings {
   // Theme
   theme_color: string  // hex color e.g. '#d4a520' or preset name 'gold'|'blue'|'purple'|'rose'|'green'|'pink'
 
+  // Pass template
+  pass_template_url: string  // public URL of uploaded ticket background image; falls back to /ticket-template.png
+
   updated_at?: string
 }
 
@@ -320,6 +323,7 @@ export const DEFAULT_EVENT_SETTINGS: EventSettings = {
     { key: 'settings',      visible: true },
   ],
   theme_color: 'gold',
+  pass_template_url: '',
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

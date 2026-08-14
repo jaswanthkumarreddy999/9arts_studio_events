@@ -113,7 +113,7 @@ export default async function MyPassPage() {
             <div className="relative w-full overflow-hidden rounded-2xl shadow-2xl" style={{ aspectRatio: '1536/1024' }}>
               {/* Background template */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/ticket-template.png" alt="ticket" className="absolute inset-0 w-full h-full object-fill" />
+              <img src={settings.pass_template_url || '/ticket-template.png'} alt="ticket" className="absolute inset-0 w-full h-full object-fill" />
 
               {/* QR — x:70.2 y:70 → left:70.2% top:30% */}
               <div className="absolute flex items-center justify-center"
