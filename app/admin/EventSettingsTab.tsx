@@ -710,7 +710,7 @@ export default function EventSettingsTab() {
       )}
 
       {/* ── BRANDING ─────────────────────────────────────────────────────── */}
-      <Section title="Branding & Identity" icon="🎨">
+      <Section title="Branding & Identity" icon="🎨" defaultOpen={false}>
         <Row>
           <Field label="Event Name *">
             <input value={settings.event_name} onChange={e => set('event_name', e.target.value)} className={inp} placeholder="9 Arts Studio Event" />
@@ -739,7 +739,7 @@ export default function EventSettingsTab() {
       </Section>
 
       {/* ── DATE & VENUE ─────────────────────────────────────────────────── */}
-      <Section title="Date & Venue" icon="📅">
+      <Section title="Date & Venue" icon="📅" defaultOpen={false}>
         <Row cols={3}>
           <Field label="Event Date"><input value={settings.event_date} onChange={e => set('event_date', e.target.value)} className={inp} placeholder="August 6, 2026" /></Field>
           <Field label="Day of Week"><input value={settings.event_day} onChange={e => set('event_day', e.target.value)} className={inp} placeholder="Sunday" /></Field>
@@ -753,7 +753,7 @@ export default function EventSettingsTab() {
       </Section>
 
       {/* ── CONTACT ──────────────────────────────────────────────────────── */}
-      <Section title="Contact Information" icon="📞">
+      <Section title="Contact Information" icon="📞" defaultOpen={false}>
         <Row cols={3}>
           <Field label="Phone"><input value={settings.contact_phone} onChange={e => set('contact_phone', e.target.value)} className={inp} /></Field>
           <Field label="Email"><input value={settings.contact_email} onChange={e => set('contact_email', e.target.value)} className={inp} /></Field>
@@ -770,7 +770,7 @@ export default function EventSettingsTab() {
       </Section>
 
       {/* ── PAYMENT ──────────────────────────────────────────────────────── */}
-      <Section title="Payment Settings" icon="💳">
+      <Section title="Payment Settings" icon="💳" defaultOpen={false}>
         <Row>
           <Field label="UPI ID"><input value={settings.upi_id} onChange={e => set('upi_id', e.target.value)} className={inp} /></Field>
           <Field label="Recipient Name"><input value={settings.upi_name} onChange={e => set('upi_name', e.target.value)} className={inp} /></Field>
@@ -787,7 +787,7 @@ export default function EventSettingsTab() {
       </Section>
 
       {/* ── REGISTRATION ─────────────────────────────────────────────────── */}
-      <Section title="Registration Control" icon="🎟️">
+      <Section title="Registration Control" icon="🎟️" defaultOpen={false}>
         <Toggle value={settings.registrations_open} onChange={v => set('registrations_open', v)}
           label={settings.registrations_open ? '✅ Registrations OPEN — form visible to public' : '🔒 Registrations CLOSED — form hidden'} />
         {!settings.registrations_open && (
@@ -799,12 +799,12 @@ export default function EventSettingsTab() {
       </Section>
 
       {/* ── PASS TIERS ───────────────────────────────────────────────────── */}
-      <Section title="Pass Types & Pricing" icon="🎫">
+      <Section title="Pass Types & Pricing" icon="🎫" defaultOpen={false}>
         <PassTierEditor tiers={settings.pass_tiers} onChange={v => set('pass_tiers', v)} />
       </Section>
 
       {/* ── PASS TEMPLATE ────────────────────────────────────────────────── */}
-      <Section title="Pass / Ticket Template" icon="🎟️" defaultOpen={true}>
+      <Section title="Pass / Ticket Template" icon="🎟️" defaultOpen={false}>
         <p className="text-zinc-500 text-xs mb-4">
           Upload a custom background image for the entry pass shown to attendees. Drag the field labels on the preview to set where each data field appears on your template.
         </p>
@@ -819,7 +819,7 @@ export default function EventSettingsTab() {
       </Section>
 
       {/* ── HOMEPAGE SECTIONS VISIBILITY ─────────────────────────────────── */}
-      <Section title="Homepage Sections" icon="👁️">
+      <Section title="Homepage Sections" icon="👁️" defaultOpen={false}>
         <div className="space-y-3">
           <Toggle value={settings.show_contestants} onChange={v => set('show_contestants', v)} label="Show Contestants section & navbar link" />
           <Toggle value={settings.show_sponsors} onChange={v => set('show_sponsors', v)} label="Show Sponsors section" />
@@ -838,7 +838,7 @@ export default function EventSettingsTab() {
       </Section>
 
       {/* ── MY PASS SECTIONS ─────────────────────────────────────────────── */}
-      <Section title="My Pass Page Sections" icon="🎟️">
+      <Section title="My Pass Page Sections" icon="🎟️" defaultOpen={false}>
         <p className="text-zinc-500 text-xs mb-3">Control which sections are visible to logged-in attendees on the My Pass page.</p>
         <div className="space-y-3">
           <Toggle value={settings.show_voting ?? true} onChange={v => set('show_voting', v)}
@@ -848,7 +848,8 @@ export default function EventSettingsTab() {
         </div>
       </Section>
 
-      {/* ── BACKGROUND IMAGES ────────────────────────────────────────────── */}      <Section title="Section Background Images" icon="🖼️" defaultOpen={false}>
+      {/* ── BACKGROUND IMAGES ────────────────────────────────────────────── */}
+      <Section title="Section Background Images" icon="🖼️" defaultOpen={false}>
         <p className="text-zinc-500 text-xs">Paste a direct image URL for each section. Leave blank to use the default dark gradient.</p>
         <BgImageField label="Hero section background" value={settings.hero_bg_image} onChange={v => set('hero_bg_image', v)} />
         <BgImageField label="About section background" value={settings.about_bg_image} onChange={v => set('about_bg_image', v)} />
