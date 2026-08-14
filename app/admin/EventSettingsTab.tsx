@@ -385,7 +385,7 @@ function NewEventWipe() {
         </button>
       )}
 
-      {(phase === 'confirm' || phase === 'error') && (
+      {(phase === 'confirm' || phase === 'error' || phase === 'wiping') && (
         <div className="space-y-4 bg-black/30 border border-red-700/40 rounded-xl p-5">
           <div className="text-sm text-red-300 font-semibold">What to keep?</div>
           <div className="flex gap-6">
