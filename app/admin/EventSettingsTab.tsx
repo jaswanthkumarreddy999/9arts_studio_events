@@ -36,8 +36,14 @@ function Row({ children, cols = 2 }: { children: React.ReactNode; cols?: number 
   return <div className={`grid gap-3 ${cls}`}>{children}</div>
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div><label className={lbl}>{label}</label>{children}</div>
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className={lbl}>{label}</label>
+      {children}
+      {hint && <p className="text-zinc-500 text-xs mt-1">{hint}</p>}
+    </div>
+  )
 }
 
 function Toggle({ value, onChange, label: text }: { value: boolean; onChange: (v: boolean) => void; label: string }) {
@@ -52,8 +58,64 @@ function Toggle({ value, onChange, label: text }: { value: boolean; onChange: (v
   )
 }
 
-// ─── PassTierEditor ───────────────────────────────────────────────────────────
-function PassTierEditor({ tiers, onChange }: { tiers: PassTierConfig[]; onChange: (v: PassTierConfig[]) => void }) {
+// ─── PaymentQrUploader ───────────────────────────────────────────────────────
+function PaymentQrUploader({ currentUrl, onUploaded }: { currentUrl: string; onUploaded: (url: string) => void }) {
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState('')
+  const [preview, setPreview] = useState(currentUrl)
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setError('')
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/admin/payment-qr-upload', { method: 'POST', body: fd })
+      const d = await res.json()
+      if (!res.ok) { setError(d.error ?? 'Upload failed'); return }
+      setPreview(d.publicUrl)
+      onUploaded(d.publicUrl)
+    } catch {
+      setError('Upload failed — network error')
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
+  }
+
+  const displayUrl = preview || currentUrl
+
+  return (
+    <div className="space-y-3">
+      <label className={lbl}>Payment QR Image</label>
+      <div className="flex items-start gap-4">
+        {/* Current QR preview */}
+        <div className="bg-white p-2 rounded-xl shrink-0 w-24 h-24 flex items-center justify-center">
+          {displayUrl
+            ? <img src={displayUrl} alt="Payment QR" className="w-20 h-20 object-contain" />
+            : <span className="text-zinc-400 text-xs text-center leading-tight">No QR uploaded</span>
+          }
+        </div>
+        {/* Upload controls */}
+        <div className="flex-1 space-y-2">
+          <label className={`inline-flex items-center gap-2 cursor-pointer px-4 py-2 rounded-xl border text-sm font-medium transition-all ${uploading ? 'opacity-50 cursor-not-allowed border-white/10 text-zinc-500' : 'border-yellow-700/40 text-yellow-400 hover:bg-yellow-900/20'}`}>
+            {uploading ? '⏳ Uploading…' : '📷 Upload QR Image'}
+            <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" disabled={uploading} onChange={handleFile} />
+          </label>
+          <p className="text-zinc-500 text-xs">PNG, JPEG or WebP · max 5 MB. Upload your PhonePe / GPay QR code.</p>
+          {displayUrl && (
+            <p className="text-zinc-600 text-xs truncate">Current: {displayUrl.split('?')[0].split('/').pop()}</p>
+          )}
+          {error && <p className="text-red-400 text-xs">{error}</p>}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── PassTierEditor ───────────────────────────────────────────────────────────function PassTierEditor({ tiers, onChange }: { tiers: PassTierConfig[]; onChange: (v: PassTierConfig[]) => void }) {
   function update(i: number, field: keyof PassTierConfig, value: unknown) {
     onChange(tiers.map((t, idx) => idx === i ? { ...t, [field]: value } : t))
   }
@@ -592,6 +654,15 @@ export default function EventSettingsTab() {
           <Field label="UPI ID"><input value={settings.upi_id} onChange={e => set('upi_id', e.target.value)} className={inp} /></Field>
           <Field label="Recipient Name"><input value={settings.upi_name} onChange={e => set('upi_name', e.target.value)} className={inp} /></Field>
         </Row>
+        <Row>
+          <Field label="Payment Mobile Number" hint="Shown as Option B on the payment screen. Leave blank to auto-extract from UPI ID.">
+            <input value={settings.payment_mobile ?? ''} onChange={e => set('payment_mobile', e.target.value)} className={inp} placeholder="e.g. 9346039342" inputMode="tel" />
+          </Field>
+        </Row>
+        <PaymentQrUploader
+          currentUrl={settings.payment_qr_url ?? ''}
+          onUploaded={url => set('payment_qr_url', url)}
+        />
       </Section>
 
       {/* ── REGISTRATION ─────────────────────────────────────────────────── */}

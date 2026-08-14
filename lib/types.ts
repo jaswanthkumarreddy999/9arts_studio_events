@@ -135,6 +135,8 @@ export interface EventSettings {
   // Payment
   upi_id: string
   upi_name: string
+  payment_mobile: string   // shown separately in Option B; defaults to number extracted from upi_id
+  payment_qr_url: string   // public URL of the uploaded QR image; falls back to /payment-qr.png
 
   // Registration control
   registrations_open: boolean
@@ -218,6 +220,8 @@ export const DEFAULT_EVENT_SETTINGS: EventSettings = {
 
   upi_id: '9346039342@ibl',
   upi_name: '9 Arts Studio',
+  payment_mobile: '',
+  payment_qr_url: '',
 
   registrations_open: true,
   registrations_closed_message: 'Online registrations are now closed. If you have already registered, you can check your pass below.',

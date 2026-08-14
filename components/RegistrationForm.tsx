@@ -133,6 +133,8 @@ export default function RegistrationForm({ showAllTiers = false }: { showAllTier
   const [dynamicTiers, setDynamicTiers] = useState<import('@/lib/types').PassTierConfig[]>([])
   const [upiId, setUpiId] = useState(UPI_ID)
   const [upiName, setUpiName] = useState('9 Arts Studio')
+  const [paymentMobile, setPaymentMobile] = useState('')
+  const [paymentQrUrl, setPaymentQrUrl] = useState('')
   const [customFields, setCustomFields] = useState<CustomField[]>([])
   const [customData, setCustomData] = useState<Record<string, string>>({})
 
@@ -143,6 +145,8 @@ export default function RegistrationForm({ showAllTiers = false }: { showAllTier
         setDynamicTiers(d.settings.pass_tiers ?? [])
         if (d.settings.upi_id) setUpiId(d.settings.upi_id)
         if (d.settings.upi_name) setUpiName(d.settings.upi_name)
+        if (d.settings.payment_mobile) setPaymentMobile(d.settings.payment_mobile)
+        if (d.settings.payment_qr_url) setPaymentQrUrl(d.settings.payment_qr_url)
         setCustomFields(d.settings.custom_fields ?? [])
       }
     }).catch(() => {})
@@ -265,6 +269,8 @@ export default function RegistrationForm({ showAllTiers = false }: { showAllTier
           tier={primaryTier}
           upiId={upiId}
           upiName={upiName}
+          paymentMobile={paymentMobile}
+          paymentQrUrl={paymentQrUrl}
           utrNumber={state.utrNumber}
           screenshotFile={state.screenshotFile}
           uploading={state.uploading}
@@ -586,9 +592,10 @@ function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) 
 
 // ─── PaymentStep ──────────────────────────────────────────────────────────────
 
-function PaymentStep({ isGroup, groupResults, applicationId, amount, tier, upiId, upiName = '9 Arts Studio', utrNumber, screenshotFile, uploading, submitting, submitError, onUtrChange, onFileChange, onSubmit, tiers = [] }: {
+function PaymentStep({ isGroup, groupResults, applicationId, amount, tier, upiId, upiName = '9 Arts Studio', paymentMobile = '', paymentQrUrl = '', utrNumber, screenshotFile, uploading, submitting, submitError, onUtrChange, onFileChange, onSubmit, tiers = [] }: {
   isGroup: boolean; groupResults: GroupResult[]; applicationId: string
-  amount: number; tier: SeatTier; upiId: string; upiName?: string; utrNumber: string
+  amount: number; tier: SeatTier; upiId: string; upiName?: string
+  paymentMobile?: string; paymentQrUrl?: string; utrNumber: string
   screenshotFile: File | null; uploading: boolean; submitting: boolean; submitError: string
   onUtrChange: (v: string) => void; onFileChange: (f: File | null) => void; onSubmit: (e: React.FormEvent) => void
   tiers?: import('@/lib/types').PassTierConfig[]
@@ -597,7 +604,12 @@ function PaymentStep({ isGroup, groupResults, applicationId, amount, tier, upiId
   const tierInfo = tiers.find(t => t.key === tier) ?? SEAT_TIERS[tier as keyof typeof SEAT_TIERS]
   const tierBadge = tierInfo?.badge ?? '🎟️'
   const tierLabel = tierInfo?.label ?? tier
-  const phone = upiId.replace(/@.*/, '').replace(/\D/g, '').slice(-10) || '9346039342'
+  // Use explicit payment_mobile if set, otherwise extract from UPI ID
+  const phone = paymentMobile.replace(/\D/g, '').slice(-10)
+    || upiId.replace(/@.*/, '').replace(/\D/g, '').slice(-10)
+    || '9346039342'
+  // Use uploaded QR URL if set, otherwise fall back to static file
+  const qrSrc = paymentQrUrl || '/payment-qr.png'
 
   return (
     <form onSubmit={onSubmit} className="space-y-5">
@@ -681,11 +693,11 @@ function PaymentStep({ isGroup, groupResults, applicationId, amount, tier, upiId
             <div className="flex flex-col items-center gap-3">
               <div className="bg-white p-3 rounded-2xl shadow-xl">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/payment-qr.png" alt="Payment QR Code" className="w-52 h-52" />
+                <img src={qrSrc} alt="Payment QR Code" className="w-52 h-52" />
               </div>
               <div className="flex items-center gap-2">
                 <a
-                  href="/payment-qr.png"
+                  href={qrSrc}
                   download="payment-qr.png"
                   className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300 border border-blue-700/40 bg-blue-900/20 px-3 py-2 rounded-lg transition-colors"
                 >
