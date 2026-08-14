@@ -457,6 +457,28 @@ export default function EventSettingsTab() {
   }
 
   async function handleSave() {
+    // Client-side validation before hitting the API
+    if (!settings.event_name?.trim()) {
+      setError('Event Name is required (Branding & Identity section)')
+      return
+    }
+    if (settings.pass_tiers) {
+      for (const t of settings.pass_tiers) {
+        if (!t.key || !t.label) {
+          setError(`Pass tier is missing a key or label (Pass Types & Pricing section)`)
+          return
+        }
+        if (typeof t.price !== 'number' || typeof t.totalSeats !== 'number') {
+          setError(`Pass tier "${t.label}" is missing price or seat count (Pass Types & Pricing section)`)
+          return
+        }
+        if (!['elite', 'gold'].includes(t.key)) {
+          setError(`Pass tier key "${t.key}" must be "elite" or "gold" (Pass Types & Pricing section)`)
+          return
+        }
+      }
+    }
+
     setSaving(true); setError(''); setSaved(false)
     const res = await fetch('/api/admin/event-settings', {
       method: 'PUT',
@@ -465,7 +487,12 @@ export default function EventSettingsTab() {
     })
     setSaving(false)
     if (res.ok) { setSaved(true); setTimeout(() => setSaved(false), 3000) }
-    else { const d = await res.json(); setError(d.error ?? 'Failed to save') }
+    else {
+      const d = await res.json()
+      // Show the specific validation/DB error, not just a generic message
+      const detail = d.detail ? ` — ${d.detail}` : ''
+      setError((d.error ?? 'Failed to save') + detail)
+    }
   }
 
   if (loading) return <div className="text-center py-16 text-zinc-500">Loading event settings…</div>
@@ -480,7 +507,6 @@ export default function EventSettingsTab() {
           <div className="text-zinc-500 text-xs">Changes go live on the public site after saving.</div>
         </div>
         <div className="flex items-center gap-3">
-          {error && <span className="text-red-400 text-xs max-w-xs truncate">{error}</span>}
           {saved && <span className="text-green-400 text-xs">✅ Saved!</span>}
           <button onClick={handleSave} disabled={saving}
             className="bg-gradient-to-r from-yellow-600 to-yellow-400 text-black font-bold px-5 py-2 rounded-xl text-sm disabled:opacity-60 hover:from-yellow-500 hover:to-yellow-300 transition-all">
@@ -488,6 +514,18 @@ export default function EventSettingsTab() {
           </button>
         </div>
       </div>
+
+      {/* Error banner — shown below the sticky bar so the full message is visible */}
+      {error && (
+        <div className="bg-red-900/20 border border-red-700/40 rounded-xl px-4 py-3 flex items-start gap-2.5">
+          <span className="text-red-400 text-base shrink-0 mt-0.5">⚠️</span>
+          <div>
+            <div className="text-red-300 font-semibold text-sm">Failed to save settings</div>
+            <div className="text-red-400/80 text-xs mt-0.5 leading-relaxed">{error}</div>
+          </div>
+          <button onClick={() => setError('')} className="ml-auto text-zinc-500 hover:text-white text-xs shrink-0">✕</button>
+        </div>
+      )}
 
       {/* ── BRANDING ─────────────────────────────────────────────────────── */}
       <Section title="Branding & Identity" icon="🎨">
