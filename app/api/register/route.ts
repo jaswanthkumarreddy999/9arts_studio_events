@@ -149,11 +149,16 @@ export async function POST(req: NextRequest) {
   const application_id = generateApplicationId(data.mobile, settings.app_id_prefix)
   const amount = tierInfo.price
 
-  const { error: regError } = await supabaseAdmin.from('registrations').insert({
+  const insertData: Record<string, unknown> = {
     application_id, full_name: data.full_name, mobile: data.mobile,
     gender: data.gender, seat_tier: data.seat_tier,
-    extra_data: (body as Record<string, unknown>).extra_data ?? {},
-  })
+  }
+  const extraData = (body as Record<string, unknown>).extra_data
+  if (extraData && typeof extraData === 'object' && Object.keys(extraData).length > 0) {
+    insertData.extra_data = extraData
+  }
+
+  const { error: regError } = await supabaseAdmin.from('registrations').insert(insertData)
   if (regError) {
     console.error('registrations insert error:', regError)
     return Response.json({ error: `Registration failed: ${regError.message}`, code: regError.code }, { status: 500 })
