@@ -80,6 +80,16 @@ export interface CustomField {
 // ADMIN TAB CONFIG
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ABOUT STAT — a single stat in the About section stat row
+// ─────────────────────────────────────────────────────────────────────────────
+export interface AboutStat {
+  id: string
+  value: string          // display value e.g. "BellamKonda Sravan Kumar", "350", "1st"
+  label: string          // label below value e.g. "Guest of Honor", "Seats Left", "Edition"
+  auto?: 'seats_left'   // if set to 'seats_left', value is replaced by live seats remaining
+}
+
 export interface AdminTabConfig {
   key: string            // matches AdminTab type in AdminDashboard
   visible: boolean       // show tab in admin dashboard
@@ -202,8 +212,9 @@ export interface EventSettings {
   about_subtitle: string
   about_description: string
   about_highlights: AboutHighlight[]
-  stat_contestants_label: string
-  stat_edition_label: string
+  about_stats: AboutStat[]           // dynamic stat row — replaces hardcoded contestants/seats/edition
+  stat_contestants_label: string     // legacy — kept for back-compat, superseded by about_stats
+  stat_edition_label: string         // legacy
 
   // Hero
   hero_badge_text: string
@@ -324,6 +335,11 @@ export const DEFAULT_EVENT_SETTINGS: EventSettings = {
   ],
   stat_contestants_label: '31+',
   stat_edition_label: '1st',
+  about_stats: [
+    { id: 'stat1', value: '31+',  label: 'Contestants' },
+    { id: 'stat2', value: '',     label: 'Seats Left', auto: 'seats_left' },
+    { id: 'stat3', value: '1st',  label: 'Edition' },
+  ],
 
   hero_badge_text: 'Nellore\'s Most Prestigious Event',
   hero_description: 'A celebration of talent from Nellore, Andhra Pradesh. Join us for an unforgettable evening.',

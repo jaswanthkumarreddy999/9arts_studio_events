@@ -274,6 +274,75 @@ function PassTierEditor({ tiers, onChange }: { tiers: PassTierConfig[]; onChange
   )
 }
 
+// ─── AboutStatsEditor ─────────────────────────────────────────────────────────
+function AboutStatsEditor({ stats, onChange }: { stats: import('@/lib/types').AboutStat[]; onChange: (v: import('@/lib/types').AboutStat[]) => void }) {
+  function update(i: number, field: string, value: string | boolean) {
+    onChange(stats.map((s, idx) => idx === i ? { ...s, [field]: value } : s))
+  }
+  function remove(i: number) { onChange(stats.filter((_, idx) => idx !== i)) }
+  function add() {
+    onChange([...stats, { id: Date.now().toString(), value: '', label: 'New Stat' }])
+  }
+  function move(i: number, dir: -1 | 1) {
+    const next = [...stats]
+    const target = i + dir
+    if (target < 0 || target >= next.length) return
+    ;[next[i], next[target]] = [next[target], next[i]]
+    onChange(next)
+  }
+
+  return (
+    <div className="space-y-2">
+      {stats.map((s, i) => (
+        <div key={s.id} className="flex items-start gap-2 bg-black/20 border border-white/10 rounded-xl p-3">
+          {/* Up/down */}
+          <div className="flex flex-col gap-1 shrink-0 pt-0.5">
+            <button type="button" onClick={() => move(i, -1)} disabled={i === 0}
+              className="text-zinc-500 hover:text-white disabled:opacity-20 text-xs leading-none">▲</button>
+            <button type="button" onClick={() => move(i, 1)} disabled={i === stats.length - 1}
+              className="text-zinc-500 hover:text-white disabled:opacity-20 text-xs leading-none">▼</button>
+          </div>
+          <div className="flex-1 grid grid-cols-2 gap-2">
+            {/* Value / Auto toggle */}
+            <div>
+              <label className={lbl}>Value</label>
+              {s.auto === 'seats_left' ? (
+                <div className="w-full bg-white/5 border border-white/10 text-zinc-400 rounded-xl px-3 py-2 text-sm italic">Auto — live seats remaining</div>
+              ) : (
+                <input value={s.value} onChange={e => update(i, 'value', e.target.value)}
+                  className={inpSm + ' w-full text-sm px-3 py-2'} placeholder="e.g. BellamKonda Sravan Kumar" />
+              )}
+            </div>
+            {/* Label */}
+            <div>
+              <label className={lbl}>Label (below value)</label>
+              <input value={s.label} onChange={e => update(i, 'label', e.target.value)}
+                className={inpSm + ' w-full text-sm px-3 py-2'} placeholder="e.g. Guest of Honor" />
+            </div>
+          </div>
+          {/* Auto seats toggle */}
+          <div className="flex flex-col items-center gap-1 shrink-0 pt-0.5">
+            <label className="flex flex-col items-center gap-1 cursor-pointer text-center">
+              <button type="button"
+                onClick={() => update(i, 'auto', s.auto === 'seats_left' ? '' : 'seats_left')}
+                className={`w-10 h-5 rounded-full transition-colors relative ${s.auto === 'seats_left' ? 'bg-blue-600' : 'bg-zinc-700'}`}>
+                <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${s.auto === 'seats_left' ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              </button>
+              <span className="text-zinc-500" style={{ fontSize: 9 }}>Auto seats</span>
+            </label>
+            <button type="button" onClick={() => remove(i)}
+              className="text-red-400 hover:text-red-300 transition-colors text-xs mt-1">✕</button>
+          </div>
+        </div>
+      ))}
+      <button type="button" onClick={add}
+        className="w-full border border-dashed border-white/20 hover:border-white/40 text-zinc-500 hover:text-white py-2 rounded-xl text-xs transition-all">
+        + Add Stat
+      </button>
+    </div>
+  )
+}
+
 // ─── HighlightsEditor ─────────────────────────────────────────────────────────
 function HighlightsEditor({ highlights, onChange }: { highlights: AboutHighlight[]; onChange: (v: AboutHighlight[]) => void }) {
   return (
@@ -889,10 +958,11 @@ export default function EventSettingsTab() {
         <Field label="Description paragraph">
           <textarea value={settings.about_description} onChange={e => set('about_description', e.target.value)} rows={3} className={inp + ' resize-none'} />
         </Field>
-        <Row>
-          <Field label="Contestants stat label"><input value={settings.stat_contestants_label} onChange={e => set('stat_contestants_label', e.target.value)} className={inp} placeholder="31+" /></Field>
-          <Field label="Edition stat label"><input value={settings.stat_edition_label} onChange={e => set('stat_edition_label', e.target.value)} className={inp} placeholder="1st" /></Field>
-        </Row>
+        <div>
+          <label className={lbl + ' mb-1'}>Stats Row</label>
+          <p className="text-zinc-600 text-xs mb-2">The numbers/labels shown below the description. Add, remove, rename, or reorder freely. Set "Auto: Seats Left" to show live remaining seats.</p>
+          <AboutStatsEditor stats={settings.about_stats ?? DEFAULT_EVENT_SETTINGS.about_stats} onChange={v => set('about_stats', v)} />
+        </div>
         <div>
           <label className={lbl + ' mb-2'}>Event Highlights</label>
           <HighlightsEditor highlights={settings.about_highlights} onChange={v => set('about_highlights', v)} />

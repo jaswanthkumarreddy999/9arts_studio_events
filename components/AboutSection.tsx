@@ -51,15 +51,20 @@ export default async function AboutSection({ settings: s = DEFAULT_EVENT_SETTING
           <div>
             <h3 className="text-2xl font-bold text-white mb-4">Celebrating the Best of {s.event_name}</h3>
             <p className="text-zinc-400 leading-relaxed mb-6">{s.hero_description}</p>
-            <div className="flex gap-6">
-              {[
-                { value: s.stat_contestants_label, label: 'Contestants' },
-                { value: totalRemaining,            label: 'Seats Left' },
-                { value: s.stat_edition_label,      label: 'Edition' },
-              ].map(({ value, label }) => (
-                <div key={label} className="text-center">
-                  <div className="text-3xl font-bold accent-text" style={{ color: 'var(--gold)' }}>{value}</div>
-                  <div className="text-sm text-zinc-500 mt-1">{label}</div>
+            <div className="flex gap-6 flex-wrap">
+              {(s.about_stats?.length
+                ? s.about_stats
+                : [
+                    { id: 's1', value: s.stat_contestants_label, label: 'Contestants', auto: undefined },
+                    { id: 's2', value: String(totalRemaining),   label: 'Seats Left',  auto: 'seats_left' as const },
+                    { id: 's3', value: s.stat_edition_label,     label: 'Edition',     auto: undefined },
+                  ]
+              ).map((stat) => (
+                <div key={stat.id} className="text-center">
+                  <div className="text-3xl font-bold accent-text" style={{ color: 'var(--gold)' }}>
+                    {stat.auto === 'seats_left' ? totalRemaining : stat.value}
+                  </div>
+                  <div className="text-sm text-zinc-500 mt-1">{stat.label}</div>
                 </div>
               ))}
             </div>
