@@ -347,6 +347,8 @@ function NewEventWipe() {
       } else {
         setPhase('done')
         setTyped('')
+        // Reload the page so all tabs re-fetch from the now-empty database
+        setTimeout(() => window.location.reload(), 1500)
       }
     } catch (e) {
       setErrorMsg(String(e))
@@ -360,6 +362,7 @@ function NewEventWipe() {
         <div className="text-2xl">✅</div>
         <div className="text-green-300 font-semibold">Event data wiped successfully</div>
         <p className="text-green-400/70 text-sm">All registrations, payments, passes, votes, and scan logs cleared. Admin accounts and event settings preserved.</p>
+        <p className="text-green-400/50 text-xs">Reloading page…</p>
         <button onClick={() => setPhase('idle')} className="text-xs text-zinc-400 hover:text-white underline">Reset</button>
       </div>
     )
