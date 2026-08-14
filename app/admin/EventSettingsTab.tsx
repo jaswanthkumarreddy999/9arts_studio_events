@@ -341,8 +341,10 @@ function NewEventWipe() {
         }),
       })
       const d = await res.json()
-      if (!res.ok && res.status !== 207) {
-        setErrorMsg(d.error ?? 'Wipe failed')
+      if (!res.ok || res.status === 207) {
+        // Show the actual error details so we know what failed
+        const detail = d.errors ? `Failed tables: ${(d.errors as string[]).join('; ')}` : (d.error ?? 'Wipe failed')
+        setErrorMsg(detail)
         setPhase('error')
       } else {
         setPhase('done')

@@ -29,18 +29,28 @@ export async function POST(req: NextRequest) {
 
   const errors: string[] = []
 
-  async function wipe(table: string, column = 'id') {
-    // Delete all rows — use a condition that's always true
-    const { error } = await supabaseAdmin.from(table).delete().gte(column, '0')
-    if (error) {
-      // Some tables use UUID PKs, try text comparison
-      const { error: e2 } = await supabaseAdmin.from(table).delete().neq(column, 'NONE_WILL_MATCH_THIS_SENTINEL_VALUE_XYZ')
-      if (e2) errors.push(`${table}: ${e2.message}`)
-    }
+  // Delete all rows from a table that has an 'id' column (UUID or numeric).
+  // .not('id', 'is', null) is always true for every row — PostgREST requires
+  // an explicit filter to allow bulk deletes.
+  async function wipe(table: string) {
+    const { error } = await supabaseAdmin
+      .from(table)
+      .delete()
+      .not('id', 'is', null)
+    if (error) errors.push(`${table}: ${error.message}`)
+  }
+
+  // vote_adjustments uses contestant_id as part of its PK, not a plain 'id' column
+  async function wipeVoteAdjustments() {
+    const { error } = await supabaseAdmin
+      .from('vote_adjustments')
+      .delete()
+      .not('contestant_id', 'is', null)
+    if (error) errors.push(`vote_adjustments: ${error.message}`)
   }
 
   // Order matters — child tables before parent tables (FK constraints)
-  await wipe('vote_adjustments', 'contestant_id')
+  await wipeVoteAdjustments()
   await wipe('votes')
   await wipe('scan_logs')
   await wipe('passes')
