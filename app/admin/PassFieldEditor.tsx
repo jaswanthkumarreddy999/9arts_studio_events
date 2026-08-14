@@ -384,17 +384,20 @@ export default function PassFieldEditor({
 
           return (
             <div key={key}
-              className={`absolute cursor-grab active:cursor-grabbing whitespace-nowrap font-semibold ${isSelected ? 'ring-2 ring-yellow-400 rounded' : ''}`}
+              className={`absolute cursor-grab active:cursor-grabbing font-semibold ${isSelected ? 'ring-2 ring-yellow-400 rounded' : ''}`}
               style={{
                 top: `${pos.top}%`, left: `${pos.left}%`,
-                background: bgColor, color: textColor,
-                // Scale fontSize relative to container — 1536px reference
+                color: textColor,
+                // No background — just a faint outline so position matches user pass exactly
+                background: isSelected ? 'rgba(250,204,21,0.15)' : 'rgba(0,0,0,0.35)',
                 fontSize: `clamp(4px, ${(fs / 1536 * 100).toFixed(3)}vw, ${fs}px)`,
                 maxWidth: `${mw}%`,
-                padding: '1px 4px', borderRadius: 3,
-                border: isSelected ? '1px solid rgba(255,255,255,0.8)' : '1px solid rgba(255,255,255,0.25)',
+                padding: '1px 3px', borderRadius: 3,
+                border: isSelected ? '1px solid #facc15' : '1px solid rgba(255,255,255,0.2)',
                 zIndex: isSelected ? 20 : 10,
-                transform: 'translateY(-50%)',
+                // NO translateY — matches the user pass rendering exactly
+                lineHeight: 1.25,
+                whiteSpace: 'nowrap',
               }}
               onMouseDown={e => startDrag(e, key)}
               onClick={e => { e.stopPropagation(); setSelected(isSelected ? null : key) }}>

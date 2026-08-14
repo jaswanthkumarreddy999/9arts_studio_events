@@ -132,31 +132,31 @@ export default async function MyPassPage() {
 
               {/* Name */}
               <div className="absolute text-white font-bold leading-tight"
-                style={{ top: `${pos.name.top}%`, left: `${pos.name.left}%`, maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)', wordBreak: 'break-word', lineHeight: 1.25 }}>
+                style={{ top: `${pos.name.top}%`, left: `${pos.name.left}%`, maxWidth: `${pos.name.maxWidth ?? 34}%`, fontSize: `clamp(4px,${((pos.name.fontSize ?? 28)/1536*100).toFixed(3)}vw,${pos.name.fontSize ?? 28}px)`, wordBreak: 'break-word', lineHeight: 1.25 }}>
                 {pass.full_name}
               </div>
 
               {/* Application ID */}
               <div className="absolute text-yellow-300 font-mono font-bold leading-tight"
-                style={{ top: `${pos.application_id.top}%`, left: `${pos.application_id.left}%`, maxWidth: '34%', fontSize: 'clamp(4px,0.75vw,11px)', wordBreak: 'break-all', lineHeight: 1.25 }}>
+                style={{ top: `${pos.application_id.top}%`, left: `${pos.application_id.left}%`, maxWidth: `${pos.application_id.maxWidth ?? 34}%`, fontSize: `clamp(4px,${((pos.application_id.fontSize ?? 26)/1536*100).toFixed(3)}vw,${pos.application_id.fontSize ?? 26}px)`, wordBreak: 'break-all', lineHeight: 1.25 }}>
                 {pass.application_id}
               </div>
 
               {/* Mobile */}
               <div className="absolute text-white font-semibold"
-                style={{ top: `${pos.mobile.top}%`, left: `${pos.mobile.left}%`, maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)', whiteSpace: 'nowrap' }}>
+                style={{ top: `${pos.mobile.top}%`, left: `${pos.mobile.left}%`, maxWidth: `${pos.mobile.maxWidth ?? 34}%`, fontSize: `clamp(4px,${((pos.mobile.fontSize ?? 28)/1536*100).toFixed(3)}vw,${pos.mobile.fontSize ?? 28}px)`, whiteSpace: 'nowrap' }}>
                 {reg?.mobile ?? '—'}
               </div>
 
               {/* Gender */}
               <div className="absolute text-white font-semibold"
-                style={{ top: `${pos.gender.top}%`, left: `${pos.gender.left}%`, maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)' }}>
+                style={{ top: `${pos.gender.top}%`, left: `${pos.gender.left}%`, maxWidth: `${pos.gender.maxWidth ?? 34}%`, fontSize: `clamp(4px,${((pos.gender.fontSize ?? 28)/1536*100).toFixed(3)}vw,${pos.gender.fontSize ?? 28}px)` }}>
                 {reg?.gender === 'male' ? 'Male' : reg?.gender === 'female' ? 'Female' : reg?.gender === 'other' ? 'Other' : '—'}
               </div>
 
               {/* Pass type */}
               <div className="absolute text-yellow-400 font-bold"
-                style={{ top: `${pos.pass_type.top}%`, left: `${pos.pass_type.left}%`, maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)' }}>
+                style={{ top: `${pos.pass_type.top}%`, left: `${pos.pass_type.left}%`, maxWidth: `${pos.pass_type.maxWidth ?? 34}%`, fontSize: `clamp(4px,${((pos.pass_type.fontSize ?? 28)/1536*100).toFixed(3)}vw,${pos.pass_type.fontSize ?? 28}px)` }}>
                 {tierInfo.label}
               </div>
 
@@ -179,7 +179,7 @@ export default async function MyPassPage() {
 
               {/* Amount */}
               <div className="absolute text-black font-black"
-                style={{ top: `${pos.amount.top}%`, left: `${pos.amount.left}%`, fontSize: 'clamp(7px,1.5vw,22px)' }}>
+                style={{ top: `${pos.amount.top}%`, left: `${pos.amount.left}%`, fontSize: `clamp(7px,${((pos.amount.fontSize ?? 30)/1536*100).toFixed(3)}vw,${pos.amount.fontSize ?? 30}px)` }}>
                 ₹{payment?.amount ?? tierInfo.price}
               </div>
 
@@ -200,7 +200,6 @@ export default async function MyPassPage() {
                       color: cf.color,
                       fontSize: `clamp(5px,${(fs / 1536 * 100).toFixed(3)}vw,${fs}px)`,
                       maxWidth: `${mw}%`,
-                      transform: 'translateY(-50%)',
                     }}>
                     {text}
                   </div>
