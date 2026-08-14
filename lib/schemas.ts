@@ -20,7 +20,7 @@ export const registrationSchema = z.object({
   full_name: z.string().min(2, 'Name must be at least 2 characters').max(100),
   mobile: mobileSchema,
   gender: z.enum(['male', 'female', 'other'], { error: 'Please select your gender' }),
-  seat_tier: z.enum(['elite', 'gold']),
+  seat_tier: z.string().min(1, 'Please select a pass type'),
 })
 
 // One ticket in a group booking
@@ -28,7 +28,7 @@ export const ticketSchema = z.object({
   full_name: z.string().min(2, 'Name must be at least 2 characters').max(100),
   mobile: mobileSchema,
   gender: z.enum(['male', 'female', 'other'], { error: 'Please select gender' }),
-  seat_tier: z.enum(['elite', 'gold']),
+  seat_tier: z.string().min(1, 'Please select a pass type'),
 })
 
 // Group booking — array of tickets
