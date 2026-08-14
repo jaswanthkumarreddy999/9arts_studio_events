@@ -155,12 +155,14 @@ export async function POST(req: NextRequest) {
     extra_data: (body as Record<string, unknown>).extra_data ?? {},
   })
   if (regError) {
-    return Response.json({ error: 'Registration failed. Please try again.' }, { status: 500 })
+    console.error('registrations insert error:', regError)
+    return Response.json({ error: `Registration failed: ${regError.message}`, code: regError.code }, { status: 500 })
   }
 
   const { error: payError } = await supabaseAdmin.from('payments').insert({ application_id, amount, status: 'pending' })
   if (payError) {
-    return Response.json({ error: 'Failed to create payment record. Please try again.' }, { status: 500 })
+    console.error('payments insert error:', payError)
+    return Response.json({ error: `Payment record failed: ${payError.message}`, code: payError.code }, { status: 500 })
   }
 
   return Response.json({ application_id, amount }, { status: 201 })
