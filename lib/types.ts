@@ -86,6 +86,26 @@ export interface AdminTabConfig {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PASS FIELD POSITIONS — overlay coordinates on the ticket template
+// All values are percentages (0–100) relative to the template's width/height.
+// The download route converts % → px using W=1536, H=1024.
+// ─────────────────────────────────────────────────────────────────────────────
+export interface PassFieldPosition {
+  top: number   // % from top
+  left: number  // % from left
+}
+
+export interface PassFieldPositions {
+  name:           PassFieldPosition
+  application_id: PassFieldPosition
+  mobile:         PassFieldPosition
+  gender:         PassFieldPosition
+  pass_type:      PassFieldPosition
+  amount:         PassFieldPosition
+  qr:             PassFieldPosition & { width: number; height: number }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // EVENT SETTINGS — mirrors the event_settings DB table
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -197,6 +217,7 @@ export interface EventSettings {
 
   // Pass template
   pass_template_url: string  // public URL of uploaded ticket background image; falls back to /ticket-template.png
+  pass_field_positions: PassFieldPositions  // drag-adjusted overlay positions (% units)
 
   updated_at?: string
 }
@@ -324,6 +345,15 @@ export const DEFAULT_EVENT_SETTINGS: EventSettings = {
   ],
   theme_color: 'gold',
   pass_template_url: '',
+  pass_field_positions: {
+    name:           { top: 21.5, left: 52 },
+    application_id: { top: 38,   left: 45 },
+    mobile:         { top: 48.5, left: 55 },
+    gender:         { top: 59.2, left: 55 },
+    pass_type:      { top: 69.5, left: 55 },
+    amount:         { top: 86,   left: 77 },
+    qr:             { top: 30,   left: 70.2, width: 23.4, height: 33 },
+  },
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

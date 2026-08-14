@@ -4,9 +4,10 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   type EventSettings, type PassTierConfig, type AboutHighlight,
   type NavLink, type VoteCategory, type CustomSection, type CustomField,
-  type AdminTabConfig, DEFAULT_EVENT_SETTINGS,
+  type AdminTabConfig, type PassFieldPositions, DEFAULT_EVENT_SETTINGS,
 } from '@/lib/types'
 import { nanoid } from '@/lib/nanoid'
+import PassFieldEditor from './PassFieldEditor'
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -59,7 +60,12 @@ function Toggle({ value, onChange, label: text }: { value: boolean; onChange: (v
 }
 
 // ─── PassTemplateEditor ──────────────────────────────────────────────────────
-function PassTemplateEditor({ currentUrl, onUploaded }: { currentUrl: string; onUploaded: (url: string) => void }) {
+function PassTemplateEditor({ currentUrl, onUploaded, positions, onPositionsChange }: {
+  currentUrl: string
+  onUploaded: (url: string) => void
+  positions: import('@/lib/types').PassFieldPositions
+  onPositionsChange: (p: import('@/lib/types').PassFieldPositions) => void
+}) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
   const [preview, setPreview] = useState(currentUrl)
@@ -120,27 +126,12 @@ function PassTemplateEditor({ currentUrl, onUploaded }: { currentUrl: string; on
         {error && <p className="text-red-400 text-xs">{error}</p>}
       </div>
 
-      {/* Field position guide */}
-      <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-2">
-        <div className="text-xs text-zinc-400 font-semibold uppercase tracking-wide mb-2">Data field positions (% from top-left)</div>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-zinc-500 font-mono">
-          {[
-            { label: 'Name',           pos: 'top 21.5%  left 52%' },
-            { label: 'Application ID', pos: 'top 38%    left 45%' },
-            { label: 'Mobile',         pos: 'top 48.5%  left 55%' },
-            { label: 'Gender',         pos: 'top 59.2%  left 55%' },
-            { label: 'Pass Type',      pos: 'top 69.5%  left 55%' },
-            { label: 'Amount',         pos: 'top 86%    left 77%' },
-            { label: 'QR Code',        pos: 'top 30%    left 70.2% · 23.4% × 33%' },
-          ].map(({ label, pos }) => (
-            <div key={label} className="flex items-baseline gap-2">
-              <span className="text-zinc-300 w-28 shrink-0">{label}</span>
-              <span>{pos}</span>
-            </div>
-          ))}
-        </div>
-        <p className="text-zinc-600 text-xs pt-1">Design your template so labels / placeholders align with these coordinates.</p>
-      </div>
+      {/* Live field position editor */}
+      <PassFieldEditor
+        templateUrl={displayUrl || '/ticket-template.png'}
+        positions={positions}
+        onChange={onPositionsChange}
+      />
     </div>
   )
 }
@@ -819,11 +810,13 @@ export default function EventSettingsTab() {
       {/* ── PASS TEMPLATE ────────────────────────────────────────────────── */}
       <Section title="Pass / Ticket Template" icon="🎟️" defaultOpen={false}>
         <p className="text-zinc-500 text-xs mb-4">
-          Upload a custom background image for the entry pass shown to attendees. Dynamic data (name, QR code, application ID, mobile, gender, pass type, amount) is overlaid at the fixed positions listed below.
+          Upload a custom background image for the entry pass shown to attendees. Drag the field labels on the preview to set where each data field appears on your template.
         </p>
         <PassTemplateEditor
           currentUrl={settings.pass_template_url ?? ''}
           onUploaded={url => set('pass_template_url', url)}
+          positions={settings.pass_field_positions ?? DEFAULT_EVENT_SETTINGS.pass_field_positions}
+          onPositionsChange={(p: PassFieldPositions) => set('pass_field_positions', p)}
         />
       </Section>
 

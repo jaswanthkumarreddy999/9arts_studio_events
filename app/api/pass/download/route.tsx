@@ -1,6 +1,6 @@
 import { verifyToken } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase'
-import { SEAT_TIERS } from '@/lib/types'
+import { SEAT_TIERS, DEFAULT_EVENT_SETTINGS } from '@/lib/types'
 import { ImageResponse } from 'next/og'
 import { NextRequest } from 'next/server'
 
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
         .maybeSingle(),
       supabaseAdmin
         .from('event_settings')
-        .select('pass_template_url')
+        .select('pass_template_url, pass_field_positions')
         .eq('id', 1)
         .maybeSingle(),
     ])
@@ -65,20 +65,16 @@ export async function GET(req: NextRequest) {
     // Use the admin-uploaded template if set, otherwise fall back to the bundled default
     const templateUrl = evtSettings?.pass_template_url || `${proto}://${host}/ticket-template.png`
 
-    // Template is 1536×1024px (measured from actual file)
-    // Data area is roughly x:700-1100, labels start around x:820
-    // Row positions (y) measured from template layout:
-    //   Name row    ≈ y:390
-    //   App ID row  ≈ y:460
-    //   Mobile row  ≈ y:530
-    //   Gender row  ≈ y:600
-    //   Pass row    ≈ y:670
-    //   QR box      ≈ x:1100, y:220, size:240
-    //   Amount box  ≈ x:1110, y:870
+    // Merge saved field positions with defaults (safe if DB column missing)
+    const defaultPos = DEFAULT_EVENT_SETTINGS.pass_field_positions
+    const savedPos = (evtSettings?.pass_field_positions ?? {}) as Partial<typeof defaultPos>
+    const pos = { ...defaultPos, ...savedPos }
+
+    // Template is 1536×1024px — convert % positions to px
     const W = 1536
     const H = 1024
+    const px = (pct: number, dim: number) => Math.round(pct / 100 * dim)
 
-    const valueX = 830   // x start for value text (after the ":" in template)
     const fontSize = 28
 
     const image = new ImageResponse(
@@ -89,38 +85,42 @@ export async function GET(req: NextRequest) {
           <img src={templateUrl} width={W} height={H} style={{ position: 'absolute', top: 0, left: 0 }} alt="bg" />
 
           {/* Name */}
-          <div style={{ display: 'flex', position: 'absolute', top: 388, left: valueX, color: '#ffffff', fontSize, fontWeight: 700, fontFamily: 'sans-serif', maxWidth: 260 }}>
+          <div style={{ display: 'flex', position: 'absolute', top: px(pos.name.top, H), left: px(pos.name.left, W), color: '#ffffff', fontSize, fontWeight: 700, fontFamily: 'sans-serif', maxWidth: 260 }}>
             {pass.full_name}
           </div>
 
           {/* Application ID */}
-          <div style={{ display: 'flex', position: 'absolute', top: 458, left: valueX, color: '#facc15', fontSize: 26, fontWeight: 700, fontFamily: 'monospace', maxWidth: 260 }}>
+          <div style={{ display: 'flex', position: 'absolute', top: px(pos.application_id.top, H), left: px(pos.application_id.left, W), color: '#facc15', fontSize: 26, fontWeight: 700, fontFamily: 'monospace', maxWidth: 260 }}>
             {pass.application_id}
           </div>
 
           {/* Mobile */}
-          <div style={{ display: 'flex', position: 'absolute', top: 528, left: valueX, color: '#ffffff', fontSize, fontWeight: 600, fontFamily: 'sans-serif' }}>
+          <div style={{ display: 'flex', position: 'absolute', top: px(pos.mobile.top, H), left: px(pos.mobile.left, W), color: '#ffffff', fontSize, fontWeight: 600, fontFamily: 'sans-serif' }}>
             {reg?.mobile ?? '—'}
           </div>
 
           {/* Gender */}
-          <div style={{ display: 'flex', position: 'absolute', top: 598, left: valueX, color: '#ffffff', fontSize, fontWeight: 600, fontFamily: 'sans-serif' }}>
+          <div style={{ display: 'flex', position: 'absolute', top: px(pos.gender.top, H), left: px(pos.gender.left, W), color: '#ffffff', fontSize, fontWeight: 600, fontFamily: 'sans-serif' }}>
             {genderLabel}
           </div>
 
           {/* Pass type */}
-          <div style={{ display: 'flex', position: 'absolute', top: 668, left: valueX, color: '#fbbf24', fontSize, fontWeight: 700, fontFamily: 'sans-serif' }}>
+          <div style={{ display: 'flex', position: 'absolute', top: px(pos.pass_type.top, H), left: px(pos.pass_type.left, W), color: '#fbbf24', fontSize, fontWeight: 700, fontFamily: 'sans-serif' }}>
             {tierInfo.label} Pass
           </div>
 
-          {/* Seat label — below QR, above SCAN TO VERIFY (~y 660-720px range) */}
+          {/* Seat label — below QR box */}
           {(pass.ticket_no || pass.table_number) && (() => {
             const ticket = pass.ticket_no ?? ''
             const table = (pass.table_number ?? '').toUpperCase()
             const seatWord = ticket.startsWith('C') ? 'CHAIR' : 'SEAT'
             const seatIcon = ticket.startsWith('S') ? '🛋️' : ticket.startsWith('C') ? '💺' : '🪑'
+            const qrLeft = px(pos.qr.left, W)
+            const qrTop  = px(pos.qr.top,  H)
+            const qrW    = Math.round(pos.qr.width  / 100 * W)
+            const qrH    = Math.round(pos.qr.height / 100 * H)
             return (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'absolute', top: 660, left: 1092, width: 252, textAlign: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'absolute', top: qrTop + qrH + 4, left: qrLeft, width: qrW, textAlign: 'center' }}>
                 <div style={{ display: 'flex', color: '#fcd34d', fontSize: 18, fontWeight: 900, fontFamily: 'sans-serif', letterSpacing: 2, textTransform: 'uppercase' }}>
                   {table}
                 </div>
@@ -135,14 +135,14 @@ export async function GET(req: NextRequest) {
           })()}
 
           {/* Amount — over the white amount box */}
-          <div style={{ display: 'flex', position: 'absolute', top: 880, left: 1130, color: '#000000', fontSize: 30, fontWeight: 900, fontFamily: 'sans-serif' }}>
+          <div style={{ display: 'flex', position: 'absolute', top: px(pos.amount.top, H), left: px(pos.amount.left, W), color: '#000000', fontSize: 30, fontWeight: 900, fontFamily: 'sans-serif' }}>
             {amountLabel}
           </div>
 
           {/* QR Code — over the white QR placeholder */}
-          <div style={{ display: 'flex', position: 'absolute', top: 218, left: 1092, background: '#ffffff', padding: 6, borderRadius: 8 }}>
+          <div style={{ display: 'flex', position: 'absolute', top: px(pos.qr.top, H), left: px(pos.qr.left, W), background: '#ffffff', padding: 6, borderRadius: 8 }}>
             {/* @ts-expect-error satori accepts ArrayBuffer */}
-            <img src={qrBuffer} width={240} height={240} alt="QR" />
+            <img src={qrBuffer} width={Math.round(pos.qr.width / 100 * W)} height={Math.round(pos.qr.height / 100 * H)} alt="QR" />
           </div>
         </div>
       ),

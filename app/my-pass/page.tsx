@@ -1,6 +1,6 @@
 import { getSession } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase'
-import { SEAT_TIERS } from '@/lib/types'
+import { SEAT_TIERS, DEFAULT_EVENT_SETTINGS } from '@/lib/types'
 import { getEventSettings } from '@/lib/eventSettings'
 import Link from 'next/link'
 import PassActions from './PassActions'
@@ -33,6 +33,9 @@ export default async function MyPassPage() {
 
   const tier = (pass?.seat_tier ?? reg?.seat_tier ?? 'gold') as keyof typeof SEAT_TIERS
   const tierInfo = SEAT_TIERS[tier]
+
+  // Merge saved field positions with defaults — safe even if DB column doesn't exist yet
+  const pos = { ...DEFAULT_EVENT_SETTINGS.pass_field_positions, ...(settings.pass_field_positions ?? {}) }
 
   return (
     <div className="min-h-screen px-4 py-12"
@@ -115,42 +118,42 @@ export default async function MyPassPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={settings.pass_template_url || '/ticket-template.png'} alt="ticket" className="absolute inset-0 w-full h-full object-fill" />
 
-              {/* QR — x:70.2 y:70 → left:70.2% top:30% */}
+              {/* QR — positioned from settings */}
               <div className="absolute flex items-center justify-center"
-                style={{ top: '30%', left: '70.2%', width: '23.4%', height: '33%' }}>
+                style={{ top: `${pos.qr.top}%`, left: `${pos.qr.left}%`, width: `${pos.qr.width}%`, height: `${pos.qr.height}%` }}>
                 <div className="w-[86%] h-[86%] flex items-center justify-center bg-white p-[2%]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={pass.qr_data_url} alt="QR" className="w-full h-full object-contain" />
                 </div>
               </div>
 
-              {/* Name — x:52 y:78.5 → left:52% top:21.5% */}
+              {/* Name */}
               <div className="absolute text-white font-bold leading-tight"
-                style={{ top: '21.5%', left: '52%', maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)', wordBreak: 'break-word', lineHeight: 1.25 }}>
+                style={{ top: `${pos.name.top}%`, left: `${pos.name.left}%`, maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)', wordBreak: 'break-word', lineHeight: 1.25 }}>
                 {pass.full_name}
               </div>
 
-              {/* Application ID — x:45 y:62 → left:45% top:38% */}
+              {/* Application ID */}
               <div className="absolute text-yellow-300 font-mono font-bold leading-tight"
-                style={{ top: '38%', left: '45%', maxWidth: '34%', fontSize: 'clamp(4px,0.75vw,11px)', wordBreak: 'break-all', lineHeight: 1.25 }}>
+                style={{ top: `${pos.application_id.top}%`, left: `${pos.application_id.left}%`, maxWidth: '34%', fontSize: 'clamp(4px,0.75vw,11px)', wordBreak: 'break-all', lineHeight: 1.25 }}>
                 {pass.application_id}
               </div>
 
-              {/* Mobile — x:55 y:51.5 → left:55% top:48.5% */}
+              {/* Mobile */}
               <div className="absolute text-white font-semibold"
-                style={{ top: '48.5%', left: '55%', maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)', whiteSpace: 'nowrap' }}>
+                style={{ top: `${pos.mobile.top}%`, left: `${pos.mobile.left}%`, maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)', whiteSpace: 'nowrap' }}>
                 {reg?.mobile ?? '—'}
               </div>
 
-              {/* Gender — x:55 y:40.8 → left:55% top:59.2% */}
+              {/* Gender */}
               <div className="absolute text-white font-semibold"
-                style={{ top: '59.2%', left: '55%', maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)' }}>
+                style={{ top: `${pos.gender.top}%`, left: `${pos.gender.left}%`, maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)' }}>
                 {reg?.gender === 'male' ? 'Male' : reg?.gender === 'female' ? 'Female' : reg?.gender === 'other' ? 'Other' : '—'}
               </div>
 
-              {/* Pass — x:55 y:30.5 → left:55% top:69.5% */}
+              {/* Pass type */}
               <div className="absolute text-yellow-400 font-bold"
-                style={{ top: '69.5%', left: '55%', maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)' }}>
+                style={{ top: `${pos.pass_type.top}%`, left: `${pos.pass_type.left}%`, maxWidth: '34%', fontSize: 'clamp(5px,0.9vw,13px)' }}>
                 {tierInfo.label}
               </div>
 
@@ -171,9 +174,9 @@ export default async function MyPassPage() {
                 )
               })()}
 
-              {/* Amount — x:77 y:14 → left:77% top:86% */}
+              {/* Amount */}
               <div className="absolute text-black font-black"
-                style={{ top: '86%', left: '77%', fontSize: 'clamp(7px,1.5vw,22px)' }}>
+                style={{ top: `${pos.amount.top}%`, left: `${pos.amount.left}%`, fontSize: 'clamp(7px,1.5vw,22px)' }}>
                 ₹{payment?.amount ?? tierInfo.price}
               </div>
             </div>
