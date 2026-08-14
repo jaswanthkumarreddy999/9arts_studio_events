@@ -10,7 +10,7 @@ export default function RegisterSection({ settings: s = DEFAULT_EVENT_SETTINGS }
     <section id="register" className="py-20 sm:py-28" style={bgStyle}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-12">
-          <span className="inline-block text-yellow-500 text-sm font-semibold uppercase tracking-widest mb-3">
+          <span className="inline-block accent-text text-sm font-semibold uppercase tracking-widest mb-3" style={{ color: 'var(--gold)' }}>
             Secure Your Seat
           </span>
           <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">
@@ -22,21 +22,16 @@ export default function RegisterSection({ settings: s = DEFAULT_EVENT_SETTINGS }
         </div>
 
         {s.registrations_open ? (
-          /* ── REGISTRATIONS OPEN ── */
           <RegistrationForm />
         ) : (
-          /* ── REGISTRATIONS CLOSED ── */
           <div className="max-w-2xl mx-auto text-center">
             <div className="bg-white/5 border border-white/10 rounded-3xl px-8 py-14 space-y-6">
               <div className="text-6xl">🔒</div>
               <div>
                 <h3 className="text-2xl font-bold text-white mb-2">Registrations Closed</h3>
-                <p className="text-zinc-400 text-base leading-relaxed">
-                  {s.registrations_closed_message}
-                </p>
+                <p className="text-zinc-400 text-base leading-relaxed">{s.registrations_closed_message}</p>
               </div>
-              <a href="/login"
-                className="inline-block bg-gradient-to-r from-yellow-600 to-yellow-400 text-black font-bold px-8 py-3.5 rounded-xl text-base hover:from-yellow-500 hover:to-yellow-300 transition-all">
+              <a href="/login" className="inline-block btn-primary px-8 py-3.5 rounded-xl text-base">
                 Check My Pass →
               </a>
             </div>

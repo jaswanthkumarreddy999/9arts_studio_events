@@ -7,7 +7,6 @@ import { type EventSettings, DEFAULT_EVENT_SETTINGS } from '@/lib/types'
 export default function Navbar({ settings: propSettings }: { settings?: EventSettings }) {
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  // Use prop settings (from server) or fall back to defaults
   const s = propSettings ?? DEFAULT_EVENT_SETTINGS
 
   useEffect(() => {
@@ -20,7 +19,7 @@ export default function Navbar({ settings: propSettings }: { settings?: EventSet
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled
-          ? 'bg-black/90 backdrop-blur-md border-b border-yellow-900/30 py-3'
+          ? 'bg-black/90 backdrop-blur-md border-b accent-border-dim py-3'
           : 'bg-transparent py-5'
       }`}
     >
@@ -30,7 +29,7 @@ export default function Navbar({ settings: propSettings }: { settings?: EventSet
           <span className="text-2xl">{s.event_icon}</span>
           <span className="font-bold text-lg shimmer">{s.event_name}</span>
           {s.event_edition && (
-            <span className="text-yellow-600 text-sm font-medium ml-1">{s.event_edition}</span>
+            <span className="accent-text text-sm font-medium ml-1 opacity-80">{s.event_edition}</span>
           )}
         </a>
 
@@ -39,28 +38,28 @@ export default function Navbar({ settings: propSettings }: { settings?: EventSet
           {s.nav_links
             .filter(l => l.href !== '#contestants' || s.show_contestants)
             .map((l) => (
-            <a
-              key={l.href}
-              href={l.href}
-              className="text-sm font-medium text-zinc-300 hover:text-yellow-400 transition-colors"
-            >
-              {l.label}
-            </a>
-          ))}
+              <a key={l.href} href={l.href}
+                className="text-sm font-medium text-zinc-300 hover:accent-text transition-colors"
+                style={{ '--tw-text-opacity': '1' } as React.CSSProperties}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--gold)')}
+                onMouseLeave={e => (e.currentTarget.style.color = '')}
+              >
+                {l.label}
+              </a>
+            ))}
         </nav>
 
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-3">
-          <Link
-            href="/login"
-            className="text-sm font-medium text-zinc-300 hover:text-yellow-400 transition-colors px-3 py-2"
+          <Link href="/login"
+            className="text-sm font-medium text-zinc-300 px-3 py-2 transition-colors"
+            onMouseEnter={e => (e.currentTarget.style.color = 'var(--gold)')}
+            onMouseLeave={e => (e.currentTarget.style.color = '')}
           >
             My Pass
           </Link>
-          <a
-            href="#register"
-            className="text-sm font-semibold bg-gradient-to-r from-yellow-600 to-yellow-400 text-black px-5 py-2 rounded-full hover:from-yellow-500 hover:to-yellow-300 transition-all"
-          >
+          <a href="#register"
+            className="text-sm font-semibold btn-primary px-5 py-2 rounded-full">
             {s.hero_cta_primary}
           </a>
         </div>
@@ -85,30 +84,30 @@ export default function Navbar({ settings: propSettings }: { settings?: EventSet
 
       {/* Mobile drawer */}
       {open && (
-        <div className="md:hidden bg-black/95 backdrop-blur-md border-t border-yellow-900/30">
+        <div className="md:hidden bg-black/95 backdrop-blur-md border-t accent-border-dim">
           <nav className="flex flex-col px-4 py-4 gap-1">
             {s.nav_links
               .filter(l => l.href !== '#contestants' || s.show_contestants)
               .map((l) => (
-              <a
-                key={l.href}
-                href={l.href}
-                className="text-base font-medium text-zinc-300 hover:text-yellow-400 py-3 border-b border-zinc-800 transition-colors"
-                onClick={() => setOpen(false)}
-              >
-                {l.label}
-              </a>
-            ))}
-            <Link
-              href="/login"
-              className="text-base font-medium text-zinc-300 hover:text-yellow-400 py-3 border-b border-zinc-800 transition-colors"
+                <a key={l.href} href={l.href}
+                  className="text-base font-medium text-zinc-300 py-3 border-b border-zinc-800 transition-colors"
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--gold)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = '')}
+                  onClick={() => setOpen(false)}
+                >
+                  {l.label}
+                </a>
+              ))}
+            <Link href="/login"
+              className="text-base font-medium text-zinc-300 py-3 border-b border-zinc-800 transition-colors"
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--gold)')}
+              onMouseLeave={e => (e.currentTarget.style.color = '')}
               onClick={() => setOpen(false)}
             >
               My Pass
             </Link>
-            <a
-              href="#register"
-              className="mt-3 text-center font-semibold bg-gradient-to-r from-yellow-600 to-yellow-400 text-black px-5 py-3 rounded-full"
+            <a href="#register"
+              className="mt-3 text-center btn-primary px-5 py-3 rounded-full"
               onClick={() => setOpen(false)}
             >
               {s.hero_cta_primary}

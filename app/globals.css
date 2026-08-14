@@ -3,8 +3,13 @@
 :root {
   --background: #0a0a0f;
   --foreground: #f5f0e8;
+  /* Primary accent — overridden at runtime via layout.tsx <style> injection */
   --gold: #d4a520;
   --gold-light: #f0c842;
+  --gold-dim: color-mix(in srgb, var(--gold) 20%, transparent);
+  --gold-muted: color-mix(in srgb, var(--gold) 30%, transparent);
+  --gold-border: color-mix(in srgb, var(--gold) 40%, transparent);
+  --gold-border-dim: color-mix(in srgb, var(--gold) 20%, transparent);
   --purple: #4a1d8c;
   --rose: #e11d48;
 }
@@ -28,22 +33,69 @@ body {
   color: var(--foreground);
 }
 
+/* ── Accent utility classes — all driven by --gold CSS variable ───────────── */
+
+/* Text */
+.accent-text       { color: var(--gold); }
+.accent-text-dim   { color: color-mix(in srgb, var(--gold) 70%, white); }
+
+/* Borders */
+.accent-border        { border-color: var(--gold-border); }
+.accent-border-bright { border-color: color-mix(in srgb, var(--gold) 60%, transparent); }
+.accent-border-dim    { border-color: var(--gold-border-dim); }
+
+/* Backgrounds */
+.accent-bg       { background-color: var(--gold); }
+.accent-bg-dim   { background-color: var(--gold-dim); }
+.accent-bg-muted { background-color: var(--gold-muted); }
+
+/* Primary gradient button */
+.btn-primary {
+  background: linear-gradient(to right, color-mix(in srgb, var(--gold) 80%, black), var(--gold));
+  color: #000;
+  font-weight: 700;
+  transition: filter 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+.btn-primary:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--gold) 40%, transparent);
+}
+.btn-primary:active  { transform: scale(0.97); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; filter: none; }
+
+/* Outline / ghost accent button */
+.btn-accent-outline {
+  border: 1px solid color-mix(in srgb, var(--gold) 50%, transparent);
+  color: var(--gold);
+  transition: background 0.15s;
+}
+.btn-accent-outline:hover {
+  background: color-mix(in srgb, var(--gold) 15%, transparent);
+}
+
 /* Gradient text utility */
 .gradient-text {
-  background: linear-gradient(135deg, #d4a520 0%, #f0c842 50%, #d4a520 100%);
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 50%, var(--gold) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Gold shimmer animation */
+/* Accent shimmer animation */
 @keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
 }
 
 .shimmer {
-  background: linear-gradient(90deg, #d4a520 0%, #f0c842 25%, #fff8dc 50%, #f0c842 75%, #d4a520 100%);
+  background: linear-gradient(
+    90deg,
+    var(--gold)       0%,
+    var(--gold-light) 25%,
+    #fff8dc           50%,
+    var(--gold-light) 75%,
+    var(--gold)       100%
+  );
   background-size: 200% auto;
   animation: shimmer 3s linear infinite;
   -webkit-background-clip: text;
@@ -54,14 +106,16 @@ body {
 /* Floating animation */
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+  50%       { transform: translateY(-10px); }
 }
 
 .float { animation: float 3s ease-in-out infinite; }
 
 /* Glow effect */
 .glow {
-  box-shadow: 0 0 20px rgba(212, 165, 32, 0.3), 0 0 40px rgba(212, 165, 32, 0.1);
+  box-shadow:
+    0 0 20px color-mix(in srgb, var(--gold) 30%, transparent),
+    0 0 40px color-mix(in srgb, var(--gold) 10%, transparent);
 }
 
 /* Section scroll margin for fixed nav */
@@ -71,7 +125,13 @@ section[id] {
 
 /* QR scanner line animation */
 @keyframes scan {
-  0% { top: 0; }
-  50% { top: calc(100% - 2px); }
+  0%   { top: 0; }
+  50%  { top: calc(100% - 2px); }
   100% { top: 0; }
+}
+
+/* Focus ring using accent color — used on form inputs */
+.focus-accent:focus {
+  border-color: var(--gold);
+  outline: none;
 }

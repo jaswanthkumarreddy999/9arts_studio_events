@@ -2,33 +2,20 @@ import { type EventSettings, DEFAULT_EVENT_SETTINGS } from '@/lib/types'
 
 export default function HeroSection({ settings: s = DEFAULT_EVENT_SETTINGS }: { settings?: EventSettings }) {
   const bgStyle = s.hero_bg_image
-    ? {
-        backgroundImage: `url(${s.hero_bg_image})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }
-    : {
-        background: 'radial-gradient(ellipse at center, #1a0a2e 0%, #0d0a1a 40%, #0a0a0f 100%)',
-      }
+    ? { backgroundImage: `url(${s.hero_bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    : { background: 'radial-gradient(ellipse at center, #1a0a2e 0%, #0d0a1a 40%, #0a0a0f 100%)' }
 
   return (
-    <section
-      id="home"
-      className="relative min-h-screen flex items-center justify-center overflow-hidden"
-      style={bgStyle}
-    >
-      {/* Dark overlay when bg image is set */}
-      {s.hero_bg_image && (
-        <div className="absolute inset-0 bg-black/60 z-0" />
-      )}
+    <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden" style={bgStyle}>
+      {s.hero_bg_image && <div className="absolute inset-0 bg-black/60 z-0" />}
 
-      {/* Decorative orbs — only shown without custom bg */}
+      {/* Decorative orbs */}
       {!s.hero_bg_image && (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-20 -left-20 w-96 h-96 rounded-full opacity-20 blur-3xl"
             style={{ background: 'radial-gradient(circle, #4a1d8c, transparent)' }} />
           <div className="absolute -bottom-20 -right-20 w-96 h-96 rounded-full opacity-20 blur-3xl"
-            style={{ background: 'radial-gradient(circle, #d4a520, transparent)' }} />
+            style={{ background: 'radial-gradient(circle, var(--gold), transparent)' }} />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-5 blur-3xl"
             style={{ background: 'radial-gradient(circle, #e11d48, transparent)' }} />
         </div>
@@ -45,13 +32,13 @@ export default function HeroSection({ settings: s = DEFAULT_EVENT_SETTINGS }: { 
 
       <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
         {/* Badge */}
-        <div className="inline-flex items-center gap-2 bg-yellow-900/30 border border-yellow-700/50 rounded-full px-4 py-2 text-yellow-400 text-sm font-medium mb-8">
+        <div className="inline-flex items-center gap-2 accent-bg-dim accent-border rounded-full border px-4 py-2 accent-text text-sm font-medium mb-8">
           <span>✨</span>
           <span>{s.hero_badge_text}</span>
           <span>✨</span>
         </div>
 
-        {/* Main heading */}
+        {/* Heading */}
         <h1 className="text-5xl sm:text-7xl font-bold mb-4 leading-tight">
           <span className="shimmer block">{s.organizer_name}</span>
           <span className="shimmer block">{s.event_name}</span>
@@ -64,7 +51,7 @@ export default function HeroSection({ settings: s = DEFAULT_EVENT_SETTINGS }: { 
           {s.hero_description}
         </p>
 
-        {/* Event details pills */}
+        {/* Event detail pills */}
         <div className="flex flex-wrap justify-center gap-3 mb-10">
           {s.event_date && s.event_date !== 'TBA' && (
             <span className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-zinc-300">
@@ -75,12 +62,12 @@ export default function HeroSection({ settings: s = DEFAULT_EVENT_SETTINGS }: { 
             <span className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-zinc-300">
               {s.venue_maps_url ? (
                 <a href={s.venue_maps_url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 hover:text-yellow-400 transition-colors">
+                  className="flex items-center gap-1.5 transition-colors"
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--gold)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = '')}>
                   📍 {s.venue_name}
                 </a>
-              ) : (
-                <>📍 {s.venue_name}</>
-              )}
+              ) : <>📍 {s.venue_name}</>}
             </span>
           )}
           {s.event_time && (
@@ -96,11 +83,11 @@ export default function HeroSection({ settings: s = DEFAULT_EVENT_SETTINGS }: { 
         {/* CTA buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <a href="#register"
-            className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-yellow-600 to-yellow-400 text-black font-bold px-8 py-4 rounded-full text-lg hover:from-yellow-500 hover:to-yellow-300 transition-all shadow-lg hover:shadow-yellow-500/25 hover:scale-105 active:scale-95">
+            className="inline-flex items-center justify-center gap-2 btn-primary px-8 py-4 rounded-full text-lg shadow-lg hover:scale-105 active:scale-95">
             {s.event_icon} {s.hero_cta_primary}
           </a>
           <a href={s.hero_cta_secondary_href}
-            className="inline-flex items-center justify-center gap-2 border border-yellow-700/50 text-yellow-400 font-semibold px-8 py-4 rounded-full text-lg hover:bg-yellow-900/20 transition-all">
+            className="inline-flex items-center justify-center gap-2 btn-accent-outline font-semibold px-8 py-4 rounded-full text-lg transition-all">
             {s.hero_cta_secondary} →
           </a>
         </div>
@@ -108,7 +95,7 @@ export default function HeroSection({ settings: s = DEFAULT_EVENT_SETTINGS }: { 
 
       {/* Scroll indicator */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-        <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-6 h-6 accent-text" style={{ color: 'var(--gold)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </div>

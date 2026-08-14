@@ -115,6 +115,51 @@ function PaymentQrUploader({ currentUrl, onUploaded }: { currentUrl: string; onU
   )
 }
 
+// ─── ThemeColorPicker ────────────────────────────────────────────────────────
+const THEME_PRESETS_ADMIN = [
+  { key: 'gold',   label: 'Gold',   primary: '#d4a520', emoji: '🟡' },
+  { key: 'blue',   label: 'Blue',   primary: '#3b82f6', emoji: '🔵' },
+  { key: 'purple', label: 'Purple', primary: '#8b5cf6', emoji: '🟣' },
+  { key: 'rose',   label: 'Rose',   primary: '#e11d48', emoji: '🌸' },
+  { key: 'green',  label: 'Green',  primary: '#22c55e', emoji: '🟢' },
+  { key: 'cyan',   label: 'Cyan',   primary: '#06b6d4', emoji: '🩵' },
+  { key: 'orange', label: 'Orange', primary: '#f97316', emoji: '🟠' },
+  { key: 'pink',   label: 'Pink',   primary: '#ec4899', emoji: '🩷' },
+]
+
+function ThemeColorPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const isCustom = value.startsWith('#') && !THEME_PRESETS_ADMIN.find(p => p.key === value)
+  return (
+    <div className="space-y-3">
+      <label className={lbl}>Site Accent Color</label>
+      <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+        {THEME_PRESETS_ADMIN.map(p => (
+          <button key={p.key} type="button" onClick={() => onChange(p.key)}
+            title={p.label}
+            className={`flex flex-col items-center gap-1 px-2 py-2.5 rounded-xl border text-xs font-medium transition-all ${value === p.key ? 'border-white/60 bg-white/10 text-white' : 'border-white/10 text-zinc-400 hover:border-white/30'}`}>
+            <span className="w-6 h-6 rounded-full border border-white/20 shrink-0" style={{ background: p.primary }} />
+            {p.label}
+          </button>
+        ))}
+      </div>
+      <Field label="Custom Hex Color (overrides preset)" hint="e.g. #ff6b35 — leave blank to use the preset above">
+        <input
+          value={isCustom ? value : ''}
+          onChange={e => { const v = e.target.value.trim(); onChange(v || 'gold') }}
+          className={inp + ' font-mono'}
+          placeholder="#d4a520"
+          maxLength={7}
+        />
+      </Field>
+      <div className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl">
+        <span className="w-8 h-8 rounded-full border border-white/20 shrink-0"
+          style={{ background: isCustom ? value : (THEME_PRESETS_ADMIN.find(p => p.key === value)?.primary ?? '#d4a520') }} />
+        <span className="text-zinc-400 text-xs">This color will be used for buttons, headings, borders, and accents across the entire public site.</span>
+      </div>
+    </div>
+  )
+}
+
 // ─── PassTierEditor ───────────────────────────────────────────────────────────
 function PassTierEditor({ tiers, onChange }: { tiers: PassTierConfig[]; onChange: (v: PassTierConfig[]) => void }) {
   function update(i: number, field: keyof PassTierConfig, value: unknown) {
@@ -616,6 +661,7 @@ export default function EventSettingsTab() {
             <input value={settings.app_id_prefix} onChange={e => set('app_id_prefix', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))} className={inp + ' font-mono'} placeholder="9AS" maxLength={6} />
           </Field>
         </Row>
+        <ThemeColorPicker value={settings.theme_color ?? 'gold'} onChange={v => set('theme_color', v)} />
       </Section>
 
       {/* ── DATE & VENUE ─────────────────────────────────────────────────── */}

@@ -192,6 +192,9 @@ export interface EventSettings {
   // Admin tab visibility
   admin_tabs: AdminTabConfig[]
 
+  // Theme
+  theme_color: string  // hex color e.g. '#d4a520' or preset name 'gold'|'blue'|'purple'|'rose'|'green'|'pink'
+
   updated_at?: string
 }
 
@@ -316,6 +319,7 @@ export const DEFAULT_EVENT_SETTINGS: EventSettings = {
     { key: 'register',      visible: true },
     { key: 'settings',      visible: true },
   ],
+  theme_color: 'gold',
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

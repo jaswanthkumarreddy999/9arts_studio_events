@@ -105,7 +105,7 @@ function validateTicket(t: TicketRow, i: number): string | null {
 }
 
 function inputClass(hasError: boolean) {
-  return `w-full bg-white/5 border ${hasError ? 'border-red-500' : 'border-white/10'} text-white placeholder-zinc-500 rounded-xl px-4 py-3 focus:outline-none focus:border-yellow-500 transition-colors`
+  return `w-full bg-white/5 border ${hasError ? 'border-red-500' : 'border-white/10'} text-white placeholder-zinc-500 rounded-xl px-4 py-3 focus:outline-none transition-colors focus-accent`
 }
 
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
@@ -291,11 +291,13 @@ export default function RegistrationForm({ showAllTiers = false }: { showAllTier
       {/* Mode toggle */}
       <div className="flex bg-white/5 border border-white/10 rounded-2xl p-1 mb-8">
         <button onClick={() => setMode('individual')}
-          className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-all ${mode === 'individual' ? 'bg-yellow-500 text-black' : 'text-zinc-400 hover:text-white'}`}>
+          className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-all ${mode === 'individual' ? 'text-black' : 'text-zinc-400 hover:text-white'}`}
+          style={mode === 'individual' ? { background: 'var(--gold)' } : {}}>
           👤 Individual Booking
         </button>
         <button onClick={() => setMode('group')}
-          className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-all ${mode === 'group' ? 'bg-yellow-500 text-black' : 'text-zinc-400 hover:text-white'}`}>
+          className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-all ${mode === 'group' ? 'text-black' : 'text-zinc-400 hover:text-white'}`}
+          style={mode === 'group' ? { background: 'var(--gold)' } : {}}>
           👨‍👩‍👧‍👦 Group Booking
         </button>
       </div>
@@ -354,14 +356,14 @@ export default function RegistrationForm({ showAllTiers = false }: { showAllTier
                 <div className="font-mono font-bold text-white bg-black/40 rounded-lg px-4 py-2 text-center">
                   {state.submitError.replace('ALREADY_REGISTERED:', '')}
                 </div>
-                <a href="/login" className="block w-full text-center bg-yellow-600 hover:bg-yellow-500 text-black font-bold py-2.5 rounded-xl transition-colors">Go to Login →</a>
+                <a href="/login" className="block w-full text-center text-black font-bold py-2.5 rounded-xl transition-all btn-primary">Go to Login →</a>
               </div>
             ) : (
               <div className="bg-red-900/20 border border-red-700/50 text-red-400 rounded-lg px-4 py-3 text-sm">{state.submitError}</div>
             )
           )}
           <button type="submit" disabled={state.submitting}
-            className="w-full bg-gradient-to-r from-yellow-600 to-yellow-400 text-black font-bold py-4 rounded-xl text-lg disabled:opacity-60 hover:from-yellow-500 hover:to-yellow-300 transition-all">
+            className="w-full btn-primary py-4 rounded-xl text-lg">
             {state.submitting ? 'Registering...' : 'Continue to Payment →'}
           </button>
         </form>
@@ -421,7 +423,8 @@ function PassSelector({ seatTier, seatData, showAllTiers = false, dynamicTiers =
           const soldOut = remaining <= 0
           return (
             <label key={t.key}
-              className={`relative cursor-pointer rounded-xl p-4 border-2 transition-all ${soldOut ? 'opacity-50 cursor-not-allowed border-white/10 bg-white/5' : seatTier === t.key ? 'border-yellow-500 bg-yellow-900/20' : 'border-white/10 bg-white/5 hover:border-yellow-700/50'}`}>
+              className={`relative cursor-pointer rounded-xl p-4 border-2 transition-all ${soldOut ? 'opacity-50 cursor-not-allowed border-white/10 bg-white/5' : 'border-white/10 bg-white/5'}`}
+              style={!soldOut && seatTier === t.key ? { borderColor: 'var(--gold)', background: 'color-mix(in srgb, var(--gold) 15%, transparent)' } : {}}>
               <input type="radio" name="seat_tier" value={t.key} checked={seatTier === t.key} disabled={soldOut}
                 onChange={() => !soldOut && onChange(t.key)} className="sr-only" />
               {!soldOut && discount > 0 && <div className="absolute -top-2.5 -right-2.5 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{discount}% OFF</div>}
@@ -430,7 +433,7 @@ function PassSelector({ seatTier, seatData, showAllTiers = false, dynamicTiers =
               <div className="font-bold text-white text-sm">{t.label}</div>
               <div className="text-xs text-zinc-400 mt-0.5">{t.subtitle}</div>
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-yellow-400 font-bold text-lg">₹{t.price}</span>
+                <span className="font-bold text-lg" style={{ color: 'var(--gold)' }}>₹{t.price}</span>
                 {t.originalPrice > t.price && (
                   <span className="text-zinc-500 text-xs line-through">₹{t.originalPrice}</span>
                 )}
@@ -439,7 +442,7 @@ function PassSelector({ seatTier, seatData, showAllTiers = false, dynamicTiers =
                 🎟️ {soldOut ? 'No seats left' : `${remaining} of ${t.totalSeats} left`}
               </div>
               {seatTier === t.key && !soldOut && (
-                <div className="absolute top-2 left-2 w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center">
+                <div className="absolute top-2 left-2 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'var(--gold)' }}>
                   <svg className="w-3 h-3 text-black" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/></svg>
                 </div>
               )}
@@ -508,7 +511,7 @@ function GroupForm({ tickets, setTickets, errors, submitting, submitError, seatD
     const entry = tierEntries.find(e => e.key === t.seat_tier)
     return s + (entry?.price ?? 0)
   }, 0)
-  const inp = 'w-full bg-white/5 border border-white/10 text-white placeholder-zinc-500 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-yellow-500'
+  const inp = 'w-full bg-white/5 border border-white/10 text-white placeholder-zinc-500 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus-accent'
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
@@ -546,14 +549,16 @@ function GroupForm({ tickets, setTickets, errors, submitting, submitError, seatD
       ))}
 
       <button type="button" onClick={addTicket}
-        className="w-full border-2 border-dashed border-white/20 hover:border-yellow-700/50 text-zinc-400 hover:text-yellow-400 py-3 rounded-2xl text-sm font-medium transition-all">
+        className="w-full border-2 border-dashed border-white/20 text-zinc-400 py-3 rounded-2xl text-sm font-medium transition-all"
+        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--gold)'; (e.currentTarget as HTMLElement).style.color = 'var(--gold)' }}
+        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = ''; (e.currentTarget as HTMLElement).style.color = '' }}>
         + Add Another Person
       </button>
 
       {/* Total */}
-      <div className="bg-white/5 border border-yellow-900/30 rounded-xl px-4 py-3 flex items-center justify-between">
+      <div className="bg-white/5 rounded-xl px-4 py-3 flex items-center justify-between" style={{ borderWidth: 1, borderStyle: 'solid', borderColor: 'color-mix(in srgb, var(--gold) 20%, transparent)' }}>
         <span className="text-zinc-400 text-sm">{tickets.length} tickets · Total</span>
-        <span className="text-yellow-400 font-bold text-xl">₹{total.toLocaleString()}</span>
+        <span className="font-bold text-xl" style={{ color: 'var(--gold)' }}>₹{total.toLocaleString()}</span>
       </div>
 
       {errors.length > 0 && (
@@ -566,7 +571,7 @@ function GroupForm({ tickets, setTickets, errors, submitting, submitError, seatD
       )}
 
       <button type="submit" disabled={submitting}
-        className="w-full bg-gradient-to-r from-yellow-600 to-yellow-400 text-black font-bold py-4 rounded-xl text-lg disabled:opacity-60 hover:from-yellow-500 hover:to-yellow-300 transition-all">
+        className="w-full btn-primary py-4 rounded-xl text-lg">
         {submitting ? 'Registering...' : `Continue to Payment — ₹${total.toLocaleString()} →`}
       </button>
     </form>
@@ -584,7 +589,8 @@ function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) 
   }
   return (
     <button type="button" onClick={handleCopy}
-      className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all shrink-0 ${copied ? 'bg-green-900/40 border-green-600 text-green-400' : 'bg-yellow-900/30 border-yellow-700/40 text-yellow-400 hover:bg-yellow-900/60'}`}>
+      className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all shrink-0 ${copied ? 'bg-green-900/40 border-green-600 text-green-400' : 'border-white/20'}`}
+      style={!copied ? { color: 'var(--gold)', background: 'color-mix(in srgb, var(--gold) 15%, transparent)', borderColor: 'color-mix(in srgb, var(--gold) 35%, transparent)' } : {}}>
       {copied ? '✓ Copied' : label}
     </button>
   )
@@ -638,18 +644,18 @@ function PaymentStep({ isGroup, groupResults, applicationId, amount, tier, upiId
       )}
 
       {/* ── STEP 1 ── Pay now */}
-      <div className="border border-yellow-700/40 rounded-2xl overflow-hidden">
-        <div className="bg-yellow-900/20 px-4 py-3 flex items-center gap-3 border-b border-yellow-700/20">
-          <span className="bg-yellow-500 text-black text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-base">1</span>
+      <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid color-mix(in srgb, var(--gold) 35%, transparent)' }}>
+        <div className="px-4 py-3 flex items-center gap-3 border-b" style={{ background: 'color-mix(in srgb, var(--gold) 12%, transparent)', borderColor: 'color-mix(in srgb, var(--gold) 20%, transparent)' }}>
+          <span className="text-black text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-base" style={{ background: 'var(--gold)' }}>1</span>
           <div>
-            <div className="text-yellow-400 font-bold text-sm">Complete Payment</div>
+            <div className="font-bold text-sm" style={{ color: 'var(--gold)' }}>Complete Payment</div>
             <div className="text-zinc-500 text-xs">Scan QR or use UPI ID / mobile to pay</div>
           </div>
         </div>
         <div className="p-4 space-y-5">
 
           {/* Amount to pay */}
-          <div className="bg-yellow-900/10 border border-yellow-700/20 rounded-xl px-4 py-3">
+          <div className="rounded-xl px-4 py-3" style={{ background: 'color-mix(in srgb, var(--gold) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--gold) 18%, transparent)' }}>
             {isGroup ? (
               <div className="space-y-1.5">
                 <div className="text-zinc-500 text-xs mb-2">Paying for {groupResults.length} people</div>
@@ -662,12 +668,12 @@ function PaymentStep({ isGroup, groupResults, applicationId, amount, tier, upiId
                     </div>
                   )
                 })}
-                <div className="flex items-center justify-between pt-2 border-t border-yellow-700/20 mt-1">
+                <div className="flex items-center justify-between pt-2 mt-1" style={{ borderTop: '1px solid color-mix(in srgb, var(--gold) 20%, transparent)' }}>
                   <div>
                     <div className="text-zinc-400 text-xs">Pay to</div>
                     <div className="text-white font-semibold text-sm">{upiName}</div>
                   </div>
-                  <div className="text-yellow-400 font-bold text-2xl">₹{amount}</div>
+                  <div className="font-bold text-2xl" style={{ color: 'var(--gold)' }}>₹{amount}</div>
                 </div>
               </div>
             ) : (
@@ -678,7 +684,7 @@ function PaymentStep({ isGroup, groupResults, applicationId, amount, tier, upiId
                 </div>
                 <div className="text-right">
                   <div className="text-zinc-400 text-xs mb-0.5">Amount</div>
-                  <div className="text-yellow-400 font-bold text-2xl">₹{amount}</div>
+                  <div className="font-bold text-2xl" style={{ color: 'var(--gold)' }}>₹{amount}</div>
                 </div>
               </div>
             )}
@@ -722,10 +728,10 @@ function PaymentStep({ isGroup, groupResults, applicationId, amount, tier, upiId
             </div>
 
             {/* UPI ID row */}
-            <div className="flex items-center justify-between bg-black/40 border border-yellow-700/30 rounded-xl px-4 py-3 gap-3">
+            <div className="flex items-center justify-between bg-black/40 rounded-xl px-4 py-3 gap-3" style={{ border: '1px solid color-mix(in srgb, var(--gold) 30%, transparent)' }}>
               <div className="min-w-0">
                 <div className="text-zinc-500 text-xs mb-0.5">UPI ID</div>
-                <div className="text-yellow-400 font-mono font-bold text-sm truncate">{upiId}</div>
+                <div className="font-mono font-bold text-sm truncate" style={{ color: 'var(--gold)' }}>{upiId}</div>
               </div>
               <CopyButton text={upiId} label="Copy UPI" />
             </div>
@@ -863,7 +869,7 @@ function PaymentStep({ isGroup, groupResults, applicationId, amount, tier, upiId
       )}
 
       <button type="submit" disabled={submitting || uploading}
-        className="w-full bg-gradient-to-r from-yellow-600 to-yellow-400 text-black font-bold py-4 rounded-xl text-lg disabled:opacity-60 hover:from-yellow-500 hover:to-yellow-300 transition-all">
+        className="w-full btn-primary py-4 rounded-xl text-lg">
         {uploading ? 'Uploading screenshot...' : submitting ? 'Submitting...' : '✅ Submit Payment for Verification'}
       </button>
     </form>
@@ -891,8 +897,8 @@ function SuccessScreen({ applicationId, name, tier, groupResults, tiers = [] }: 
         {isGroup ? 'Your group booking is submitted and payment is under review.' : `Thank you, ${name}. Your payment is under review.`}
       </p>
 
-      <div className="bg-white/5 border border-yellow-900/30 rounded-2xl p-5 mb-6 text-left space-y-3">
-        <div className="text-yellow-400 text-xs uppercase tracking-widest font-semibold mb-3">
+      <div className="bg-white/5 rounded-2xl p-5 mb-6 text-left space-y-3" style={{ border: '1px solid color-mix(in srgb, var(--gold) 20%, transparent)' }}>
+        <div className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: 'var(--gold)' }}>
           {isGroup ? 'Application IDs — Save all of these' : 'Your Registration Details'}
         </div>
         {isGroup ? (
@@ -909,7 +915,7 @@ function SuccessScreen({ applicationId, name, tier, groupResults, tiers = [] }: 
           <>
             <div className="flex justify-between"><span className="text-zinc-400 text-sm">Application ID</span><span className="text-white font-mono font-bold text-sm">{applicationId}</span></div>
             <div className="flex justify-between"><span className="text-zinc-400 text-sm">Pass</span><span className="text-white text-sm">{tierInfo?.badge ?? '🎟️'} {tierInfo?.label ?? tier}</span></div>
-            <div className="flex justify-between"><span className="text-zinc-400 text-sm">Status</span><span className="text-yellow-400 text-sm">Payment Pending</span></div>
+            <div className="flex justify-between"><span className="text-zinc-400 text-sm">Status</span><span className="text-sm" style={{ color: 'var(--gold)' }}>Payment Pending</span></div>
           </>
         )}
       </div>
@@ -919,7 +925,7 @@ function SuccessScreen({ applicationId, name, tier, groupResults, tiers = [] }: 
         <div className="text-zinc-400 text-sm">Each person needs their own ID to log in and get their QR pass after payment is verified.</div>
       </div>
 
-      <a href="/login" className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-600 to-yellow-400 text-black font-bold px-8 py-3 rounded-full hover:from-yellow-500 hover:to-yellow-300 transition-all">
+      <a href="/login" className="inline-flex items-center gap-2 btn-primary px-8 py-3 rounded-full">
         Check Pass Status →
       </a>
     </div>

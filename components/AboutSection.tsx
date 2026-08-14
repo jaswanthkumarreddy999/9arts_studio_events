@@ -5,7 +5,6 @@ import { buildTierMap } from '@/lib/eventSettings'
 export default async function AboutSection({ settings: s = DEFAULT_EVENT_SETTINGS }: { settings?: EventSettings }) {
   const tierMap = buildTierMap(s)
 
-  // Count approved seats per tier dynamically
   let totalRemaining = 0
   try {
     const { data: approvals } = await supabaseAdmin
@@ -30,9 +29,7 @@ export default async function AboutSection({ settings: s = DEFAULT_EVENT_SETTING
   } catch { /* use 0 */ }
 
   return (
-    <section
-      id="about"
-      className="py-20 sm:py-28"
+    <section id="about" className="py-20 sm:py-28"
       style={s.about_bg_image
         ? { backgroundImage: `url(${s.about_bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'local' }
         : { background: 'linear-gradient(180deg, #0a0a0f 0%, #0d0a1a 100%)' }}
@@ -40,55 +37,46 @@ export default async function AboutSection({ settings: s = DEFAULT_EVENT_SETTING
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Header */}
         <div className="text-center mb-16">
-          <span className="inline-block text-yellow-500 text-sm font-semibold uppercase tracking-widest mb-3">
+          <span className="inline-block accent-text text-sm font-semibold uppercase tracking-widest mb-3">
             {s.about_subtitle}
           </span>
           <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">
             <span className="shimmer">{s.about_title}</span>
           </h2>
-          <p className="text-zinc-400 text-lg max-w-2xl mx-auto leading-relaxed">
-            {s.about_description}
-          </p>
+          <p className="text-zinc-400 text-lg max-w-2xl mx-auto leading-relaxed">{s.about_description}</p>
         </div>
 
         {/* Main content */}
         <div className="grid md:grid-cols-2 gap-12 items-center mb-16">
-          {/* Left: Text */}
           <div>
-            <h3 className="text-2xl font-bold text-white mb-4">
-              Celebrating the Best of {s.event_name}
-            </h3>
-            <p className="text-zinc-400 leading-relaxed mb-6">
-              {s.hero_description}
-            </p>
+            <h3 className="text-2xl font-bold text-white mb-4">Celebrating the Best of {s.event_name}</h3>
+            <p className="text-zinc-400 leading-relaxed mb-6">{s.hero_description}</p>
             <div className="flex gap-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-yellow-400">{s.stat_contestants_label}</div>
-                <div className="text-sm text-zinc-500 mt-1">Contestants</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-yellow-400">{totalRemaining}</div>
-                <div className="text-sm text-zinc-500 mt-1">Seats Left</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-yellow-400">{s.stat_edition_label}</div>
-                <div className="text-sm text-zinc-500 mt-1">Edition</div>
-              </div>
+              {[
+                { value: s.stat_contestants_label, label: 'Contestants' },
+                { value: totalRemaining,            label: 'Seats Left' },
+                { value: s.stat_edition_label,      label: 'Edition' },
+              ].map(({ value, label }) => (
+                <div key={label} className="text-center">
+                  <div className="text-3xl font-bold accent-text" style={{ color: 'var(--gold)' }}>{value}</div>
+                  <div className="text-sm text-zinc-500 mt-1">{label}</div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Right: Event details card */}
-          <div className="bg-white/5 border border-yellow-900/30 rounded-2xl p-8 glow">
-            <h4 className="text-yellow-400 font-semibold text-sm uppercase tracking-widest mb-6">
+          {/* Event details card */}
+          <div className="bg-white/5 border accent-border-dim rounded-2xl p-8 glow" style={{ borderColor: 'color-mix(in srgb, var(--gold) 20%, transparent)' }}>
+            <h4 className="accent-text font-semibold text-sm uppercase tracking-widest mb-6" style={{ color: 'var(--gold)' }}>
               Event Details
             </h4>
             {[
-              { label: 'Date',      value: s.event_date,    icon: '📅', href: null },
-              { label: 'Day',       value: s.event_day,     icon: '🗓️', href: null },
-              { label: 'Time',      value: s.event_time,    icon: '⏰', href: null },
-              { label: 'Venue',     value: s.venue_name,    icon: '📍', href: s.venue_maps_url || null },
-              { label: 'Location',  value: s.venue_address, icon: '🗺️', href: null },
-              { label: 'Organizer', value: s.organizer_name,icon: '🎭', href: null },
+              { label: 'Date',      value: s.event_date,     icon: '📅', href: null },
+              { label: 'Day',       value: s.event_day,      icon: '🗓️', href: null },
+              { label: 'Time',      value: s.event_time,     icon: '⏰', href: null },
+              { label: 'Venue',     value: s.venue_name,     icon: '📍', href: s.venue_maps_url || null },
+              { label: 'Location',  value: s.venue_address,  icon: '🗺️', href: null },
+              { label: 'Organizer', value: s.organizer_name, icon: '🎭', href: null },
             ].filter(item => item.value && item.value !== 'TBA' && item.value !== 'Venue TBA').map((item) => (
               <div key={item.label} className="flex items-start gap-3 py-3 border-b border-white/5 last:border-0">
                 <span className="text-lg">{item.icon}</span>
@@ -96,7 +84,10 @@ export default async function AboutSection({ settings: s = DEFAULT_EVENT_SETTING
                   <div className="text-xs text-zinc-500 uppercase tracking-wide">{item.label}</div>
                   {item.href ? (
                     <a href={item.href} target="_blank" rel="noopener noreferrer"
-                      className="text-white font-medium hover:text-yellow-400 transition-colors underline underline-offset-2 decoration-yellow-700">
+                      className="text-white font-medium transition-colors underline underline-offset-2"
+                      style={{ textDecorationColor: 'var(--gold)' }}
+                      onMouseEnter={e => (e.currentTarget.style.color = 'var(--gold)')}
+                      onMouseLeave={e => (e.currentTarget.style.color = '')}>
                       {item.value} ↗
                     </a>
                   ) : (
@@ -113,7 +104,9 @@ export default async function AboutSection({ settings: s = DEFAULT_EVENT_SETTING
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {s.about_highlights.map((h) => (
               <div key={h.title}
-                className="bg-white/5 border border-white/10 hover:border-yellow-700/50 rounded-xl p-5 transition-all hover:bg-white/8">
+                className="bg-white/5 border border-white/10 rounded-xl p-5 transition-all hover:bg-white/8"
+                onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = 'color-mix(in srgb, var(--gold) 50%, transparent)')}
+                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = '')}>
                 <div className="text-3xl mb-3">{h.icon}</div>
                 <h4 className="font-semibold text-white mb-1">{h.title}</h4>
                 <p className="text-zinc-500 text-sm leading-relaxed">{h.desc}</p>

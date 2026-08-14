@@ -16,9 +16,7 @@ export default function ContactSection({ settings: s = DEFAULT_EVENT_SETTINGS }:
               <span className="text-2xl">{s.event_icon}</span>
               <span className="font-bold text-lg shimmer">{s.event_name} {s.event_edition}</span>
             </div>
-            <p className="text-zinc-500 text-sm leading-relaxed">
-              {s.event_tagline}
-            </p>
+            <p className="text-zinc-500 text-sm leading-relaxed">{s.event_tagline}</p>
           </div>
 
           {/* Event info */}
@@ -26,21 +24,19 @@ export default function ContactSection({ settings: s = DEFAULT_EVENT_SETTINGS }:
             <h4 className="text-white font-semibold mb-4">Event Details</h4>
             <ul className="space-y-2 text-zinc-400 text-sm">
               {s.event_date && s.event_date !== 'TBA' && (
-                <li className="flex items-start gap-2">
-                  <span>📅</span> {s.event_date}
-                </li>
+                <li className="flex items-start gap-2"><span>📅</span> {s.event_date}</li>
               )}
               {s.event_time && (
-                <li className="flex items-start gap-2">
-                  <span>⏰</span> {s.event_time}
-                </li>
+                <li className="flex items-start gap-2"><span>⏰</span> {s.event_time}</li>
               )}
               {s.venue_name && s.venue_name !== 'Venue TBA' && (
                 <li className="flex items-start gap-2">
                   <span>📍</span>
                   {s.venue_maps_url ? (
                     <a href={s.venue_maps_url} target="_blank" rel="noopener noreferrer"
-                      className="hover:text-yellow-400 transition-colors">
+                      className="transition-colors"
+                      onMouseEnter={e => (e.currentTarget.style.color = 'var(--gold)')}
+                      onMouseLeave={e => (e.currentTarget.style.color = '')}>
                       {s.venue_name}, {s.venue_address} ↗
                     </a>
                   ) : (
@@ -56,14 +52,10 @@ export default function ContactSection({ settings: s = DEFAULT_EVENT_SETTINGS }:
             <h4 className="text-white font-semibold mb-4">Contact Us</h4>
             <ul className="space-y-2 text-zinc-400 text-sm">
               {s.contact_phone && (
-                <li className="flex items-start gap-2">
-                  <span>📞</span> +91 {s.contact_phone}
-                </li>
+                <li className="flex items-start gap-2"><span>📞</span> +91 {s.contact_phone}</li>
               )}
               {s.contact_email && (
-                <li className="flex items-start gap-2">
-                  <span>📧</span> {s.contact_email}
-                </li>
+                <li className="flex items-start gap-2"><span>📧</span> {s.contact_email}</li>
               )}
               {s.contact_instagram && (
                 <li className="flex items-center gap-2">
