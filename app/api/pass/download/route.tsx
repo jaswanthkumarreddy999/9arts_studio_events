@@ -34,7 +34,9 @@ export async function GET(req: NextRequest) {
         .eq('application_id', session.sub)
         .maybeSingle(),
       getEventSettings(),
-    ])    if (!pass?.qr_data_url) {
+    ])
+
+    if (!pass?.qr_data_url) {
       return new Response('Pass not ready', { status: 404 })
     }
 
