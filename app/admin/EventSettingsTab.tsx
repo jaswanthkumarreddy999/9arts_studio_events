@@ -823,7 +823,7 @@ export default function EventSettingsTab() {
         <div className="space-y-3">
           <Toggle value={settings.show_contestants} onChange={v => set('show_contestants', v)} label="Show Contestants section & navbar link" />
           <Toggle value={settings.show_sponsors} onChange={v => set('show_sponsors', v)} label="Show Sponsors section" />
-          <Toggle value={settings.show_voting} onChange={v => set('show_voting', v)} label="Enable voting for attendees" />
+          <Toggle value={settings.show_voting} onChange={v => set('show_voting', v)} label="Enable voting (homepage + My Pass voting section)" />
         </div>
         <div className="pt-1">
           <label className={lbl + ' mb-1'}>Contestants section description (optional)</label>
@@ -837,8 +837,18 @@ export default function EventSettingsTab() {
         </div>
       </Section>
 
-      {/* ── BACKGROUND IMAGES ────────────────────────────────────────────── */}
-      <Section title="Section Background Images" icon="🖼️" defaultOpen={false}>
+      {/* ── MY PASS SECTIONS ─────────────────────────────────────────────── */}
+      <Section title="My Pass Page Sections" icon="🎟️">
+        <p className="text-zinc-500 text-xs mb-3">Control which sections are visible to logged-in attendees on the My Pass page.</p>
+        <div className="space-y-3">
+          <Toggle value={settings.show_voting ?? true} onChange={v => set('show_voting', v)}
+            label="Show Voting section — attendees can vote for contestants after payment is approved" />
+          <Toggle value={settings.show_pass_download ?? true} onChange={v => set('show_pass_download', v)}
+            label="Show Download Pass as Image button" />
+        </div>
+      </Section>
+
+      {/* ── BACKGROUND IMAGES ────────────────────────────────────────────── */}      <Section title="Section Background Images" icon="🖼️" defaultOpen={false}>
         <p className="text-zinc-500 text-xs">Paste a direct image URL for each section. Leave blank to use the default dark gradient.</p>
         <BgImageField label="Hero section background" value={settings.hero_bg_image} onChange={v => set('hero_bg_image', v)} />
         <BgImageField label="About section background" value={settings.about_bg_image} onChange={v => set('about_bg_image', v)} />

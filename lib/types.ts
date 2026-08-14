@@ -182,7 +182,8 @@ export interface EventSettings {
   // Sections visibility
   show_contestants: boolean
   show_sponsors: boolean
-  show_voting: boolean
+  show_voting: boolean         // controls both homepage voting section AND my-pass voting section
+  show_pass_download: boolean  // show "Download Pass as Image" button on my-pass page
 
   // Section background images
   hero_bg_image: string
@@ -298,6 +299,7 @@ export const DEFAULT_EVENT_SETTINGS: EventSettings = {
   show_contestants: true,
   show_sponsors: true,
   show_voting: true,
+  show_pass_download: true,
 
   hero_bg_image: '',
   about_bg_image: '',

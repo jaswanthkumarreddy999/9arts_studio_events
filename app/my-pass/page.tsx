@@ -208,7 +208,7 @@ export default async function MyPassPage() {
             </div>
 
             {/* Download button */}
-            <DownloadPassButton />
+            {(settings.show_pass_download ?? true) && <DownloadPassButton />}
           </>
         ) : (
           <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center">
@@ -227,7 +227,7 @@ export default async function MyPassPage() {
           </div>
         )}
 
-        <VoteSection />
+        {settings.show_voting && <VoteSection />}
       </div>
     </div>
   )
