@@ -614,7 +614,7 @@ export default function EventSettingsTab() {
       {/* ── HOMEPAGE SECTIONS VISIBILITY ─────────────────────────────────── */}
       <Section title="Homepage Sections" icon="👁️">
         <div className="space-y-3">
-          <Toggle value={settings.show_contestants} onChange={v => set('show_contestants', v)} label="Show Contestants section" />
+          <Toggle value={settings.show_contestants} onChange={v => set('show_contestants', v)} label="Show Contestants section & navbar link" />
           <Toggle value={settings.show_sponsors} onChange={v => set('show_sponsors', v)} label="Show Sponsors section" />
           <Toggle value={settings.show_voting} onChange={v => set('show_voting', v)} label="Enable voting for attendees" />
         </div>

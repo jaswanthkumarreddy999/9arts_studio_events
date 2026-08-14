@@ -36,7 +36,9 @@ export default function Navbar({ settings: propSettings }: { settings?: EventSet
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-8">
-          {s.nav_links.map((l) => (
+          {s.nav_links
+            .filter(l => l.href !== '#contestants' || s.show_contestants)
+            .map((l) => (
             <a
               key={l.href}
               href={l.href}
@@ -85,7 +87,9 @@ export default function Navbar({ settings: propSettings }: { settings?: EventSet
       {open && (
         <div className="md:hidden bg-black/95 backdrop-blur-md border-t border-yellow-900/30">
           <nav className="flex flex-col px-4 py-4 gap-1">
-            {s.nav_links.map((l) => (
+            {s.nav_links
+              .filter(l => l.href !== '#contestants' || s.show_contestants)
+              .map((l) => (
               <a
                 key={l.href}
                 href={l.href}
