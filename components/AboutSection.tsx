@@ -84,10 +84,8 @@ export default async function AboutSection({ settings: s = DEFAULT_EVENT_SETTING
                   <div className="text-xs text-zinc-500 uppercase tracking-wide">{item.label}</div>
                   {item.href ? (
                     <a href={item.href} target="_blank" rel="noopener noreferrer"
-                      className="text-white font-medium transition-colors underline underline-offset-2"
-                      style={{ textDecorationColor: 'var(--gold)' }}
-                      onMouseEnter={e => (e.currentTarget.style.color = 'var(--gold)')}
-                      onMouseLeave={e => (e.currentTarget.style.color = '')}>
+                      className="text-white font-medium transition-colors underline underline-offset-2 hover:accent-text"
+                      style={{ textDecorationColor: 'var(--gold)' }}>
                       {item.value} ↗
                     </a>
                   ) : (
@@ -104,9 +102,7 @@ export default async function AboutSection({ settings: s = DEFAULT_EVENT_SETTING
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {s.about_highlights.map((h) => (
               <div key={h.title}
-                className="bg-white/5 border border-white/10 rounded-xl p-5 transition-all hover:bg-white/8"
-                onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = 'color-mix(in srgb, var(--gold) 50%, transparent)')}
-                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = '')}>
+                className="bg-white/5 border border-white/10 rounded-xl p-5 transition-all hover:bg-white/8 hover:border-white/30">
                 <div className="text-3xl mb-3">{h.icon}</div>
                 <h4 className="font-semibold text-white mb-1">{h.title}</h4>
                 <p className="text-zinc-500 text-sm leading-relaxed">{h.desc}</p>

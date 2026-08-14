@@ -62,9 +62,7 @@ export default function HeroSection({ settings: s = DEFAULT_EVENT_SETTINGS }: { 
             <span className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-sm text-zinc-300">
               {s.venue_maps_url ? (
                 <a href={s.venue_maps_url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 transition-colors"
-                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--gold)')}
-                  onMouseLeave={e => (e.currentTarget.style.color = '')}>
+                  className="flex items-center gap-1.5 transition-colors hover:accent-text">
                   📍 {s.venue_name}
                 </a>
               ) : <>📍 {s.venue_name}</>}

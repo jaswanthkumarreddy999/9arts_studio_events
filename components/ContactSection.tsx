@@ -34,9 +34,7 @@ export default function ContactSection({ settings: s = DEFAULT_EVENT_SETTINGS }:
                   <span>📍</span>
                   {s.venue_maps_url ? (
                     <a href={s.venue_maps_url} target="_blank" rel="noopener noreferrer"
-                      className="transition-colors"
-                      onMouseEnter={e => (e.currentTarget.style.color = 'var(--gold)')}
-                      onMouseLeave={e => (e.currentTarget.style.color = '')}>
+                      className="transition-colors hover:accent-text">
                       {s.venue_name}, {s.venue_address} ↗
                     </a>
                   ) : (

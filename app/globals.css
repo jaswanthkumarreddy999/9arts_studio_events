@@ -38,6 +38,7 @@ body {
 /* Text */
 .accent-text       { color: var(--gold); }
 .accent-text-dim   { color: color-mix(in srgb, var(--gold) 70%, white); }
+.hover\:accent-text:hover { color: var(--gold); }
 
 /* Borders */
 .accent-border        { border-color: var(--gold-border); }
