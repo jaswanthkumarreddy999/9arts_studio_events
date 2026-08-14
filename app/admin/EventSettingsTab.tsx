@@ -60,15 +60,18 @@ function Toggle({ value, onChange, label: text }: { value: boolean; onChange: (v
 }
 
 // ─── PassTemplateEditor ──────────────────────────────────────────────────────
-function PassTemplateEditor({ currentUrl, onUploaded, positions, onPositionsChange }: {
+function PassTemplateEditor({ currentUrl, onUploaded, positions, onPositionsChange, customFields, onCustomFieldsChange }: {
   currentUrl: string
   onUploaded: (url: string) => void
   positions: import('@/lib/types').PassFieldPositions
   onPositionsChange: (p: import('@/lib/types').PassFieldPositions) => void
+  customFields: import('@/lib/types').PassCustomField[]
+  onCustomFieldsChange: (f: import('@/lib/types').PassCustomField[]) => void
 }) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
-  const [preview, setPreview] = useState(currentUrl)
+  // Use currentUrl directly (no stale local state) — always reflects latest prop after upload
+  const displayUrl = currentUrl || '/ticket-template.png'
 
   const displayUrl = preview || currentUrl
 
@@ -83,7 +86,6 @@ function PassTemplateEditor({ currentUrl, onUploaded, positions, onPositionsChan
       const res = await fetch('/api/admin/pass-template-upload', { method: 'POST', body: fd })
       const d = await res.json()
       if (!res.ok) { setError(d.error ?? 'Upload failed'); return }
-      setPreview(d.publicUrl)
       onUploaded(d.publicUrl)
     } catch {
       setError('Upload failed — network error')
@@ -97,14 +99,8 @@ function PassTemplateEditor({ currentUrl, onUploaded, positions, onPositionsChan
     <div className="space-y-4">
       {/* Current template preview */}
       <div className="relative w-full rounded-xl overflow-hidden border border-white/10 bg-black/30" style={{ aspectRatio: '1536/1024' }}>
-        {displayUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={displayUrl} alt="Pass template preview" className="w-full h-full object-fill" />
-        ) : (
-          // Fall back to the static bundled template
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src="/ticket-template.png" alt="Default pass template" className="w-full h-full object-fill" />
-        )}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={displayUrl} alt="Pass template preview" className="w-full h-full object-fill" />
         <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
           <span className="text-white text-xs font-semibold bg-black/60 px-3 py-1.5 rounded-lg">Current template</span>
         </div>
@@ -117,8 +113,8 @@ function PassTemplateEditor({ currentUrl, onUploaded, positions, onPositionsChan
         </label>
         <p className="text-zinc-500 text-xs">PNG, JPEG or WebP · max 10 MB · recommended size 1536 × 1024 px (3:2 landscape)</p>
         <p className="text-zinc-600 text-xs">The template is the ticket background image. Dynamic data (name, QR, application ID, etc.) is overlaid on top at fixed positions — design your template so those fields land in the correct spots.</p>
-        {displayUrl && displayUrl !== '/ticket-template.png' && (
-          <button type="button" onClick={() => { setPreview(''); onUploaded('') }}
+        {currentUrl && (
+          <button type="button" onClick={() => onUploaded('')}
             className="text-xs text-zinc-500 hover:text-red-400 transition-colors underline">
             Revert to default template
           </button>
@@ -128,9 +124,11 @@ function PassTemplateEditor({ currentUrl, onUploaded, positions, onPositionsChan
 
       {/* Live field position editor */}
       <PassFieldEditor
-        templateUrl={displayUrl || '/ticket-template.png'}
+        templateUrl={displayUrl}
         positions={positions}
-        onChange={onPositionsChange}
+        customFields={customFields}
+        onPositionsChange={onPositionsChange}
+        onCustomFieldsChange={onCustomFieldsChange}
       />
     </div>
   )
@@ -817,6 +815,8 @@ export default function EventSettingsTab() {
           onUploaded={url => set('pass_template_url', url)}
           positions={settings.pass_field_positions ?? DEFAULT_EVENT_SETTINGS.pass_field_positions}
           onPositionsChange={(p: PassFieldPositions) => set('pass_field_positions', p)}
+          customFields={settings.pass_custom_fields ?? []}
+          onCustomFieldsChange={(f: import('@/lib/types').PassCustomField[]) => set('pass_custom_fields', f)}
         />
       </Section>
 

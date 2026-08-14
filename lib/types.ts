@@ -91,8 +91,10 @@ export interface AdminTabConfig {
 // The download route converts % → px using W=1536, H=1024.
 // ─────────────────────────────────────────────────────────────────────────────
 export interface PassFieldPosition {
-  top: number   // % from top
-  left: number  // % from left
+  top: number      // % from top
+  left: number     // % from left
+  fontSize?: number  // px font size for the actual pass (default varies per field)
+  maxWidth?: number  // % max-width on the pass (default 34%)
 }
 
 export interface PassFieldPositions {
@@ -103,6 +105,18 @@ export interface PassFieldPositions {
   pass_type:      PassFieldPosition
   amount:         PassFieldPosition
   qr:             PassFieldPosition & { width: number; height: number }
+  // Dynamic custom text fields — keys start with "custom_"
+  [key: string]:  PassFieldPosition | (PassFieldPosition & { width: number; height: number })
+}
+
+// Describes a custom overlay text field added by admin
+export interface PassCustomField {
+  id: string          // unique key, prefixed with "custom_" e.g. "custom_school"
+  label: string       // admin display name e.g. "School Name"
+  source: 'static' | 'extra_data'  // static = fixed text; extra_data = from registration data
+  staticText?: string // used when source='static'
+  extraDataKey?: string // used when source='extra_data', matches CustomField.id
+  color: string       // hex text color on the pass e.g. '#ffffff'
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -216,8 +230,9 @@ export interface EventSettings {
   theme_color: string  // hex color e.g. '#d4a520' or preset name 'gold'|'blue'|'purple'|'rose'|'green'|'pink'
 
   // Pass template
-  pass_template_url: string  // public URL of uploaded ticket background image; falls back to /ticket-template.png
-  pass_field_positions: PassFieldPositions  // drag-adjusted overlay positions (% units)
+  pass_template_url: string
+  pass_field_positions: PassFieldPositions
+  pass_custom_fields: PassCustomField[]  // admin-defined extra text overlays
 
   updated_at?: string
 }
@@ -354,6 +369,7 @@ export const DEFAULT_EVENT_SETTINGS: EventSettings = {
     amount:         { top: 86,   left: 77 },
     qr:             { top: 30,   left: 70.2, width: 23.4, height: 33 },
   },
+  pass_custom_fields: [],
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

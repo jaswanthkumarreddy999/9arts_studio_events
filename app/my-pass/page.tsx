@@ -25,7 +25,7 @@ export default async function MyPassPage() {
       .maybeSingle(),
     supabaseAdmin
       .from('registrations')
-      .select('seat_tier, mobile, gender')
+      .select('seat_tier, mobile, gender, extra_data')
       .eq('application_id', session.sub)
       .maybeSingle(),
     getEventSettings(),
@@ -179,6 +179,30 @@ export default async function MyPassPage() {
                 style={{ top: `${pos.amount.top}%`, left: `${pos.amount.left}%`, fontSize: 'clamp(7px,1.5vw,22px)' }}>
                 ₹{payment?.amount ?? tierInfo.price}
               </div>
+
+              {/* Custom overlay fields */}
+              {(settings.pass_custom_fields ?? []).map(cf => {
+                const cfPos = pos[cf.id]
+                if (!cfPos) return null
+                const text = cf.source === 'static'
+                  ? (cf.staticText ?? '')
+                  : ((reg?.extra_data as Record<string, string> | null)?.[cf.extraDataKey ?? ''] ?? '')
+                if (!text) return null
+                const fs = cfPos.fontSize ?? 28
+                const mw = cfPos.maxWidth ?? 34
+                return (
+                  <div key={cf.id} className="absolute font-semibold"
+                    style={{
+                      top: `${cfPos.top}%`, left: `${cfPos.left}%`,
+                      color: cf.color,
+                      fontSize: `clamp(5px,${(fs / 1536 * 100).toFixed(3)}vw,${fs}px)`,
+                      maxWidth: `${mw}%`,
+                      transform: 'translateY(-50%)',
+                    }}>
+                    {text}
+                  </div>
+                )
+              })}
             </div>
 
             {/* Download button */}

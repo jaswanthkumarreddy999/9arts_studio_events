@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
         .maybeSingle(),
       supabaseAdmin
         .from('registrations')
-        .select('mobile, gender')
+        .select('mobile, gender, extra_data')
         .eq('application_id', session.sub)
         .maybeSingle(),
       supabaseAdmin
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
         .maybeSingle(),
       supabaseAdmin
         .from('event_settings')
-        .select('pass_template_url, pass_field_positions')
+        .select('pass_template_url, pass_field_positions, pass_custom_fields')
         .eq('id', 1)
         .maybeSingle(),
     ])
@@ -138,6 +138,29 @@ export async function GET(req: NextRequest) {
           <div style={{ display: 'flex', position: 'absolute', top: px(pos.amount.top, H), left: px(pos.amount.left, W), color: '#000000', fontSize: 30, fontWeight: 900, fontFamily: 'sans-serif' }}>
             {amountLabel}
           </div>
+
+          {/* Custom overlay fields */}
+          {((evtSettings?.pass_custom_fields ?? []) as import('@/lib/types').PassCustomField[]).map(cf => {
+            const cfPos = pos[cf.id]
+            if (!cfPos) return null
+            const extraData = (reg?.extra_data ?? {}) as Record<string, string>
+            const text = cf.source === 'static'
+              ? (cf.staticText ?? '')
+              : (extraData[cf.extraDataKey ?? ''] ?? '')
+            if (!text) return null
+            const fs = cfPos.fontSize ?? 28
+            const mw = Math.round((cfPos.maxWidth ?? 34) / 100 * W)
+            return (
+              <div key={cf.id} style={{
+                display: 'flex', position: 'absolute',
+                top: px(cfPos.top, H), left: px(cfPos.left, W),
+                color: cf.color ?? '#ffffff', fontSize: fs, fontWeight: 600,
+                fontFamily: 'sans-serif', maxWidth: mw,
+              }}>
+                {text}
+              </div>
+            )
+          })}
 
           {/* QR Code — over the white QR placeholder */}
           <div style={{ display: 'flex', position: 'absolute', top: px(pos.qr.top, H), left: px(pos.qr.left, W), background: '#ffffff', padding: 6, borderRadius: 8 }}>
