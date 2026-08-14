@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useReducer } from 'react'
+import { useState, useReducer, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -51,6 +51,21 @@ const init: State = {
 export default function LoginPage() {
   const router = useRouter()
   const [state, dispatch] = useReducer(reducer, init)
+  const [eventName, setEventName] = useState('9 Arts Studio Event')
+  const [eventIcon, setEventIcon] = useState('🎭')
+
+  useEffect(() => {
+    fetch('/api/event-settings')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.settings) {
+          setEventName(d.settings.event_name ?? eventName)
+          setEventIcon(d.settings.event_icon ?? eventIcon)
+        }
+      })
+      .catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const inp = 'w-full bg-white/5 border border-white/10 text-white placeholder-zinc-500 rounded-xl px-4 py-3 focus:outline-none focus:border-yellow-500 transition-colors'
 
@@ -124,8 +139,8 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 group mb-6">
-            <span className="text-3xl">👑</span>
-            <span className="font-bold text-xl shimmer">Miss Nellore 2026</span>
+            <span className="text-3xl">{eventIcon}</span>
+            <span className="font-bold text-xl shimmer">{eventName}</span>
           </Link>
           <h1 className="text-2xl font-bold text-white mt-4">Welcome Back</h1>
           <p className="text-zinc-400 text-sm mt-1">Login to view your QR pass</p>
@@ -150,7 +165,7 @@ export default function LoginPage() {
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-1.5">Application ID</label>
                 <input type="text" value={state.appId} onChange={e => dispatch({ type: 'SET', field: 'appId', value: e.target.value })}
-                  placeholder="MN2026-XXXXXX-XXXXXX" className={inp} autoCapitalize="characters" />
+                  placeholder="9AS2026-XXXXXX-XXXXXX" className={inp} autoCapitalize="characters" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-1.5">Mobile Number</label>

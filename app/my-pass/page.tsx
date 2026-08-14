@@ -1,6 +1,7 @@
 import { getSession } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase'
 import { SEAT_TIERS } from '@/lib/types'
+import { getEventSettings } from '@/lib/eventSettings'
 import Link from 'next/link'
 import PassActions from './PassActions'
 import VoteSection from './VoteSection'
@@ -11,7 +12,7 @@ export default async function MyPassPage() {
   const session = await getSession()
   if (!session) return null // middleware handles redirect
 
-  const [{ data: pass }, { data: payment }, { data: reg }] = await Promise.all([
+  const [{ data: pass }, { data: payment }, { data: reg }, settings] = await Promise.all([
     supabaseAdmin
       .from('passes')
       .select('application_id, full_name, seat_tier, qr_data_url, issued_at, ticket_no, table_number')
@@ -27,6 +28,7 @@ export default async function MyPassPage() {
       .select('seat_tier, mobile, gender')
       .eq('application_id', session.sub)
       .maybeSingle(),
+    getEventSettings(),
   ])
 
   const tier = (pass?.seat_tier ?? reg?.seat_tier ?? 'gold') as keyof typeof SEAT_TIERS
@@ -39,8 +41,8 @@ export default async function MyPassPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <Link href="/" className="flex items-center gap-2">
-            <span className="text-xl">👑</span>
-            <span className="font-bold shimmer">Miss Nellore 2026</span>
+            <span className="text-xl">{settings.event_icon}</span>
+            <span className="font-bold shimmer">{settings.event_name}</span>
           </Link>
           <PassActions hasPass={!!pass?.qr_data_url} />
         </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -10,6 +10,21 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [eventName, setEventName] = useState('9 Arts Studio Event')
+  const [eventIcon, setEventIcon] = useState('🎭')
+
+  useEffect(() => {
+    fetch('/api/event-settings')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.settings) {
+          setEventName(d.settings.event_name ?? eventName)
+          setEventIcon(d.settings.event_icon ?? eventIcon)
+        }
+      })
+      .catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -39,8 +54,8 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-4">
-            <span className="text-2xl">👑</span>
-            <span className="font-bold shimmer">Miss Nellore 2026</span>
+            <span className="text-2xl">{eventIcon}</span>
+            <span className="font-bold shimmer">{eventName}</span>
           </Link>
           <h1 className="text-xl font-bold text-white mt-3">Admin Panel</h1>
           <p className="text-zinc-500 text-sm">Event management access</p>

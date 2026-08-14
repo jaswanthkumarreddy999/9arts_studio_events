@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useReducer, useEffect } from 'react'
-import { SEAT_TIERS, type SeatTier } from '@/lib/types'
+import { SEAT_TIERS, type SeatTier, type CustomField } from '@/lib/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -133,16 +133,17 @@ export default function RegistrationForm({ showAllTiers = false }: { showAllTier
   const [dynamicTiers, setDynamicTiers] = useState<import('@/lib/types').PassTierConfig[]>([])
   const [upiId, setUpiId] = useState(UPI_ID)
   const [upiName, setUpiName] = useState('9 Arts Studio')
+  const [customFields, setCustomFields] = useState<CustomField[]>([])
+  const [customData, setCustomData] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    // Fetch seat availability
     fetch('/api/seats').then(r => r.json()).then(d => setSeatData(d.seats ?? {})).catch(() => {})
-    // Fetch dynamic event settings (tiers, UPI, etc.)
     fetch('/api/event-settings').then(r => r.json()).then(d => {
       if (d.settings) {
         setDynamicTiers(d.settings.pass_tiers ?? [])
         if (d.settings.upi_id) setUpiId(d.settings.upi_id)
         if (d.settings.upi_name) setUpiName(d.settings.upi_name)
+        setCustomFields(d.settings.custom_fields ?? [])
       }
     }).catch(() => {})
   }, [])
@@ -156,7 +157,7 @@ export default function RegistrationForm({ showAllTiers = false }: { showAllTier
     try {
       const res = await fetch('/api/register', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...state.form }),
+        body: JSON.stringify({ ...state.form, extra_data: customData }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -320,6 +321,26 @@ export default function RegistrationForm({ showAllTiers = false }: { showAllTier
               <option value="other" className="bg-zinc-900 text-white">Other</option>
             </select>
           </Field>
+
+          {/* Custom fields */}
+          {customFields.map(cf => (
+            <Field key={cf.id} label={`${cf.label}${cf.required ? ' *' : ''}`}>
+              {cf.type === 'select' ? (
+                <select value={customData[cf.id] ?? ''} onChange={e => setCustomData(d => ({ ...d, [cf.id]: e.target.value }))}
+                  className={inputClass(false) + ' appearance-none cursor-pointer bg-zinc-900 text-white'} style={{ colorScheme: 'dark' }}>
+                  <option value="" disabled className="bg-zinc-900 text-zinc-500">{cf.placeholder || 'Select...'}</option>
+                  {cf.options.map(o => <option key={o} value={o} className="bg-zinc-900 text-white">{o}</option>)}
+                </select>
+              ) : cf.type === 'textarea' ? (
+                <textarea value={customData[cf.id] ?? ''} onChange={e => setCustomData(d => ({ ...d, [cf.id]: e.target.value }))}
+                  placeholder={cf.placeholder} rows={3} className={inputClass(false) + ' resize-none'} />
+              ) : (
+                <input type={cf.type === 'number' ? 'number' : 'text'} value={customData[cf.id] ?? ''}
+                  onChange={e => setCustomData(d => ({ ...d, [cf.id]: e.target.value }))}
+                  placeholder={cf.placeholder} className={inputClass(false)} />
+              )}
+            </Field>
+          ))}
           {state.submitError && (
             state.submitError.startsWith('ALREADY_REGISTERED:') ? (
               <div className="bg-amber-900/20 border border-amber-700/50 rounded-xl px-4 py-4 text-sm space-y-3">
@@ -665,7 +686,7 @@ function PaymentStep({ isGroup, groupResults, applicationId, amount, tier, upiId
               <div className="flex items-center gap-2">
                 <a
                   href="/payment-qr.png"
-                  download="MissNellore2026-Payment-QR.png"
+                  download="payment-qr.png"
                   className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300 border border-blue-700/40 bg-blue-900/20 px-3 py-2 rounded-lg transition-colors"
                 >
                   ⬇️ Download QR to Phone

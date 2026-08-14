@@ -1,8 +1,13 @@
+import type React from 'react'
 import { type EventSettings, DEFAULT_EVENT_SETTINGS } from '@/lib/types'
 
 export default function ContactSection({ settings: s = DEFAULT_EVENT_SETTINGS }: { settings?: EventSettings }) {
+  const bgStyle: React.CSSProperties = s.contact_bg_image
+    ? { backgroundImage: `url(${s.contact_bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    : {}
+
   return (
-    <section id="contact" className="py-16 sm:py-20 bg-black/70 border-t border-white/5">
+    <section id="contact" className="py-16 sm:py-20 bg-black/70 border-t border-white/5" style={bgStyle}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="grid md:grid-cols-3 gap-10 items-start">
           {/* Brand */}

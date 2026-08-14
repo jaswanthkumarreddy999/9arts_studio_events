@@ -1,26 +1,41 @@
 import { type EventSettings, DEFAULT_EVENT_SETTINGS } from '@/lib/types'
 
 export default function HeroSection({ settings: s = DEFAULT_EVENT_SETTINGS }: { settings?: EventSettings }) {
+  const bgStyle = s.hero_bg_image
+    ? {
+        backgroundImage: `url(${s.hero_bg_image})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }
+    : {
+        background: 'radial-gradient(ellipse at center, #1a0a2e 0%, #0d0a1a 40%, #0a0a0f 100%)',
+      }
+
   return (
     <section
       id="home"
       className="relative min-h-screen flex items-center justify-center overflow-hidden"
-      style={{
-        background: 'radial-gradient(ellipse at center, #1a0a2e 0%, #0d0a1a 40%, #0a0a0f 100%)',
-      }}
+      style={bgStyle}
     >
-      {/* Decorative orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-20 -left-20 w-96 h-96 rounded-full opacity-20 blur-3xl"
-          style={{ background: 'radial-gradient(circle, #4a1d8c, transparent)' }} />
-        <div className="absolute -bottom-20 -right-20 w-96 h-96 rounded-full opacity-20 blur-3xl"
-          style={{ background: 'radial-gradient(circle, #d4a520, transparent)' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-5 blur-3xl"
-          style={{ background: 'radial-gradient(circle, #e11d48, transparent)' }} />
-      </div>
+      {/* Dark overlay when bg image is set */}
+      {s.hero_bg_image && (
+        <div className="absolute inset-0 bg-black/60 z-0" />
+      )}
+
+      {/* Decorative orbs — only shown without custom bg */}
+      {!s.hero_bg_image && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-20 -left-20 w-96 h-96 rounded-full opacity-20 blur-3xl"
+            style={{ background: 'radial-gradient(circle, #4a1d8c, transparent)' }} />
+          <div className="absolute -bottom-20 -right-20 w-96 h-96 rounded-full opacity-20 blur-3xl"
+            style={{ background: 'radial-gradient(circle, #d4a520, transparent)' }} />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-5 blur-3xl"
+            style={{ background: 'radial-gradient(circle, #e11d48, transparent)' }} />
+        </div>
+      )}
 
       {/* Floating icons */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
         {['top-20 left-10', 'top-32 right-16', 'bottom-40 left-16', 'bottom-20 right-10'].map((pos, i) => (
           <span key={i} className="absolute text-4xl opacity-10 float" style={{ animationDelay: `${i * 0.7}s` }}>
             <span className={`absolute ${pos}`}>{s.event_icon}</span>

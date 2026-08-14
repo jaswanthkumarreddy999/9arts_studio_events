@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase'
+import { getEventSettings } from '@/lib/eventSettings'
 import type { Contestant } from '@/lib/types'
 
 // Sample contestants for display when DB is not yet configured
@@ -64,9 +65,13 @@ function ContestantCard({ contestant }: { contestant: Contestant }) {
 
 export default async function ContestantsSection() {
   const contestants = await getContestants()
+  const settings = await getEventSettings()
 
   return (
-    <section id="contestants" className="py-20 sm:py-28 bg-black/50">
+    <section id="contestants" className="py-20 sm:py-28"
+      style={settings.contestants_bg_image
+        ? { backgroundImage: `url(${settings.contestants_bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+        : { background: 'rgba(0,0,0,0.5)' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Header */}
         <div className="text-center mb-12">
@@ -77,7 +82,7 @@ export default async function ContestantsSection() {
             Our <span className="shimmer">Shining Stars</span>
           </h2>
           <p className="text-zinc-400 text-lg max-w-xl mx-auto">
-            Meet the talented and beautiful contestants competing for the Miss Nellore 2026 crown.
+            {settings.contestants_description || `Meet the talented contestants competing at ${settings.event_name} ${settings.event_edition}.`}
           </p>
         </div>
 

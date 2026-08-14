@@ -33,7 +33,9 @@ export default async function AboutSection({ settings: s = DEFAULT_EVENT_SETTING
     <section
       id="about"
       className="py-20 sm:py-28"
-      style={{ background: 'linear-gradient(180deg, #0a0a0f 0%, #0d0a1a 100%)' }}
+      style={s.about_bg_image
+        ? { backgroundImage: `url(${s.about_bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'local' }
+        : { background: 'linear-gradient(180deg, #0a0a0f 0%, #0d0a1a 100%)' }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Header */}

@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
     // Create registrations + payments
     const results: { application_id: string; full_name: string; amount: number; seat_tier: string }[] = []
     for (const t of tickets) {
-      const application_id = generateApplicationId(t.mobile)
+      const application_id = generateApplicationId(t.mobile, settings.app_id_prefix)
       const amount = getTier(t.seat_tier)!.price
 
       const { error: regError } = await supabaseAdmin.from('registrations').insert({
@@ -146,12 +146,13 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: `${tierInfo.label} seats are sold out.` }, { status: 409 })
   }
 
-  const application_id = generateApplicationId(data.mobile)
+  const application_id = generateApplicationId(data.mobile, settings.app_id_prefix)
   const amount = tierInfo.price
 
   const { error: regError } = await supabaseAdmin.from('registrations').insert({
     application_id, full_name: data.full_name, mobile: data.mobile,
     gender: data.gender, seat_tier: data.seat_tier,
+    extra_data: (body as Record<string, unknown>).extra_data ?? {},
   })
   if (regError) {
     return Response.json({ error: 'Registration failed. Please try again.' }, { status: 500 })

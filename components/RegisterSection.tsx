@@ -2,9 +2,12 @@ import RegistrationForm from './RegistrationForm'
 import { type EventSettings, DEFAULT_EVENT_SETTINGS } from '@/lib/types'
 
 export default function RegisterSection({ settings: s = DEFAULT_EVENT_SETTINGS }: { settings?: EventSettings }) {
+  const bgStyle = s.register_bg_image
+    ? { backgroundImage: `url(${s.register_bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    : { background: 'linear-gradient(180deg, #0a0a0f 0%, #0d0a1a 100%)' }
+
   return (
-    <section id="register" className="py-20 sm:py-28"
-      style={{ background: 'linear-gradient(180deg, #0a0a0f 0%, #0d0a1a 100%)' }}>
+    <section id="register" className="py-20 sm:py-28" style={bgStyle}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-center mb-12">
           <span className="inline-block text-yellow-500 text-sm font-semibold uppercase tracking-widest mb-3">

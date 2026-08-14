@@ -92,6 +92,12 @@ export default function AdminDashboard({ adminName }: { adminName: string }) {
     settings:      { label: 'Settings',      icon: '⚙️' },
   }
 
+  // Build visible tabs list from admin_tabs setting
+  const visibleTabs = (Object.keys(TAB_META) as AdminTab[]).filter(tab => {
+    const cfg = eventSettings.admin_tabs?.find(t => t.key === tab)
+    return cfg ? cfg.visible : true
+  })
+
   return (
     <div className="min-h-screen" style={{ background: '#0a0a0f' }}>
       <header className="bg-black/60 border-b border-white/10 sticky top-0 z-30">
@@ -109,7 +115,7 @@ export default function AdminDashboard({ adminName }: { adminName: string }) {
           </div>
         </div>
         <div className="max-w-7xl mx-auto px-4 flex gap-1 overflow-x-auto">
-          {(Object.keys(TAB_META) as AdminTab[]).map((tab) => (
+          {visibleTabs.map((tab) => (
             <button key={tab} onClick={() => setActiveTab(tab)}
               className={`px-3 py-2.5 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${activeTab === tab ? 'border-yellow-500 text-yellow-400' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}>
               {TAB_META[tab].icon} {TAB_META[tab].label}

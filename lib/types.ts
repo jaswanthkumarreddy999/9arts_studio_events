@@ -49,6 +49,43 @@ export interface PassTierConfig {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// CUSTOM SECTION — admin-managed homepage section
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface CustomSection {
+  id: string             // unique key e.g. "schedule", "gallery"
+  title: string          // displayed heading
+  subtitle: string       // small label above heading
+  content: string        // main paragraph/description text
+  bg_image: string       // background image URL (empty = solid bg)
+  bg_color: string       // fallback CSS color e.g. '#0a0a0f'
+  visible: boolean       // show on homepage
+  display_order: number
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CUSTOM REGISTRATION FIELD
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface CustomField {
+  id: string             // unique key, stored as key in extra_data JSONB
+  label: string          // shown to user e.g. "School Name"
+  type: 'text' | 'number' | 'select' | 'textarea'
+  placeholder: string
+  required: boolean
+  options: string[]      // for type='select'
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN TAB CONFIG
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface AdminTabConfig {
+  key: string            // matches AdminTab type in AdminDashboard
+  visible: boolean       // show tab in admin dashboard
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // EVENT SETTINGS — mirrors the event_settings DB table
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -76,6 +113,7 @@ export interface EventSettings {
   event_edition: string
   organizer_name: string
   event_icon: string
+  app_id_prefix: string   // prefix for application IDs e.g. '9AS'
 
   // Date & Venue
   event_date: string
@@ -110,6 +148,18 @@ export interface EventSettings {
   show_sponsors: boolean
   show_voting: boolean
 
+  // Section background images
+  hero_bg_image: string
+  about_bg_image: string
+  contestants_bg_image: string
+  sponsors_bg_image: string
+  register_bg_image: string
+  contact_bg_image: string
+
+  // Section description overrides (used in ContestantsSection, SponsorsSection)
+  contestants_description: string
+  sponsors_description: string
+
   // About section
   about_title: string
   about_subtitle: string
@@ -131,6 +181,15 @@ export interface EventSettings {
   // Vote categories
   vote_categories: VoteCategory[]
 
+  // Custom admin-managed homepage sections
+  custom_sections: CustomSection[]
+
+  // Custom registration fields
+  custom_fields: CustomField[]
+
+  // Admin tab visibility
+  admin_tabs: AdminTabConfig[]
+
   updated_at?: string
 }
 
@@ -141,6 +200,7 @@ export const DEFAULT_EVENT_SETTINGS: EventSettings = {
   event_edition: '2026',
   organizer_name: '9 Arts Studio',
   event_icon: '🎭',
+  app_id_prefix: '9AS',
 
   event_date: 'TBA',
   event_day: 'Sunday',
@@ -193,7 +253,17 @@ export const DEFAULT_EVENT_SETTINGS: EventSettings = {
   show_sponsors: true,
   show_voting: true,
 
-  about_title: 'A Event of Elegance & Grace',
+  hero_bg_image: '',
+  about_bg_image: '',
+  contestants_bg_image: '',
+  sponsors_bg_image: '',
+  register_bg_image: '',
+  contact_bg_image: '',
+
+  contestants_description: '',
+  sponsors_description: '',
+
+  about_title: 'An Event of Elegance & Grace',
   about_subtitle: 'About The Event',
   about_description: 'Join us for an unforgettable experience.',
   about_highlights: [
@@ -226,6 +296,21 @@ export const DEFAULT_EVENT_SETTINGS: EventSettings = {
     { key: 'teen',   label: 'Teen',   icon: '👧' },
     { key: 'miss',   label: 'Miss',   icon: '👩' },
     { key: 'misses', label: 'Misses', icon: '👑' },
+  ],
+
+  custom_sections: [],
+
+  custom_fields: [],
+
+  admin_tabs: [
+    { key: 'registrations', visible: true },
+    { key: 'contestants',   visible: true },
+    { key: 'sponsors',      visible: true },
+    { key: 'seating',       visible: true },
+    { key: 'scanhistory',   visible: true },
+    { key: 'votes',         visible: true },
+    { key: 'register',      visible: true },
+    { key: 'settings',      visible: true },
   ],
 }
 

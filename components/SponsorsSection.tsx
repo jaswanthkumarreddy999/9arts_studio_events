@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase'
+import { getEventSettings } from '@/lib/eventSettings'
 
 type SponsorTier = 'title' | 'gold' | 'silver' | 'bronze'
 
@@ -85,13 +86,18 @@ function EmptyCard({ tier }: { tier: SponsorTier }) {
 
 export default async function SponsorsSection() {
   const sponsors = await getSponsors()
+  const settings = await getEventSettings()
   const tiers: SponsorTier[] = ['title', 'gold', 'silver', 'bronze']
 
   // Check if any sponsor exists at all
   const hasAny = sponsors.length > 0
 
+  const bgStyle = settings.sponsors_bg_image
+    ? { backgroundImage: `url(${settings.sponsors_bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    : { background: 'linear-gradient(180deg, #0a0a0f 0%, #0d0a1a 50%, #0a0a0f 100%)' }
+
   return (
-    <section id="sponsors" className="py-16 sm:py-24" style={{ background: 'linear-gradient(180deg, #0a0a0f 0%, #0d0a1a 50%, #0a0a0f 100%)' }}>
+    <section id="sponsors" className="py-16 sm:py-24" style={bgStyle}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Header */}
         <div className="text-center mb-12">
@@ -103,8 +109,8 @@ export default async function SponsorsSection() {
           </h2>
           <p className="text-zinc-400 text-lg max-w-xl mx-auto">
             {hasAny
-              ? 'Thank you to our generous sponsors who make Miss Nellore 2026 possible.'
-              : 'Sponsorship opportunities are open. Be part of Miss Nellore 2026.'}
+              ? (settings.sponsors_description || `Thank you to our generous sponsors who make ${settings.event_name} possible.`)
+              : (settings.sponsors_description || `Sponsorship opportunities are open. Be part of ${settings.event_name}.`)}
           </p>
         </div>
 
