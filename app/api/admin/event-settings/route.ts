@@ -87,9 +87,10 @@ export async function PUT(req: NextRequest) {
     return Response.json({ error: 'Failed to save settings', detail: error.message }, { status: 500 })
   }
 
-  // Revalidate the public homepage and layout so changes show immediately
+  // Revalidate public pages and the my-pass page so changes show immediately
   revalidatePath('/')
   revalidatePath('/login')
+  revalidatePath('/my-pass')
 
   return Response.json({ success: true })
 }

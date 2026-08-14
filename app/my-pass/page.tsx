@@ -8,6 +8,9 @@ import VoteSection from './VoteSection'
 import PaymentSubmit from './PaymentSubmit'
 import DownloadPassButton from './DownloadPassButton'
 
+// Always fetch fresh — so template/position changes from admin show immediately
+export const revalidate = 0
+
 export default async function MyPassPage() {
   const session = await getSession()
   if (!session) return null // middleware handles redirect

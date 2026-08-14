@@ -806,7 +806,7 @@ export default function EventSettingsTab() {
       </Section>
 
       {/* ── PASS TEMPLATE ────────────────────────────────────────────────── */}
-      <Section title="Pass / Ticket Template" icon="🎟️" defaultOpen={false}>
+      <Section title="Pass / Ticket Template" icon="🎟️" defaultOpen={true}>
         <p className="text-zinc-500 text-xs mb-4">
           Upload a custom background image for the entry pass shown to attendees. Drag the field labels on the preview to set where each data field appears on your template.
         </p>
