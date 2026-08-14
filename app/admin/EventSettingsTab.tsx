@@ -73,8 +73,6 @@ function PassTemplateEditor({ currentUrl, onUploaded, positions, onPositionsChan
   // Use currentUrl directly (no stale local state) — always reflects latest prop after upload
   const displayUrl = currentUrl || '/ticket-template.png'
 
-  const displayUrl = preview || currentUrl
-
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
