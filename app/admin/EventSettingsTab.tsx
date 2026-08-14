@@ -115,7 +115,8 @@ function PaymentQrUploader({ currentUrl, onUploaded }: { currentUrl: string; onU
   )
 }
 
-// ─── PassTierEditor ───────────────────────────────────────────────────────────function PassTierEditor({ tiers, onChange }: { tiers: PassTierConfig[]; onChange: (v: PassTierConfig[]) => void }) {
+// ─── PassTierEditor ───────────────────────────────────────────────────────────
+function PassTierEditor({ tiers, onChange }: { tiers: PassTierConfig[]; onChange: (v: PassTierConfig[]) => void }) {
   function update(i: number, field: keyof PassTierConfig, value: unknown) {
     onChange(tiers.map((t, idx) => idx === i ? { ...t, [field]: value } : t))
   }
